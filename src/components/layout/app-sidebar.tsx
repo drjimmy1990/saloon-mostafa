@@ -19,6 +19,11 @@ import {
   X,
   Settings,
   LogOut,
+  UserCog,
+  Percent,
+  Image,
+  ClipboardList,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -33,9 +38,14 @@ const navItems: { id: string; path: string; icon: React.ElementType; labelKey: s
   { id: "dashboard", path: "/", icon: LayoutDashboard, labelKey: "nav.dashboard" },
   { id: "channels", path: "/channels", icon: Radio, labelKey: "nav.channels" },
   { id: "catalog", path: "/catalog", icon: ShoppingBag, labelKey: "nav.catalog" },
+  { id: "offers", path: "/offers", icon: Percent, labelKey: "nav.offers" },
   { id: "bookings", path: "/bookings", icon: CalendarCheck, labelKey: "nav.bookings" },
+  { id: "orders", path: "/orders", icon: ClipboardList, labelKey: "nav.orders" },
   { id: "clients", path: "/clients", icon: Users, labelKey: "nav.clients" },
+  { id: "staff", path: "/staff", icon: UserCog, labelKey: "nav.staff" },
   { id: "chat", path: "/chat", icon: MessageSquare, labelKey: "nav.chat" },
+  { id: "gallery", path: "/gallery", icon: Image, labelKey: "nav.gallery" },
+  { id: "pages", path: "/pages", icon: FileText, labelKey: "nav.pages", adminOnly: true },
   { id: "blacklist", path: "/blacklist", icon: ShieldBan, labelKey: "nav.blacklist" },
   { id: "settings", path: "/settings", icon: Settings, labelKey: "nav.settings", adminOnly: true },
 ];
