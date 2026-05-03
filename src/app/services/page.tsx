@@ -51,7 +51,7 @@ async function getServices() {
       .from("Offer")
       .select("product_id, discountType, discountValue, isActive")
       .eq("isActive", true),
-    supabase.from("Category").select("id, label, color").order("createdAt", { ascending: true }),
+    supabase.from("Category").select("id, label, color").eq("type", "service").order("createdAt", { ascending: true }),
   ]);
 
   return {
