@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
 
-// GET /api/categories
-export async function GET() {
+// GET /api/categories?type=service|product
+export async function GET(request: NextRequest) {
   try {
     const supabase = getServiceRoleClient();
-    const { data, error } = await supabase
+    const { searchParams } = new URL(request.url);
+    const typeFilter = searchParams.get('type');
+
+    let query = supabase
       .from('Category')
       .select('*')
       .order('createdAt', { ascending: true });
 
+    if (typeFilter === 'service' || typeFilter === 'product') {
+      query = query.eq('type', typeFilter);
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     return NextResponse.json(data || []);
   } catch (error) {
@@ -28,6 +36,7 @@ export async function POST(request: NextRequest) {
       .insert({
         label: body.label,
         color: body.color ?? 'sage',
+        type: body.type ?? 'service',
       })
       .select()
       .single();

@@ -28,5 +28,27 @@ END
 WHERE "type" IS NULL OR "type" = 'service';
 
 -- ====================================================================
+-- 3. Add "type" column to Category table
+-- ====================================================================
+
+ALTER TABLE "public"."Category"
+  ADD COLUMN IF NOT EXISTS "type" TEXT DEFAULT 'service';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'category_type_check'
+  ) THEN
+    ALTER TABLE "public"."Category"
+      ADD CONSTRAINT category_type_check CHECK ("type" IN ('service', 'product'));
+  END IF;
+END $$;
+
+-- Auto-classify: existing categories default to 'service'
+UPDATE "public"."Category"
+SET "type" = 'service'
+WHERE "type" IS NULL;
+
+-- ====================================================================
 -- DONE! After running this, existing items will be auto-classified.
 -- ====================================================================

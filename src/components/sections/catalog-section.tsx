@@ -261,7 +261,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
 
   const fetchCategories = async () => {
     try {
-      const res = await fetch("/api/categories");
+      const res = await fetch(`/api/categories?type=${typeFilter}`);
       const data = await res.json();
       setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -493,7 +493,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
         await fetch("/api/categories", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ label: categoryFormData.label, color: categoryFormData.color }),
+          body: JSON.stringify({ label: categoryFormData.label, color: categoryFormData.color, type: typeFilter }),
         });
       }
       await fetchCategories();
