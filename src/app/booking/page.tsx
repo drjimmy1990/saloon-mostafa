@@ -51,7 +51,7 @@ function BookingForm() {
   }, [preSelectedService]);
 
   const selectedServiceObjects = services.filter((s) => selectedServices.includes(s.id));
-  const totalPrice = selectedServiceObjects.reduce((sum, s) => sum + s.price, 0);
+  const totalPrice = selectedServiceObjects.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
 
   const toggleService = (id: string) => {
     setSelectedServices((prev) =>
@@ -184,7 +184,7 @@ function BookingForm() {
                       )}
                     </div>
                     <p className="text-sm text-terracotta font-bold mt-1 tabular-nums">
-                      {service.price.toFixed(2)} د.أ
+                      {Number(service.price ?? 0).toFixed(2)} د.أ
                     </p>
                   </button>
                 ))}
@@ -193,7 +193,7 @@ function BookingForm() {
                 <div className="p-4 rounded-xl bg-terracotta/5 flex items-center justify-between">
                   <span className="text-sm font-medium">المجموع المقدّر</span>
                   <span className="text-lg font-black text-terracotta tabular-nums">
-                    {totalPrice.toFixed(2)} د.أ
+                    {Number(totalPrice ?? 0).toFixed(2)} د.أ
                   </span>
                 </div>
               )}
@@ -362,7 +362,7 @@ function BookingForm() {
                 </div>
                 <div className="flex justify-between text-base font-bold pt-2 border-t">
                   <span>المجموع المقدّر</span>
-                  <span className="text-terracotta tabular-nums">{totalPrice.toFixed(2)} د.أ</span>
+                  <span className="text-terracotta tabular-nums">{Number(totalPrice ?? 0).toFixed(2)} د.أ</span>
                 </div>
               </div>
             </div>
