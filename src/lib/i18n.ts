@@ -42,6 +42,8 @@ export const translations = {
     nav: {
       dashboard: "Dashboard",
       channels: "Channels",
+      services: "Services",
+      products: "Products",
       catalog: "Catalog",
       offers: "Offers",
       bookings: "Bookings",
@@ -132,6 +134,27 @@ export const translations = {
       categoryNameAr: "Category Name (Arabic)",
       deleteCategoryConfirm: "Are you sure you want to delete this category? Products in this category will become uncategorized.",
       uncategorized: "Uncategorized",
+    },
+
+    // Services (split from catalog)
+    services: {
+      title: "Service Management",
+      subtitle: "Manage salon services that can be booked",
+      addService: "Add Service",
+      editService: "Edit Service",
+      deleteService: "Delete Service",
+      deleteConfirm: "Are you sure you want to delete this service?",
+    },
+
+    // Products (split from catalog)
+    productsSection: {
+      title: "Product Management",
+      subtitle: "Manage physical products for sale",
+      addProduct: "Add Product",
+      editProduct: "Edit Product",
+      deleteProduct: "Delete Product",
+      deleteConfirm: "Are you sure you want to delete this product?",
+      stock: "Stock",
     },
 
     // Bookings
@@ -346,6 +369,8 @@ export const translations = {
     nav: {
       dashboard: "لوحة القيادة",
       channels: "القنوات",
+      services: "الخدمات",
+      products: "المنتجات",
       catalog: "الكتالوج",
       offers: "العروض",
       bookings: "الحجوزات",
@@ -436,6 +461,27 @@ export const translations = {
       categoryNameAr: "اسم الفئة (عربي)",
       deleteCategoryConfirm: "هل أنت متأكد من حذف هذه الفئة؟ المنتجات في هذه الفئة ستصبح غير مصنفة.",
       uncategorized: "غير مصنف",
+    },
+
+    // Services (split from catalog)
+    services: {
+      title: "إدارة الخدمات",
+      subtitle: "إدارة خدمات الصالون القابلة للحجز",
+      addService: "إضافة خدمة",
+      editService: "تعديل الخدمة",
+      deleteService: "حذف الخدمة",
+      deleteConfirm: "هل أنت متأكد من حذف هذه الخدمة؟",
+    },
+
+    // Products (split from catalog)
+    productsSection: {
+      title: "إدارة المنتجات",
+      subtitle: "إدارة المنتجات المادية للبيع",
+      addProduct: "إضافة منتج",
+      editProduct: "تعديل المنتج",
+      deleteProduct: "حذف المنتج",
+      deleteConfirm: "هل أنت متأكد من حذف هذا المنتج؟",
+      stock: "الكمية",
     },
 
     // Bookings

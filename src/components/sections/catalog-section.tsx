@@ -76,6 +76,8 @@ interface Product {
   availableAtSalon: boolean;
   notes: string;
   sortOrder: number;
+  type: 'service' | 'product';
+  stock: number | null;
 }
 
 interface ProductFormData {
@@ -88,7 +90,10 @@ interface ProductFormData {
   availableAtHome: boolean;
   availableAtSalon: boolean;
   notes: string;
+  stock: number | null;
 }
+
+export type CatalogMode = 'services' | 'products';
 
 interface CategoryFormData {
   label: string;
@@ -201,6 +206,7 @@ const emptyProductFormData: ProductFormData = {
   availableAtHome: false,
   availableAtSalon: true,
   notes: "",
+  stock: null,
 };
 
 const emptyCategoryFormData: CategoryFormData = {
@@ -226,9 +232,11 @@ function getCategoryStyles(cat: CategoryItem | undefined, key: "bg" | "iconBg" |
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function CatalogSection() {
+export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
   const { locale } = useAppStore();
   const rtl = isRTL(locale);
+  const isServices = mode === 'services';
+  const typeFilter = isServices ? 'service' : 'product';
 
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -264,7 +272,7 @@ export function CatalogSection() {
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch("/api/products");
+      const res = await fetch(`/api/products?type=${typeFilter}`);
       const data = await res.json();
       setProducts(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -337,6 +345,7 @@ export function CatalogSection() {
       availableAtHome: product.availableAtHome ?? false,
       availableAtSalon: product.availableAtSalon ?? true,
       notes: product.notes || "",
+      stock: product.stock ?? null,
     });
     setProductDialogOpen(true);
   };
@@ -347,7 +356,7 @@ export function CatalogSection() {
   };
 
   const handleSaveProduct = async () => {
-    const payload = {
+    const payload: Record<string, unknown> = {
       name: formData.name,
       description: formData.description,
       price: formData.price,
@@ -357,6 +366,8 @@ export function CatalogSection() {
       availableAtHome: formData.availableAtHome,
       availableAtSalon: formData.availableAtSalon,
       notes: formData.notes,
+      type: typeFilter,
+      stock: isServices ? null : (formData.stock ?? 0),
     };
 
     try {
@@ -544,10 +555,10 @@ export function CatalogSection() {
       <div className="space-y-4">
         <div className="space-y-1">
           <h2 className={cn("text-2xl font-bold tracking-tight", rtl && "font-arabic")}>
-            {t(locale, "catalog.title")}
+            {isServices ? t(locale, "services.title") : t(locale, "productsSection.title")}
           </h2>
           <p className={cn("text-muted-foreground text-sm", rtl && "font-arabic")}>
-            {t(locale, "catalog.subtitle")}
+            {isServices ? t(locale, "services.subtitle") : t(locale, "productsSection.subtitle")}
           </p>
         </div>
 
@@ -586,7 +597,7 @@ export function CatalogSection() {
             className={cn("gap-2 shrink-0", rtl && "font-arabic")}
           >
             <Plus className="w-4 h-4" />
-            {t(locale, "catalog.addProduct")}
+            {isServices ? t(locale, "services.addService") : t(locale, "productsSection.addProduct")}
           </Button>
         </div>
       </div>
@@ -801,17 +812,17 @@ export function CatalogSection() {
           <DialogHeader className={cn(rtl && "text-right")}>
             <DialogTitle className={cn(rtl && "text-right")}>
               {editingProduct
-                ? t(locale, "catalog.editProduct")
-                : t(locale, "catalog.addProduct")}
+                ? isServices ? t(locale, "services.editService") : t(locale, "productsSection.editProduct")
+                : isServices ? t(locale, "services.addService") : t(locale, "productsSection.addProduct")}
             </DialogTitle>
             <DialogDescription className={cn(rtl && "text-right")}>
               {editingProduct
                 ? rtl
-                  ? "قم بتعديل تفاصيل المنتج"
-                  : "Update product details"
+                  ? isServices ? "قم بتعديل تفاصيل الخدمة" : "قم بتعديل تفاصيل المنتج"
+                  : isServices ? "Update service details" : "Update product details"
                 : rtl
-                  ? "أضف منتج أو خدمة جديدة إلى الكتالوج"
-                  : "Add a new product or service to the catalog"}
+                  ? isServices ? "أضف خدمة جديدة" : "أضف منتج جديد"
+                  : isServices ? "Add a new service" : "Add a new product"}
             </DialogDescription>
           </DialogHeader>
 
@@ -906,7 +917,8 @@ export function CatalogSection() {
               </div>
             </div>
 
-            {/* Location Availability Toggles */}
+            {/* Location Availability Toggles — Services only */}
+            {isServices && (
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
                 <Label className={cn("cursor-pointer", rtl && "font-arabic")} htmlFor="availableAtSalon">
@@ -937,6 +949,28 @@ export function CatalogSection() {
                 </div>
               </div>
             </div>
+            )}
+
+            {/* Stock — Products only */}
+            {!isServices && (
+            <div className="space-y-2">
+              <Label className={cn(rtl && "text-right block font-arabic")} htmlFor="stock">
+                {rtl ? "الكمية المتوفرة" : "Stock Quantity"}
+              </Label>
+              <Input
+                id="stock"
+                type="number"
+                min="0"
+                value={formData.stock ?? 0}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, stock: parseInt(e.target.value) || 0 }))
+                }
+                placeholder="0"
+                className="tabular-nums"
+                dir="ltr"
+              />
+            </div>
+            )}
 
             {/* Image Upload */}
             <div className="space-y-3">

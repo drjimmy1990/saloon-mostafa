@@ -30,6 +30,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.availableAtSalon !== undefined) updateData.availableAtSalon = body.availableAtSalon;
     if (body.category !== undefined) updateData.category = body.category;
     if (body.notes !== undefined) updateData.notes = body.notes;
+    if (body.type !== undefined) updateData.type = body.type;
+    if (body.stock !== undefined) updateData.stock = body.stock;
 
     const { data: product, error } = await supabase
       .from('Product')

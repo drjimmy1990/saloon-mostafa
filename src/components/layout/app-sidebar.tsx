@@ -6,7 +6,8 @@ import { t, isRTL } from "@/lib/i18n";
 import {
   LayoutDashboard,
   Radio,
-  ShoppingBag,
+  Scissors,
+  Package,
   CalendarCheck,
   Users,
   MessageSquare,
@@ -37,7 +38,8 @@ import { logout } from "@/app/login/actions";
 const navItems: { id: string; path: string; icon: React.ElementType; labelKey: string; adminOnly?: boolean }[] = [
   { id: "dashboard", path: "/", icon: LayoutDashboard, labelKey: "nav.dashboard" },
   { id: "channels", path: "/channels", icon: Radio, labelKey: "nav.channels" },
-  { id: "catalog", path: "/catalog", icon: ShoppingBag, labelKey: "nav.catalog" },
+  { id: "services", path: "/services", icon: Scissors, labelKey: "nav.services" },
+  { id: "products", path: "/products", icon: Package, labelKey: "nav.products" },
   { id: "offers", path: "/offers", icon: Percent, labelKey: "nav.offers" },
   { id: "bookings", path: "/bookings", icon: CalendarCheck, labelKey: "nav.bookings" },
   { id: "orders", path: "/orders", icon: ClipboardList, labelKey: "nav.orders" },
