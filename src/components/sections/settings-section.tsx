@@ -40,6 +40,7 @@ export function SettingsSection() {
   // General Settings State
   const [salonAddress, setSalonAddress] = useState("");
   const [whatsappNotification, setWhatsappNotification] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState("2");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [password, setPassword] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -72,6 +73,7 @@ export function SettingsSection() {
         const data = await res.json();
         setSalonAddress(data.salon_address || "");
         setWhatsappNotification(data.order_notification_whatsapp || "");
+        setDeliveryFee(data.delivery_fee || "2");
       }
     } catch (err) {
       console.error("Failed to fetch settings", err);
@@ -98,6 +100,7 @@ export function SettingsSection() {
       const payload = {
         salon_address: salonAddress,
         order_notification_whatsapp: whatsappNotification,
+        delivery_fee: deliveryFee,
       };
       await fetch("/api/settings", {
         method: "POST",
@@ -266,6 +269,24 @@ export function SettingsSection() {
                 placeholder="962790000000"
                 dir="ltr"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="deliveryFee" className={cn(rtl && "font-arabic")}>
+                {rtl ? "رسوم التوصيل (د.أ)" : "Delivery Fee (JOD)"}
+              </Label>
+              <Input
+                id="deliveryFee"
+                type="number"
+                step="0.5"
+                min="0"
+                value={deliveryFee}
+                onChange={(e) => setDeliveryFee(e.target.value)}
+                placeholder="2"
+                dir="ltr"
+              />
+              <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
+                {rtl ? "رسوم التوصيل التي تظهر في صفحة الدفع بالموقع" : "Delivery fee shown on website checkout"}
+              </p>
             </div>
             <Button
               onClick={handleSaveSettings}
