@@ -21,15 +21,24 @@ export default function CheckoutPage() {
   const [notes, setNotes] = useState("");
   const [payment, setPayment] = useState<"cash"|"cliq"|"card">("cash");
   const [loading, setLoading] = useState(false);
+  const [deliveryFee, setDeliveryFee] = useState(2);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    // Fetch delivery fee from settings
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.delivery_fee) setDeliveryFee(Number(data.delivery_fee) || 2);
+      })
+      .catch(() => {});
+  }, []);
 
   if (!mounted) return <div className="min-h-screen bg-cream py-20"><div className="container mx-auto max-w-2xl px-4"><div className="animate-pulse h-8 bg-muted rounded w-40 mx-auto"/></div></div>;
 
   if (items.length === 0) { router.push("/cart"); return null; }
 
   const subtotal = getTotal();
-  const deliveryFee = 2;
   const total = subtotal + deliveryFee;
 
   const handleSubmit = async () => {
