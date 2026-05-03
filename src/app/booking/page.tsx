@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { getSupabaseClient } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,15 +40,10 @@ function BookingForm() {
 
   useEffect(() => {
     async function fetchServices() {
-      const supabase = getSupabaseClient();
-      const { data } = await supabase
-        .from("Product")
-        .select("id, name, price, images, availableAtHome, availableAtSalon")
-        .eq("isAvailable", true)
-        .eq("type", "service")
-        .order("sortOrder", { ascending: true });
-      setServices(data || []);
-      if (preSelectedService && data?.some((s) => s.id === preSelectedService)) {
+      const res = await fetch("/api/services");
+      const data = await res.json();
+      setServices(Array.isArray(data) ? data : []);
+      if (preSelectedService && data?.some((s: Service) => s.id === preSelectedService)) {
         setSelectedServices([preSelectedService]);
       }
     }

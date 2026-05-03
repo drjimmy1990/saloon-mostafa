@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase";
 import Image from "next/image";
 import Link from "next/link";
 import { Metadata } from "next";
@@ -30,7 +30,7 @@ interface Offer {
 }
 
 async function getProducts() {
-  const supabase = getSupabaseClient();
+  const supabase = getServiceRoleClient();
 
   const [{ data: products }, { data: offers }] = await Promise.all([
     supabase
@@ -52,11 +52,12 @@ async function getProducts() {
 }
 
 function calculateDiscountedPrice(price: number, offer: Offer | undefined) {
-  if (!offer) return price;
+  const safePrice = Number(price) || 0;
+  if (!offer) return safePrice;
   if (offer.discountType === "percentage") {
-    return price * (1 - offer.discountValue / 100);
+    return safePrice * (1 - Number(offer.discountValue) / 100);
   }
-  return Math.max(0, price - offer.discountValue);
+  return Math.max(0, safePrice - Number(offer.discountValue));
 }
 
 export default async function ProductsPage() {
@@ -140,12 +141,12 @@ export default async function ProductsPage() {
                   {/* Price */}
                   <div className="flex items-baseline gap-1.5 mb-3">
                     <span className="text-lg font-black text-terracotta tabular-nums">
-                      {discountedPrice.toFixed(2)}
+                      {Number(discountedPrice ?? 0).toFixed(2)}
                     </span>
                     <span className="text-[10px] text-muted-foreground">د.أ</span>
                     {offer && (
                       <span className="text-xs text-muted-foreground line-through tabular-nums">
-                        {product.price.toFixed(2)}
+                        {Number(product.price ?? 0).toFixed(2)}
                       </span>
                     )}
                   </div>

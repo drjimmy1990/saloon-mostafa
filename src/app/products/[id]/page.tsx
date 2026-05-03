@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase";
 import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { notFound } from "next/navigation";
@@ -7,7 +7,7 @@ import { AddToCartButton } from "@/components/catalog/add-to-cart-button";
 interface Props { params: Promise<{ id: string }> }
 
 async function getProduct(id: string) {
-  const supabase = getSupabaseClient();
+  const supabase = getServiceRoleClient();
   const [{ data: product }, { data: offers }] = await Promise.all([
     supabase.from("Product").select("*").eq("id", id).single(),
     supabase.from("Offer").select("*").eq("product_id", id).eq("isActive", true),
@@ -21,8 +21,8 @@ export default async function ProductDetailPage({ params }: Props) {
   if (!product) notFound();
 
   const discountedPrice = offer
-    ? offer.discountType === "percentage" ? product.price * (1 - offer.discountValue / 100) : Math.max(0, product.price - offer.discountValue)
-    : product.price;
+    ? offer.discountType === "percentage" ? Number(product.price ?? 0) * (1 - Number(offer.discountValue) / 100) : Math.max(0, Number(product.price ?? 0) - Number(offer.discountValue))
+    : Number(product.price ?? 0);
   const inStock = product.stock !== null && product.stock > 0;
 
   return (
@@ -65,7 +65,7 @@ export default async function ProductDetailPage({ params }: Props) {
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-black text-terracotta tabular-nums">{discountedPrice.toFixed(2)}</span>
                 <span className="text-sm text-muted-foreground">د.أ</span>
-                {offer && <span className="text-lg text-muted-foreground line-through tabular-nums">{product.price.toFixed(2)}</span>}
+                {offer && <span className="text-lg text-muted-foreground line-through tabular-nums">{Number(product.price ?? 0).toFixed(2)}</span>}
               </div>
             </div>
             {inStock && <p className="text-sm text-sage">✓ متوفر ({product.stock} قطعة)</p>}

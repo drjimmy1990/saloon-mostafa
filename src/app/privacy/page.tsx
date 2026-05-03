@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase";
 import { Metadata } from "next";
 import { SectionHeader } from "@/components/shared/section-header";
 
@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 };
 
 async function getPageContent(slug: string) {
-  const supabase = getSupabaseClient();
+  const supabase = getServiceRoleClient();
   const { data } = await supabase
     .from("CmsPage")
     .select("title, content")

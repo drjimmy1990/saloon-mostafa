@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase";
 import { Metadata } from "next";
 import { SectionHeader } from "@/components/shared/section-header";
 import { Phone, MapPin, MessageCircle, Clock } from "lucide-react";
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 async function getContactInfo() {
-  const supabase = getSupabaseClient();
+  const supabase = getServiceRoleClient();
   const [{ data: page }, { data: settings }] = await Promise.all([
     supabase.from("CmsPage").select("title, content").eq("slug", "contact").single(),
     supabase.from("SystemSetting").select("*").limit(1).single(),

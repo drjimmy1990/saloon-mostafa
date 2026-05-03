@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase";
 import Link from "next/link";
 import Image from "next/image";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -13,7 +13,7 @@ interface Product {
 }
 
 async function getFeaturedServices(): Promise<Product[]> {
-  const supabase = getSupabaseClient();
+  const supabase = getServiceRoleClient();
   const { data } = await supabase
     .from("Product")
     .select("id, name, price, images, isAvailable")
@@ -76,7 +76,7 @@ export async function FeaturedServices() {
                     variant="secondary"
                     className="bg-terracotta/10 text-terracotta border-none text-xs tabular-nums"
                   >
-                    {service.price.toFixed(2)} د.أ
+                    {Number(service.price ?? 0).toFixed(2)} د.أ
                   </Badge>
                   <span className="text-[10px] text-muted-foreground">
                     ابتداءً من

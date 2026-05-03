@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { notFound } from "next/navigation";
 interface Props { params: Promise<{ id: string }> }
 
 async function getService(id: string) {
-  const supabase = getSupabaseClient();
+  const supabase = getServiceRoleClient();
   const [{ data: service }, { data: offers }] = await Promise.all([
     supabase.from("Product").select("*").eq("id", id).single(),
     supabase.from("Offer").select("*").eq("product_id", id).eq("isActive", true),
@@ -22,8 +22,8 @@ export default async function ServiceDetailPage({ params }: Props) {
   if (!service) notFound();
 
   const discountedPrice = offer
-    ? offer.discountType === "percentage" ? service.price * (1 - offer.discountValue / 100) : Math.max(0, service.price - offer.discountValue)
-    : service.price;
+    ? offer.discountType === "percentage" ? Number(service.price ?? 0) * (1 - Number(offer.discountValue) / 100) : Math.max(0, Number(service.price ?? 0) - Number(offer.discountValue))
+    : Number(service.price ?? 0);
 
   return (
     <div className="min-h-screen bg-cream py-12 md:py-20">
@@ -62,7 +62,7 @@ export default async function ServiceDetailPage({ params }: Props) {
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-black text-terracotta tabular-nums">{discountedPrice.toFixed(2)}</span>
                 <span className="text-sm text-muted-foreground">د.أ</span>
-                {offer && <span className="text-lg text-muted-foreground line-through tabular-nums">{service.price.toFixed(2)}</span>}
+                {offer && <span className="text-lg text-muted-foreground line-through tabular-nums">{Number(service.price ?? 0).toFixed(2)}</span>}
               </div>
             </div>
             {service.description && <p className="text-muted-foreground leading-relaxed">{service.description}</p>}

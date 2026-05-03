@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase";
 import Image from "next/image";
 import { Metadata } from "next";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -16,7 +16,7 @@ interface GalleryItem {
 }
 
 async function getGalleryItems(): Promise<GalleryItem[]> {
-  const supabase = getSupabaseClient();
+  const supabase = getServiceRoleClient();
   const { data } = await supabase
     .from("Gallery")
     .select("*")
