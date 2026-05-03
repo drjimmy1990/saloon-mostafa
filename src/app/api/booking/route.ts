@@ -38,15 +38,17 @@ export async function POST(req: NextRequest) {
 
     // 2. Create booking
     const bookingDate = `${date}T${convertTo24h(time)}:00`;
+    const locationNote = location === "home" ? `📍 في المنزل: ${address}` : "🏪 في الصالون";
+    const fullSummary = [serviceSummary, locationNote, notes].filter(Boolean).join(" | ");
+
     const { data: booking, error } = await supabase
       .from("Booking")
       .insert({
         client_id: clientId,
-        serviceSummary,
+        serviceSummary: fullSummary,
         bookingDate,
         channelType: "website",
         status: "pending",
-        notes: `${location === "home" ? `📍 ${address}\n` : ""}${notes || ""}`.trim(),
       })
       .select("id")
       .single();
