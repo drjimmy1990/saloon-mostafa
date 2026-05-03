@@ -64,14 +64,24 @@ export default async function ProductsPage() {
   const { products, offers } = await getProducts();
 
   return (
-    <div className="min-h-screen bg-cream py-12 md:py-20">
-      <div className="container mx-auto max-w-7xl px-4">
-        <SectionHeader
-          title="منتجاتنا"
-          subtitle="منتجات تجميل وعناية عالية الجودة — توصيل في الأردن"
-        />
+    <div className="min-h-screen bg-cream">
+      {/* Hero banner */}
+      <div className="relative bg-gradient-to-bl from-terracotta-light/40 via-cream to-sand-light/30 py-16 md:py-24">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-10 left-[15%] w-64 h-64 rounded-full bg-terracotta/5 blur-3xl" />
+          <div className="absolute bottom-10 right-[10%] w-80 h-80 rounded-full bg-sand/5 blur-3xl" />
+        </div>
+        <div className="container mx-auto max-w-7xl px-4 relative z-10">
+          <SectionHeader
+            title="منتجاتنا"
+            subtitle="منتجات تجميل وعناية عالية الجودة — توصيل في الأردن"
+            gradient
+          />
+        </div>
+      </div>
 
-        {/* Products grid */}
+      {/* Products grid */}
+      <div className="container mx-auto max-w-7xl px-4 py-10 md:py-16">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {products.map((product, i) => {
             const offer = offers.find((o) => o.product_id === product.id);
@@ -81,7 +91,7 @@ export default async function ProductsPage() {
             return (
               <div
                 key={product.id}
-                className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-border/50 card-hover animate-fade-in-up"
+                className="group card-premium animate-fade-in-up"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
                 {/* Image */}
@@ -92,7 +102,7 @@ export default async function ProductsPage() {
                         src={product.images[0]}
                         alt={product.name}
                         fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                         sizes="(max-width: 768px) 50vw, 25vw"
                       />
                     ) : (
@@ -104,7 +114,7 @@ export default async function ProductsPage() {
                     {/* Offer badge */}
                     {offer && (
                       <div className="absolute top-3 left-3">
-                        <Badge className="bg-red-500 text-white border-none shadow-lg font-bold text-xs">
+                        <Badge className="bg-red-500 text-white border-none shadow-lg font-bold text-xs px-2.5 py-1">
                           {offer.discountType === "percentage"
                             ? `${offer.discountValue}%`
                             : `${offer.discountValue} د.أ`}
@@ -112,12 +122,21 @@ export default async function ProductsPage() {
                       </div>
                     )}
 
-                    {/* Stock badge */}
+                    {/* Stock status */}
                     {!inStock && (
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                        <Badge variant="destructive" className="text-sm font-bold">
+                      <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center">
+                        <Badge variant="destructive" className="text-sm font-bold px-4 py-1.5">
                           غير متوفر
                         </Badge>
+                      </div>
+                    )}
+
+                    {/* Quick view overlay */}
+                    {inStock && product.description && (
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-end p-3">
+                        <p className="text-white text-xs line-clamp-2 transform translate-y-3 group-hover:translate-y-0 transition-transform duration-500">
+                          {product.description}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -126,16 +145,19 @@ export default async function ProductsPage() {
                 {/* Info */}
                 <div className="p-4">
                   <Link href={`/products/${product.id}`}>
-                    <h3 className="font-bold text-sm text-dark mb-1 line-clamp-2 group-hover:text-terracotta transition-colors">
+                    <h3 className="font-bold text-sm text-dark mb-1.5 line-clamp-2 group-hover:text-terracotta transition-colors leading-snug">
                       {product.name}
                     </h3>
                   </Link>
 
                   {/* Stock indicator */}
                   {inStock && (
-                    <p className="text-[10px] text-sage mb-2">
-                      متوفر ({product.stock} قطعة)
-                    </p>
+                    <div className="flex items-center gap-1.5 mb-2.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/40" />
+                      <p className="text-[10px] text-emerald-600 font-medium">
+                        متوفر ({product.stock} قطعة)
+                      </p>
+                    </div>
                   )}
 
                   {/* Price */}
@@ -143,7 +165,7 @@ export default async function ProductsPage() {
                     <span className="text-lg font-black text-terracotta tabular-nums">
                       {Number(discountedPrice ?? 0).toFixed(2)}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">د.أ</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">د.أ</span>
                     {offer && (
                       <span className="text-xs text-muted-foreground line-through tabular-nums">
                         {Number(product.price ?? 0).toFixed(2)}
@@ -169,8 +191,10 @@ export default async function ProductsPage() {
         </div>
 
         {products.length === 0 && (
-          <div className="text-center py-20 text-muted-foreground">
-            <p className="text-xl">سيتم إضافة المنتجات قريباً ✨</p>
+          <div className="text-center py-24">
+            <div className="text-6xl mb-4">🛍️</div>
+            <p className="text-xl text-muted-foreground font-medium">سيتم إضافة المنتجات قريباً</p>
+            <p className="text-sm text-muted-foreground/60 mt-2">ترقبي مجموعتنا من أفضل منتجات التجميل</p>
           </div>
         )}
       </div>

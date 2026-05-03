@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { WhatsAppFloat } from "@/components/shared/whatsapp-float";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -29,6 +30,7 @@ export default function RootLayout({
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
+        <BottomNav />
         <WhatsAppFloat />
         <Toaster position="top-center" richColors />
       </body>
