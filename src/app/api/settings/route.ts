@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
 
-// GET /api/settings — fetch public settings (delivery_fee, etc.)
+// GET /api/settings — fetch all public settings
 export async function GET() {
   try {
     const supabase = getServiceRoleClient();
     const { data, error } = await supabase
       .from("SystemSetting")
-      .select("key, value")
-      .in("key", ["delivery_fee", "salon_address"]);
+      .select("key, value");
 
     if (error) throw error;
 
@@ -20,6 +19,11 @@ export async function GET() {
     return NextResponse.json(settings);
   } catch (err) {
     console.error("Settings fetch error:", err);
-    return NextResponse.json({ delivery_fee: "2" }); // fallback
+    // Safe fallbacks
+    return NextResponse.json({
+      delivery_fee: "2",
+      salon_phone: "962786753791",
+      whatsapp_number: "962786753791",
+    });
   }
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Flower2, Phone, MapPin, Clock } from "lucide-react";
+import { getSiteSettings } from "@/lib/settings";
 
 const footerLinks = [
   { label: "الخدمات", href: "/services" },
@@ -15,7 +16,16 @@ const legalLinks = [
   { label: "الشروط والأحكام", href: "/terms" },
 ];
 
-export function Footer() {
+export async function Footer() {
+  const settings = await getSiteSettings();
+  const phoneNumber = settings.salon_phone || "962786753791";
+  const salonAddress = settings.salon_address || "عمّان، الأردن";
+  const workingWeekdays = settings.working_hours_weekdays || "السبت - الخميس: 10:00 ص - 8:00 م";
+  const workingFriday = settings.working_hours_friday || "الجمعة: مغلق";
+  const instagramUrl = settings.instagram_url || "#";
+  const facebookUrl = settings.facebook_url || "#";
+  const tiktokUrl = settings.tiktok_url || "#";
+
   return (
     <footer className="bg-dark text-white/80 pb-20 md:pb-0">
       {/* Top accent line */}
@@ -41,13 +51,13 @@ export function Footer() {
             </p>
             {/* Social icons */}
             <div className="flex items-center gap-2">
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-terracotta hover:border-terracotta transition-all" aria-label="Instagram">
+              <a href={instagramUrl} target={instagramUrl !== "#" ? "_blank" : undefined} rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-terracotta hover:border-terracotta transition-all" aria-label="Instagram">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
               </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-terracotta hover:border-terracotta transition-all" aria-label="Facebook">
+              <a href={facebookUrl} target={facebookUrl !== "#" ? "_blank" : undefined} rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-terracotta hover:border-terracotta transition-all" aria-label="Facebook">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
               </a>
-              <a href="#" className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-terracotta hover:border-terracotta transition-all" aria-label="TikTok">
+              <a href={tiktokUrl} target={tiktokUrl !== "#" ? "_blank" : undefined} rel="noopener noreferrer" className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-terracotta hover:border-terracotta transition-all" aria-label="TikTok">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
               </a>
             </div>
@@ -85,18 +95,18 @@ export function Footer() {
                   <Phone className="w-4 h-4 text-terracotta" />
                 </div>
                 <a
-                  href={`tel:+${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "962786753791"}`}
+                  href={`tel:+${phoneNumber}`}
                   className="hover:text-white transition-colors"
                   dir="ltr"
                 >
-                  +{process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "962786753791"}
+                  +{phoneNumber}
                 </a>
               </li>
               <li className="flex items-start gap-3 text-sm text-white/50">
                 <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
                   <MapPin className="w-4 h-4 text-terracotta" />
                 </div>
-                <span>عمّان، الأردن</span>
+                <span>{salonAddress}</span>
               </li>
             </ul>
           </div>
@@ -112,19 +122,13 @@ export function Footer() {
                 <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
                   <Clock className="w-4 h-4 text-terracotta" />
                 </div>
-                <div>
-                  <p className="text-white/60">السبت — الخميس</p>
-                  <p className="text-white/40 text-xs" dir="ltr">10:00 AM — 8:00 PM</p>
-                </div>
+                <p className="text-white/60">{workingWeekdays}</p>
               </li>
               <li className="flex items-center gap-3 text-sm text-white/50">
                 <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
                   <Clock className="w-4 h-4 text-white/30" />
                 </div>
-                <div>
-                  <p className="text-white/60">الجمعة</p>
-                  <p className="text-white/40 text-xs">مغلق</p>
-                </div>
+                <p className="text-white/60">{workingFriday}</p>
               </li>
             </ul>
           </div>

@@ -1,10 +1,20 @@
 "use client";
 
 import { MessageCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export function WhatsAppFloat() {
-  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "962786753791";
+  const [whatsappNumber, setWhatsappNumber] = useState("962786753791");
   const message = encodeURIComponent("مرحباً، أريد الاستفسار عن خدمات صالون جاردينيا 🌸");
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.whatsapp_number) setWhatsappNumber(data.whatsapp_number);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <a

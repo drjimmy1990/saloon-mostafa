@@ -37,6 +37,8 @@ function BookingForm() {
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [bookingStart, setBookingStart] = useState("09:00");
+  const [bookingEnd, setBookingEnd] = useState("20:00");
 
   useEffect(() => {
     async function fetchServices() {
@@ -48,6 +50,14 @@ function BookingForm() {
       }
     }
     fetchServices();
+    // Fetch booking time config
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.booking_start_time) setBookingStart(data.booking_start_time);
+        if (data.booking_end_time) setBookingEnd(data.booking_end_time);
+      })
+      .catch(() => {});
   }, [preSelectedService]);
 
   const selectedServiceObjects = services.filter((s) => selectedServices.includes(s.id));
@@ -120,12 +130,22 @@ function BookingForm() {
     );
   }
 
-  const timeSlots = [
-    "09:00 AM", "09:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
-    "12:00 PM", "12:30 PM", "01:00 PM", "01:30 PM", "02:00 PM", "02:30 PM",
-    "03:00 PM", "03:30 PM", "04:00 PM", "04:30 PM", "05:00 PM", "05:30 PM",
-    "06:00 PM", "06:30 PM", "07:00 PM", "07:30 PM", "08:00 PM",
-  ];
+  // Generate time slots dynamically from settings
+  const timeSlots: string[] = [];
+  {
+    const [startH, startM] = bookingStart.split(":").map(Number);
+    const [endH, endM] = bookingEnd.split(":").map(Number);
+    let cur = startH * 60 + (startM || 0);
+    const end = endH * 60 + (endM || 0);
+    while (cur <= end) {
+      const h = Math.floor(cur / 60);
+      const m = cur % 60;
+      const ampm = h >= 12 ? "PM" : "AM";
+      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      timeSlots.push(`${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`);
+      cur += 30;
+    }
+  }
 
   return (
     <div className="min-h-screen bg-cream py-12 md:py-20">

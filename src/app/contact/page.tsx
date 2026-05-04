@@ -1,3 +1,4 @@
+import { getSiteSettings } from "@/lib/settings";
 import { getServiceRoleClient } from "@/lib/supabase";
 import { Metadata } from "next";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -10,16 +11,21 @@ export const metadata: Metadata = {
 
 async function getContactInfo() {
   const supabase = getServiceRoleClient();
-  const [{ data: page }, { data: settings }] = await Promise.all([
+  const [{ data: page }, settings] = await Promise.all([
     supabase.from("CmsPage").select("title, content").eq("slug", "contact").single(),
-    supabase.from("SystemSetting").select("*").limit(1).single(),
+    getSiteSettings(),
   ]);
   return { page, settings };
 }
 
 export default async function ContactPage() {
   const { page, settings } = await getContactInfo();
-  const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "962786753791";
+  const phoneNumber = settings.salon_phone || "962786753791";
+  const whatsappNumber = settings.whatsapp_number || phoneNumber;
+  const salonAddress = settings.salon_address || "عمّان، الأردن";
+  const workingWeekdays = settings.working_hours_weekdays || "السبت - الخميس: 10:00 ص - 8:00 م";
+  const workingFriday = settings.working_hours_friday || "الجمعة: مغلق";
+  const mapsUrl = settings.google_maps_url || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d217257.96330223998!2d35.72862505!3d31.9539494!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151b5fb85d7981b1%3A0x631c30c0f8dc65e8!2sAmman%2C%20Jordan!5e0!3m2!1sar!2sus!4v1";
 
   return (
     <div className="min-h-screen bg-cream py-12 md:py-20">
@@ -37,11 +43,11 @@ export default async function ContactPage() {
                 <div>
                   <h3 className="font-bold text-dark mb-1">الهاتف</h3>
                   <a
-                    href={`tel:+${whatsappNumber}`}
+                    href={`tel:+${phoneNumber}`}
                     className="text-muted-foreground hover:text-terracotta transition-colors"
                     dir="ltr"
                   >
-                    +{whatsappNumber}
+                    +{phoneNumber}
                   </a>
                 </div>
               </div>
@@ -73,9 +79,7 @@ export default async function ContactPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-dark mb-1">العنوان</h3>
-                  <p className="text-muted-foreground">
-                    {settings?.salon_address || "عمّان، الأردن"}
-                  </p>
+                  <p className="text-muted-foreground">{salonAddress}</p>
                 </div>
               </div>
             </div>
@@ -87,8 +91,8 @@ export default async function ContactPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-dark mb-1">أوقات العمل</h3>
-                  <p className="text-muted-foreground text-sm">السبت - الخميس: 9:00 ص - 9:00 م</p>
-                  <p className="text-muted-foreground text-sm">الجمعة: مغلق</p>
+                  <p className="text-muted-foreground text-sm">{workingWeekdays}</p>
+                  <p className="text-muted-foreground text-sm">{workingFriday}</p>
                 </div>
               </div>
             </div>
@@ -97,7 +101,7 @@ export default async function ContactPage() {
           {/* Map */}
           <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-border/50 min-h-[400px]">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d217257.96330223998!2d35.72862505!3d31.9539494!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151b5fb85d7981b1%3A0x631c30c0f8dc65e8!2sAmman%2C%20Jordan!5e0!3m2!1sar!2sus!4v1"
+              src={mapsUrl}
               width="100%"
               height="100%"
               style={{ border: 0, minHeight: "400px" }}
