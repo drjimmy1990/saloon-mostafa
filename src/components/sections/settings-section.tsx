@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { t, isRTL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Settings, Save, Users, Trash2, Plus } from "lucide-react";
+import { Settings, Save, Users, Trash2, Plus, Globe, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -39,8 +39,18 @@ export function SettingsSection() {
 
   // General Settings State
   const [salonAddress, setSalonAddress] = useState("");
+  const [salonPhone, setSalonPhone] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
   const [whatsappNotification, setWhatsappNotification] = useState("");
   const [deliveryFee, setDeliveryFee] = useState("2");
+  const [workingHoursWeekdays, setWorkingHoursWeekdays] = useState("");
+  const [workingHoursFriday, setWorkingHoursFriday] = useState("");
+  const [instagramUrl, setInstagramUrl] = useState("");
+  const [facebookUrl, setFacebookUrl] = useState("");
+  const [tiktokUrl, setTiktokUrl] = useState("");
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
+  const [bookingStartTime, setBookingStartTime] = useState("09:00");
+  const [bookingEndTime, setBookingEndTime] = useState("20:00");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [password, setPassword] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -72,8 +82,18 @@ export function SettingsSection() {
       if (res.ok) {
         const data = await res.json();
         setSalonAddress(data.salon_address || "");
+        setSalonPhone(data.salon_phone || "");
+        setWhatsappNumber(data.whatsapp_number || "");
         setWhatsappNotification(data.order_notification_whatsapp || "");
         setDeliveryFee(data.delivery_fee || "2");
+        setWorkingHoursWeekdays(data.working_hours_weekdays || "");
+        setWorkingHoursFriday(data.working_hours_friday || "");
+        setInstagramUrl(data.instagram_url || "");
+        setFacebookUrl(data.facebook_url || "");
+        setTiktokUrl(data.tiktok_url || "");
+        setGoogleMapsUrl(data.google_maps_url || "");
+        setBookingStartTime(data.booking_start_time || "09:00");
+        setBookingEndTime(data.booking_end_time || "20:00");
       }
     } catch (err) {
       console.error("Failed to fetch settings", err);
@@ -99,8 +119,18 @@ export function SettingsSection() {
     try {
       const payload = {
         salon_address: salonAddress,
+        salon_phone: salonPhone,
+        whatsapp_number: whatsappNumber,
         order_notification_whatsapp: whatsappNotification,
         delivery_fee: deliveryFee,
+        working_hours_weekdays: workingHoursWeekdays,
+        working_hours_friday: workingHoursFriday,
+        instagram_url: instagramUrl,
+        facebook_url: facebookUrl,
+        tiktok_url: tiktokUrl,
+        google_maps_url: googleMapsUrl,
+        booking_start_time: bookingStartTime,
+        booking_end_time: bookingEndTime,
       };
       await fetch("/api/settings", {
         method: "POST",
@@ -295,6 +325,93 @@ export function SettingsSection() {
             >
               <Save className="w-4 h-4" />
               {rtl ? "حفظ الإعدادات" : "Save Settings"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Contact Info Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
+              <Globe className="w-5 h-5 text-primary" />
+              {rtl ? "معلومات التواصل والسوشال" : "Contact & Social Media"}
+            </CardTitle>
+            <CardDescription className={cn(rtl && "font-arabic")}>
+              {rtl ? "أرقام الهاتف وروابط السوشال ميديا" : "Phone numbers and social media links"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{rtl ? "رقم الهاتف" : "Phone Number"}</Label>
+                <Input value={salonPhone} onChange={(e) => setSalonPhone(e.target.value)} placeholder="962786753791" dir="ltr" />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{rtl ? "رقم واتساب" : "WhatsApp Number"}</Label>
+                <Input value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="962786753791" dir="ltr" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط انستغرام" : "Instagram URL"}</Label>
+                <Input value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} placeholder="https://instagram.com/..." dir="ltr" />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط فيسبوك" : "Facebook URL"}</Label>
+                <Input value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} placeholder="https://facebook.com/..." dir="ltr" />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط تيك توك" : "TikTok URL"}</Label>
+                <Input value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://tiktok.com/..." dir="ltr" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط خريطة Google Maps" : "Google Maps Embed URL"}</Label>
+              <Input value={googleMapsUrl} onChange={(e) => setGoogleMapsUrl(e.target.value)} placeholder="https://www.google.com/maps/embed?pb=..." dir="ltr" />
+              <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
+                {rtl ? "انسخي رابط التضمين من Google Maps" : "Paste the embed URL from Google Maps"}
+              </p>
+            </div>
+            <Button onClick={handleSaveSettings} disabled={isSavingSettings} className={cn("w-full gap-2", rtl && "font-arabic")}>
+              <Save className="w-4 h-4" />
+              {rtl ? "حفظ" : "Save"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Working Hours & Booking Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
+              <Clock className="w-5 h-5 text-primary" />
+              {rtl ? "أوقات العمل والحجز" : "Working Hours & Booking"}
+            </CardTitle>
+            <CardDescription className={cn(rtl && "font-arabic")}>
+              {rtl ? "تظهر في الموقع وصفحة الحجز" : "Displayed on website and booking page"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className={cn(rtl && "font-arabic")}>{rtl ? "أوقات العمل (أيام الأسبوع)" : "Weekday Hours"}</Label>
+              <Input value={workingHoursWeekdays} onChange={(e) => setWorkingHoursWeekdays(e.target.value)} placeholder="السبت - الخميس: 10:00 ص - 8:00 م" className={cn(rtl && "font-arabic text-right")} dir={rtl ? "rtl" : "ltr"} />
+            </div>
+            <div className="space-y-2">
+              <Label className={cn(rtl && "font-arabic")}>{rtl ? "أوقات العمل (الجمعة)" : "Friday Hours"}</Label>
+              <Input value={workingHoursFriday} onChange={(e) => setWorkingHoursFriday(e.target.value)} placeholder="الجمعة: مغلق" className={cn(rtl && "font-arabic text-right")} dir={rtl ? "rtl" : "ltr"} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{rtl ? "بداية أوقات الحجز" : "Booking Start"}</Label>
+                <Input type="time" value={bookingStartTime} onChange={(e) => setBookingStartTime(e.target.value)} dir="ltr" />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{rtl ? "نهاية أوقات الحجز" : "Booking End"}</Label>
+                <Input type="time" value={bookingEndTime} onChange={(e) => setBookingEndTime(e.target.value)} dir="ltr" />
+              </div>
+            </div>
+            <Button onClick={handleSaveSettings} disabled={isSavingSettings} className={cn("w-full gap-2", rtl && "font-arabic")}>
+              <Save className="w-4 h-4" />
+              {rtl ? "حفظ" : "Save"}
             </Button>
           </CardContent>
         </Card>
