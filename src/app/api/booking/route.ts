@@ -5,15 +5,33 @@ import { getServiceRoleClient } from "@/lib/supabase";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { serviceSummary, date, time, branchName, name, phone, notes, authUserId } = body;
+    const {
+      serviceId,
+      serviceSummary,
+      date,
+      time, // HH:mm (24h format) or null for queue mode
+      branchId,
+      staffId,
+      name,
+      phone,
+      notes,
+      depositAmount,
+      paymentMethod,
+      authUserId,
+      durationMode,
+      durationMinutes,
+    } = body;
 
-    if (!name || !phone || !serviceSummary || !date || !time) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!name || !phone || !serviceId || !date) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
     const supabase = getServiceRoleClient();
 
-    // 1. Find or create client — prefer auth_user_id if provided
+    // 1. Find or create client
     let clientId: string | null = null;
 
     if (authUserId) {
@@ -51,62 +69,101 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Create booking
-    const bookingDate = `${date}T${convertTo24h(time)}:00`;
-    const locationNote = `🏪 الفرع: ${branchName}`;
-    const fullSummary = [serviceSummary, locationNote, notes].filter(Boolean).join(" | ");
+    // 2. Calculate booking date and end time
+    const bookingDate =
+      time && durationMode !== "queue"
+        ? `${date}T${time}:00`
+        : `${date}T00:00:00`;
+    const duration = durationMinutes || 30;
+    const endTimeDate = new Date(bookingDate);
+    endTimeDate.setMinutes(endTimeDate.getMinutes() + duration);
+    const endTime = endTimeDate.toISOString();
 
+    // 3. For time-based bookings: double-check for overlap
+    if (durationMode !== "queue" && staffId && time) {
+      const { data: overlaps } = await supabase
+        .from("Booking")
+        .select("id, bookingDate, endTime")
+        .eq("staff_id", staffId)
+        .neq("status", "cancelled")
+        .gte("bookingDate", `${date}T00:00:00`)
+        .lt("bookingDate", `${date}T23:59:59`);
+
+      if (overlaps) {
+        const newStart = new Date(bookingDate).getTime();
+        const newEnd = endTimeDate.getTime();
+
+        const hasConflict = overlaps.some((b) => {
+          const bStart = new Date(b.bookingDate).getTime();
+          const bEnd = b.endTime
+            ? new Date(b.endTime).getTime()
+            : bStart + duration * 60 * 1000;
+          return newStart < bEnd && newEnd > bStart;
+        });
+
+        if (hasConflict) {
+          return NextResponse.json(
+            { error: "هذا الوقت محجوز بالفعل. يرجى اختيار وقت آخر." },
+            { status: 409 }
+          );
+        }
+      }
+    }
+
+    // 4. For queue mode: calculate queue number
+    let queueNumber: number | null = null;
+    if (durationMode === "queue") {
+      const { count } = await supabase
+        .from("Booking")
+        .select("id", { count: "exact", head: true })
+        .eq("staff_id", staffId)
+        .eq("serviceId", serviceId)
+        .gte("bookingDate", `${date}T00:00:00`)
+        .lt("bookingDate", `${date}T23:59:59`)
+        .neq("status", "cancelled");
+
+      queueNumber = (count || 0) + 1;
+    }
+
+    // 5. Create booking
     const { data: booking, error } = await supabase
       .from("Booking")
       .insert({
         client_id: clientId,
-        serviceSummary: fullSummary,
+        serviceId,
+        serviceSummary: serviceSummary || "",
         bookingDate,
+        endTime: durationMode !== "queue" ? endTime : null,
         channelType: "website",
         status: "pending",
+        branchId: branchId || null,
+        staff_id: staffId || null,
+        depositAmount: depositAmount || 0,
+        depositStatus: depositAmount > 0 ? "unpaid" : "unpaid",
+        paymentMethod: paymentMethod || "cash",
+        queueNumber,
       })
-      .select("id")
+      .select("id, queueNumber")
       .single();
 
     if (error) {
       console.error("Booking creation error:", error);
-      return NextResponse.json({ error: "Failed to create booking" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to create booking" },
+        { status: 500 }
+      );
     }
 
-    // 3. Optional: trigger n8n webhook
-    // Uncomment and set the URL when ready:
-    // try {
-    //   await fetch(process.env.N8N_BOOKING_WEBHOOK_URL!, {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({
-    //       type: "new_booking",
-    //       bookingId: booking?.id,
-    //       clientName: name,
-    //       clientPhone: phone,
-    //       service: serviceSummary,
-    //       date: bookingDate,
-    //       branch: branchName,
-    //       source: "website",
-    //     }),
-    //   });
-    // } catch (e) {
-    //   console.error("Webhook notification failed:", e);
-    // }
-
-    return NextResponse.json({ success: true, bookingId: booking?.id });
+    return NextResponse.json({
+      success: true,
+      bookingId: booking?.id,
+      queueNumber: booking?.queueNumber || queueNumber,
+    });
   } catch (err) {
     console.error("Booking API error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-}
-
-// Convert 12h time to 24h for database storage
-function convertTo24h(time12h: string): string {
-  const [time, modifier] = time12h.split(" ");
-  let [hours, minutes] = time.split(":");
-  let h = parseInt(hours, 10);
-  if (modifier === "PM" && h !== 12) h += 12;
-  if (modifier === "AM" && h === 12) h = 0;
-  return `${h.toString().padStart(2, "0")}:${minutes}`;
 }

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, ChevronLeft, ChevronRight, MapPin, Home, CalendarDays, User, Sparkles } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, MapPin, CalendarDays, User, Sparkles, Clock, Hash, CreditCard, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/lib/auth-store";
@@ -16,38 +16,76 @@ interface Service {
   name: string;
   price: number;
   images: string[];
-  availableAtHome?: boolean;
-  availableAtSalon?: boolean;
+  category?: string;
+  durationMinutes?: number;
+  durationMode?: "time" | "queue";
+  depositAmount?: number;
 }
 
-const STEPS = ["الفرع", "الخدمة", "الموعد", "البيانات", "التأكيد"];
+interface StaffMember {
+  id: string;
+  name: string;
+  nameAr?: string;
+  avatar?: string;
+  role?: string;
+  branchId?: string;
+}
+
+interface BranchItem {
+  id: string;
+  name: string;
+  nameAr?: string;
+  address?: string;
+}
+
+const STEPS = ["الفرع", "الخدمة", "العاملة", "الموعد", "الشروط", "البيانات", "التأكيد"];
 
 function BookingForm() {
   const searchParams = useSearchParams();
   const preSelectedService = searchParams.get("service");
 
+  // Step state
   const [step, setStep] = useState(0);
-  const [branches, setBranches] = useState<any[]>([]);
-  const [selectedBranch, setSelectedBranch] = useState<string>("");
+
+  // Data
+  const [branches, setBranches] = useState<BranchItem[]>([]);
   const [services, setServices] = useState<Service[]>([]);
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [terms, setTerms] = useState("");
+
+  // Selections
+  const [selectedBranch, setSelectedBranch] = useState("");
+  const [selectedService, setSelectedService] = useState("");
+  const [selectedStaff, setSelectedStaff] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Customer data
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+
+  // UI state
   const [loading, setLoading] = useState(false);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [bookingStart, setBookingStart] = useState("09:00");
-  const [bookingEnd, setBookingEnd] = useState("20:00");
+  const [queueNumber, setQueueNumber] = useState<number | null>(null);
+  const [bookingResult, setBookingResult] = useState<any>(null);
 
   const { user, client, initialize } = useAuthStore();
 
-  // Auto-fill from logged-in customer profile
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
+  // Derived
+  const serviceObj = services.find((s) => s.id === selectedService);
+  const staffObj = staffList.find((s) => s.id === selectedStaff);
+  const branchObj = branches.find((b) => b.id === selectedBranch);
+  const isQueueMode = serviceObj?.durationMode === "queue";
+  const depositAmount = serviceObj?.depositAmount || 0;
 
+  // Auth init & auto-fill
+  useEffect(() => { initialize(); }, [initialize]);
   useEffect(() => {
     if (client) {
       if (client.name && !name) setName(client.name);
@@ -55,62 +93,58 @@ function BookingForm() {
     }
   }, [client]);
 
+  // Fetch branches on mount
   useEffect(() => {
-    async function fetchInitial() {
-      // Fetch branches
-      try {
-        const res = await fetch("/api/branches?active=true");
-        const data = await res.json();
-        setBranches(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error(err);
-      }
-      
-      // Fetch booking time config
-      try {
-        const r = await fetch("/api/settings");
-        const data = await r.json();
-        if (data.booking_start_time) setBookingStart(data.booking_start_time);
-        if (data.booking_end_time) setBookingEnd(data.booking_end_time);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    fetchInitial();
+    fetch("/api/branches?active=true").then(r => r.json()).then(d => setBranches(Array.isArray(d) ? d : [])).catch(console.error);
   }, []);
 
+  // Fetch services when branch selected
   useEffect(() => {
     if (!selectedBranch) return;
-    async function fetchServices() {
-      try {
-        const res = await fetch(`/api/services?branchId=${selectedBranch}`);
-        const data = await res.json();
-        setServices(Array.isArray(data) ? data : []);
-        if (preSelectedService && data?.some((s: Service) => s.id === preSelectedService)) {
-          setSelectedServices([preSelectedService]);
-        }
-      } catch (err) {
-        console.error(err);
+    setSelectedService(""); setSelectedStaff(""); setSelectedTime("");
+    fetch(`/api/services?branchId=${selectedBranch}`).then(r => r.json()).then(d => {
+      setServices(Array.isArray(d) ? d : []);
+      if (preSelectedService && d?.some((s: Service) => s.id === preSelectedService)) {
+        setSelectedService(preSelectedService);
       }
-    }
-    fetchServices();
+    }).catch(console.error);
   }, [selectedBranch, preSelectedService]);
 
-  const selectedServiceObjects = services.filter((s) => selectedServices.includes(s.id));
-  const totalPrice = selectedServiceObjects.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
+  // Fetch staff when service selected
+  useEffect(() => {
+    if (!selectedService || !selectedBranch) return;
+    setSelectedStaff(""); setSelectedTime("");
+    fetch(`/api/staff-by-service?serviceId=${selectedService}&branchId=${selectedBranch}`)
+      .then(r => r.json()).then(d => setStaffList(Array.isArray(d) ? d : [])).catch(console.error);
+  }, [selectedService, selectedBranch]);
 
-  const toggleService = (id: string) => {
-    setSelectedServices((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
-  };
+  // Fetch availability when staff + date selected (time mode only)
+  useEffect(() => {
+    if (!selectedStaff || !selectedDate || !selectedService || isQueueMode) return;
+    setSlotsLoading(true);
+    setSelectedTime("");
+    fetch(`/api/availability?staffId=${selectedStaff}&serviceId=${selectedService}&date=${selectedDate}`)
+      .then(r => r.json()).then(d => {
+        setAvailableSlots(d.slots || []);
+        setSlotsLoading(false);
+      }).catch(() => setSlotsLoading(false));
+  }, [selectedStaff, selectedDate, selectedService, isQueueMode]);
+
+  // Fetch terms
+  useEffect(() => {
+    if (step === 4) {
+      fetch("/api/terms?slug=booking-conditions").then(r => r.json()).then(d => setTerms(d.content || "")).catch(console.error);
+    }
+  }, [step]);
 
   const canNext = () => {
     switch (step) {
       case 0: return !!selectedBranch;
-      case 1: return selectedServices.length > 0;
-      case 2: return selectedDate && selectedTime;
-      case 3: return name.trim() && phone.trim();
+      case 1: return !!selectedService;
+      case 2: return !!selectedStaff;
+      case 3: return isQueueMode ? !!selectedDate : (!!selectedDate && !!selectedTime);
+      case 4: return agreedToTerms;
+      case 5: return name.trim() && phone.trim();
       default: return true;
     }
   };
@@ -122,21 +156,29 @@ function BookingForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          services: selectedServiceObjects.map((s) => s.name),
-          serviceSummary: selectedServiceObjects.map((s) => s.name).join("، "),
+          serviceId: selectedService,
+          serviceSummary: serviceObj?.name || "",
           date: selectedDate,
-          time: selectedTime,
-          branchName: branches.find(b => b.id === selectedBranch)?.nameAr || "",
-          name,
-          phone,
-          notes,
-          totalPrice,
+          time: isQueueMode ? null : selectedTime,
+          branchId: selectedBranch,
+          staffId: selectedStaff,
+          name, phone, notes,
+          depositAmount,
+          paymentMethod,
           authUserId: user?.id || null,
+          durationMode: serviceObj?.durationMode || "time",
+          durationMinutes: serviceObj?.durationMinutes || 30,
         }),
       });
-      if (!res.ok) throw new Error("Failed to create booking");
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "حدث خطأ أثناء الحجز");
+        return;
+      }
+      setBookingResult(data);
+      setQueueNumber(data.queueNumber || null);
       setSubmitted(true);
-      toast.success("تم تأكيد الحجز بنجاح! سنتواصل معك قريباً 🌸");
+      toast.success("تم تأكيد الحجز بنجاح! 🌸");
     } catch {
       toast.error("حدث خطأ أثناء الحجز. يرجى المحاولة مرة أخرى.");
     } finally {
@@ -144,6 +186,18 @@ function BookingForm() {
     }
   };
 
+  // Generate min date (today)
+  const today = new Date().toISOString().split("T")[0];
+
+  // Format time to 12h Arabic
+  const fmt12h = (t24: string) => {
+    const [h, m] = t24.split(":").map(Number);
+    const ampm = h >= 12 ? "م" : "ص";
+    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+    return `${h12}:${m.toString().padStart(2, "0")} ${ampm}`;
+  };
+
+  // ─── Success Screen ───
   if (submitted) {
     return (
       <div className="min-h-screen bg-cream py-20">
@@ -154,282 +208,243 @@ function BookingForm() {
           <h1 className="text-3xl font-bold text-dark mb-3" style={{ fontFamily: "'Tajawal', sans-serif" }}>
             تم تأكيد حجزك! 🎉
           </h1>
-          <p className="text-muted-foreground mb-2">
-            {selectedServiceObjects.map((s) => s.name).join("، ")}
-          </p>
-          <p className="text-muted-foreground mb-6">
-            {selectedDate} — {selectedTime}
-          </p>
+          <p className="text-muted-foreground mb-2">{serviceObj?.name}</p>
+          {isQueueMode && queueNumber && (
+            <div className="my-4 p-4 bg-sage-50 rounded-xl border border-sage-200">
+              <p className="text-sm text-muted-foreground mb-1">رقم دورك</p>
+              <p className="text-5xl font-bold text-sage-700">{queueNumber}</p>
+            </div>
+          )}
+          {!isQueueMode && (
+            <p className="text-muted-foreground mb-6">
+              {selectedDate} — {selectedTime && fmt12h(selectedTime)}
+            </p>
+          )}
           <p className="text-sm text-muted-foreground">سنتواصل معك على الرقم {phone} لتأكيد الموعد.</p>
         </div>
       </div>
     );
   }
 
-  // Generate time slots dynamically from settings
-  const timeSlots: string[] = [];
-  {
-    const [startH, startM] = bookingStart.split(":").map(Number);
-    const [endH, endM] = bookingEnd.split(":").map(Number);
-    let cur = startH * 60 + (startM || 0);
-    const end = endH * 60 + (endM || 0);
-    while (cur <= end) {
-      const h = Math.floor(cur / 60);
-      const m = cur % 60;
-      const ampm = h >= 12 ? "PM" : "AM";
-      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      timeSlots.push(`${String(h12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`);
-      cur += 30;
-    }
-  }
+  // ─── Step Renderers ───
+
+  const renderBranchStep = () => (
+    <div className="space-y-3">
+      <h2 className="text-lg font-bold text-right font-arabic">اختاري الفرع</h2>
+      <div className="grid gap-3">
+        {branches.map((b) => (
+          <button key={b.id} onClick={() => setSelectedBranch(b.id)}
+            className={cn("p-4 rounded-xl border-2 text-right transition-all hover:shadow-md", selectedBranch === b.id ? "border-sage-500 bg-sage-50 shadow-md" : "border-gray-200 bg-white hover:border-sage-300")}>
+            <div className="flex items-center gap-3 justify-end">
+              <div>
+                <p className="font-bold font-arabic">{b.nameAr || b.name}</p>
+                {b.address && <p className="text-sm text-muted-foreground">{b.address}</p>}
+              </div>
+              <MapPin className="w-5 h-5 text-sage-600 shrink-0" />
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderServiceStep = () => (
+    <div className="space-y-3">
+      <h2 className="text-lg font-bold text-right font-arabic">اختاري الخدمة</h2>
+      <div className="grid gap-3">
+        {services.map((s) => (
+          <button key={s.id} onClick={() => setSelectedService(s.id)}
+            className={cn("p-4 rounded-xl border-2 text-right transition-all hover:shadow-md", selectedService === s.id ? "border-sage-500 bg-sage-50 shadow-md" : "border-gray-200 bg-white hover:border-sage-300")}>
+            <div className="flex items-center gap-3 justify-between">
+              <div className="flex items-center gap-2">
+                {Number(s.price) > 0 && <Badge variant="secondary">{s.price} JOD</Badge>}
+                {s.durationMinutes && (
+                  <Badge variant="outline" className="gap-1"><Clock className="w-3 h-3" />{s.durationMinutes >= 60 ? `${s.durationMinutes/60} ساعة` : `${s.durationMinutes} د`}</Badge>
+                )}
+                {s.durationMode === "queue" && <Badge variant="outline" className="gap-1"><Hash className="w-3 h-3" />بالدور</Badge>}
+                {(s.depositAmount || 0) > 0 && <Badge className="bg-amber-100 text-amber-800 gap-1"><CreditCard className="w-3 h-3" />عربون {s.depositAmount}</Badge>}
+              </div>
+              <p className="font-bold font-arabic">{s.name}</p>
+            </div>
+          </button>
+        ))}
+        {services.length === 0 && <p className="text-center text-muted-foreground py-8 font-arabic">لا توجد خدمات متاحة لهذا الفرع</p>}
+      </div>
+    </div>
+  );
+
+  const renderStaffStep = () => (
+    <div className="space-y-3">
+      <h2 className="text-lg font-bold text-right font-arabic">اختاري العاملة</h2>
+      <div className="grid gap-3">
+        {staffList.map((s) => (
+          <button key={s.id} onClick={() => setSelectedStaff(s.id)}
+            className={cn("p-4 rounded-xl border-2 text-right transition-all hover:shadow-md", selectedStaff === s.id ? "border-sage-500 bg-sage-50 shadow-md" : "border-gray-200 bg-white hover:border-sage-300")}>
+            <div className="flex items-center gap-3 justify-end">
+              <div>
+                <p className="font-bold font-arabic">{s.nameAr || s.name}</p>
+                {s.role && <p className="text-sm text-muted-foreground">{s.role}</p>}
+              </div>
+              <div className="w-10 h-10 rounded-full bg-sage-100 flex items-center justify-center shrink-0">
+                {s.avatar ? <img src={s.avatar} className="w-10 h-10 rounded-full object-cover" alt="" /> : <User className="w-5 h-5 text-sage-600" />}
+              </div>
+            </div>
+          </button>
+        ))}
+        {staffList.length === 0 && <p className="text-center text-muted-foreground py-8 font-arabic">لا توجد عاملات متاحات لهذه الخدمة</p>}
+      </div>
+    </div>
+  );
+
+  const renderDateTimeStep = () => (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-right font-arabic">{isQueueMode ? "اختاري التاريخ" : "اختاري الموعد"}</h2>
+      {/* Date */}
+      <div className="space-y-2">
+        <Label className="text-right block font-arabic">التاريخ</Label>
+        <Input type="date" min={today} value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} dir="ltr" />
+      </div>
+      {/* Time slots (time mode only) */}
+      {!isQueueMode && selectedDate && (
+        <div className="space-y-2">
+          <Label className="text-right block font-arabic">الأوقات المتاحة</Label>
+          {slotsLoading ? (
+            <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-sage-400 border-t-transparent rounded-full animate-spin" /></div>
+          ) : availableSlots.length > 0 ? (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {availableSlots.map((slot) => (
+                <button key={slot} onClick={() => setSelectedTime(slot)}
+                  className={cn("py-2 px-3 rounded-lg border text-sm font-medium transition-all", selectedTime === slot ? "border-sage-500 bg-sage-50 text-sage-700" : "border-gray-200 bg-white hover:border-sage-300")}>
+                  {fmt12h(slot)}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-6 font-arabic">لا توجد أوقات متاحة في هذا اليوم</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderTermsStep = () => (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-right font-arabic">الشروط والأحكام</h2>
+      <div className="bg-white border rounded-xl p-4 max-h-60 overflow-y-auto">
+        <p className="text-sm text-right font-arabic leading-relaxed whitespace-pre-wrap">{terms || "جاري التحميل..."}</p>
+      </div>
+      <label className="flex items-center gap-3 justify-end cursor-pointer p-3 rounded-lg border hover:bg-sage-50 transition-colors">
+        <span className="text-sm font-arabic font-medium">أوافق على الشروط والأحكام</span>
+        <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)}
+          className="w-5 h-5 rounded border-gray-300 text-sage-600 focus:ring-sage-500" />
+      </label>
+    </div>
+  );
+
+  const renderDataStep = () => (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-right font-arabic">بياناتك</h2>
+      <div className="space-y-2">
+        <Label className="text-right block font-arabic">الاسم</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="الاسم الكامل" className="text-right font-arabic" dir="rtl" />
+      </div>
+      <div className="space-y-2">
+        <Label className="text-right block font-arabic">رقم الهاتف</Label>
+        <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07XXXXXXXX" dir="ltr" type="tel" />
+      </div>
+      <div className="space-y-2">
+        <Label className="text-right block font-arabic">ملاحظات (اختياري)</Label>
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
+          className="w-full rounded-lg border p-3 text-right font-arabic text-sm resize-none focus:ring-2 focus:ring-sage-400 outline-none" dir="rtl" placeholder="أي ملاحظات إضافية..." />
+      </div>
+      {/* Payment Method */}
+      {depositAmount > 0 && (
+        <div className="space-y-2">
+          <Label className="text-right block font-arabic">طريقة دفع العربون ({depositAmount} JOD)</Label>
+          <div className="grid grid-cols-2 gap-2">
+            {[{ v: "cash", l: "كاش" }, { v: "card", l: "بطاقة" }].map(({ v, l }) => (
+              <button key={v} onClick={() => setPaymentMethod(v)}
+                className={cn("p-3 rounded-lg border-2 text-sm font-arabic font-medium transition-all", paymentMethod === v ? "border-sage-500 bg-sage-50" : "border-gray-200 bg-white hover:border-sage-300")}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderConfirmStep = () => (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-right font-arabic">تأكيد الحجز</h2>
+      <div className="bg-white border rounded-xl divide-y">
+        {[
+          { label: "الفرع", value: branchObj?.nameAr || branchObj?.name },
+          { label: "الخدمة", value: serviceObj?.name },
+          { label: "العاملة", value: staffObj?.nameAr || staffObj?.name },
+          { label: "التاريخ", value: selectedDate },
+          ...(!isQueueMode ? [{ label: "الوقت", value: selectedTime ? fmt12h(selectedTime) : "" }] : []),
+          { label: "المدة", value: serviceObj?.durationMinutes ? `${serviceObj.durationMinutes} دقيقة` : "" },
+          { label: "السعر", value: serviceObj?.price ? `${serviceObj.price} JOD` : "" },
+          ...(depositAmount > 0 ? [{ label: "العربون", value: `${depositAmount} JOD (${paymentMethod === "card" ? "بطاقة" : "كاش"})` }] : []),
+          { label: "الاسم", value: name },
+          { label: "الهاتف", value: phone },
+        ].filter(r => r.value).map((row, i) => (
+          <div key={i} className="flex justify-between items-center p-3">
+            <span className="text-sm text-muted-foreground">{row.value}</span>
+            <span className="text-sm font-bold font-arabic">{row.label}</span>
+          </div>
+        ))}
+      </div>
+      {notes && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+          <p className="text-sm text-right font-arabic"><strong>ملاحظات:</strong> {notes}</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const stepRenderers = [renderBranchStep, renderServiceStep, renderStaffStep, renderDateTimeStep, renderTermsStep, renderDataStep, renderConfirmStep];
 
   return (
-    <div className="min-h-screen bg-cream py-12 md:py-20">
-      <div className="container mx-auto max-w-2xl px-4">
-        <h1 className="text-3xl font-bold text-dark text-center mb-8" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-          احجزي موعدك
-        </h1>
-
-        {/* Step indicator */}
-        <div className="flex items-center justify-center gap-2 mb-10">
+    <div className="min-h-screen bg-cream py-10">
+      <div className="container mx-auto max-w-lg px-4">
+        {/* Stepper */}
+        <div className="flex items-center justify-center gap-1 mb-8">
           {STEPS.map((s, i) => (
-            <div key={s} className="flex items-center gap-2">
-              <div
-                className={cn(
-                  "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all",
-                  i <= step
-                    ? "gradient-terracotta text-white shadow-md"
-                    : "bg-muted text-muted-foreground"
-                )}
-              >
+            <div key={i} className="flex items-center gap-1">
+              <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all",
+                i < step ? "bg-sage-500 text-white" : i === step ? "bg-sage-100 text-sage-700 ring-2 ring-sage-400" : "bg-gray-100 text-gray-400")}>
                 {i < step ? <Check className="w-4 h-4" /> : i + 1}
               </div>
-              {i < STEPS.length - 1 && (
-                <div className={cn("w-6 h-0.5 rounded-full", i < step ? "bg-terracotta" : "bg-muted")} />
-              )}
+              {i < STEPS.length - 1 && <div className={cn("w-4 h-0.5", i < step ? "bg-sage-400" : "bg-gray-200")} />}
             </div>
           ))}
         </div>
 
-        <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-border/50">
-          {/* Step 0: Select Branch */}
-          {step === 0 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-dark flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-terracotta" />
-                اختاري الفرع
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {branches.map(branch => (
-                  <button
-                    key={branch.id}
-                    onClick={() => setSelectedBranch(branch.id)}
-                    className={cn(
-                      "p-6 rounded-xl border-2 text-center transition-all",
-                      selectedBranch === branch.id
-                        ? "border-terracotta bg-terracotta/5"
-                        : "border-border hover:border-terracotta/30"
-                    )}
-                  >
-                    <MapPin className="w-8 h-8 mx-auto mb-2 text-sage" />
-                    <span className="font-bold block">{branch.nameAr}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+        {/* Step Content */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 mb-6 border border-white/50">
+          {stepRenderers[step]()}
+        </div>
+
+        {/* Navigation */}
+        <div className="flex gap-3 justify-between" dir="rtl">
+          {step > 0 && (
+            <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-2 font-arabic">
+              <ChevronRight className="w-4 h-4" /> السابق
+            </Button>
           )}
-
-          {/* Step 1: Select Services */}
-          {step === 1 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-dark flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-terracotta" />
-                اختاري الخدمة
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {services.map((service) => (
-                  <button
-                    key={service.id}
-                    onClick={() => toggleService(service.id)}
-                    className={cn(
-                      "p-4 rounded-xl border-2 text-right transition-all",
-                      selectedServices.includes(service.id)
-                        ? "border-terracotta bg-terracotta/5"
-                        : "border-border hover:border-terracotta/30"
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm">{service.name}</span>
-                      {selectedServices.includes(service.id) && (
-                        <div className="w-5 h-5 rounded-full bg-terracotta flex items-center justify-center">
-                          <Check className="w-3 h-3 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-sm text-terracotta font-bold mt-1 tabular-nums">
-                      {Number(service.price ?? 0).toFixed(2)} د.أ
-                    </p>
-                  </button>
-                ))}
-              </div>
-              {selectedServices.length > 0 && (
-                <div className="p-4 rounded-xl bg-terracotta/5 flex items-center justify-between">
-                  <span className="text-sm font-medium">المجموع المقدّر</span>
-                  <span className="text-lg font-black text-terracotta tabular-nums">
-                    {Number(totalPrice ?? 0).toFixed(2)} د.أ
-                  </span>
-                </div>
-              )}
-            </div>
+          <div className="flex-1" />
+          {step < STEPS.length - 1 ? (
+            <Button onClick={() => setStep(step + 1)} disabled={!canNext()} className="gap-2 font-arabic bg-sage-600 hover:bg-sage-700">
+              التالي <ChevronLeft className="w-4 h-4" />
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={loading} className="gap-2 font-arabic bg-sage-600 hover:bg-sage-700">
+              {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              تأكيد الحجز
+            </Button>
           )}
-
-          {/* Step 2: Date & Time */}
-          {step === 2 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-dark flex items-center gap-2">
-                <CalendarDays className="w-5 h-5 text-terracotta" />
-                اختاري الموعد
-              </h2>
-              <div>
-                <Label className="text-sm font-medium mb-2 block">التاريخ</Label>
-                <Input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
-                  className="text-base"
-                  dir="ltr"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium mb-2 block">الوقت</Label>
-                <div className="grid grid-cols-4 gap-2">
-                  {timeSlots.map((time) => (
-                    <button
-                      key={time}
-                      onClick={() => setSelectedTime(time)}
-                      className={cn(
-                        "px-2 py-2 text-xs rounded-lg border transition-all font-medium",
-                        selectedTime === time
-                          ? "border-terracotta bg-terracotta text-white"
-                          : "border-border hover:border-terracotta/30"
-                      )}
-                      dir="ltr"
-                    >
-                      {time}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-
-
-          {/* Step 3: Customer Info */}
-          {step === 3 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-dark flex items-center gap-2">
-                <User className="w-5 h-5 text-terracotta" />
-                بياناتك
-              </h2>
-              <div>
-                <Label className="text-sm font-medium mb-2 block">الاسم الكامل *</Label>
-                <Input
-                  placeholder="سارة أحمد"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium mb-2 block">رقم الهاتف *</Label>
-                <Input
-                  placeholder="0790000000"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  dir="ltr"
-                />
-              </div>
-              <div>
-                <Label className="text-sm font-medium mb-2 block">ملاحظات (اختياري)</Label>
-                <Input
-                  placeholder="أي ملاحظات إضافية..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: Confirmation */}
-          {step === 4 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-dark flex items-center gap-2">
-                <Check className="w-5 h-5 text-terracotta" />
-                تأكيد الحجز
-              </h2>
-              <div className="space-y-3 p-4 rounded-xl bg-cream">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">الخدمات</span>
-                  <span className="font-medium">{selectedServiceObjects.map((s) => s.name).join("، ")}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">التاريخ</span>
-                  <span className="font-medium" dir="ltr">{selectedDate}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">الوقت</span>
-                  <span className="font-medium" dir="ltr">{selectedTime}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">الفرع</span>
-                  <span className="font-medium">{branches.find(b => b.id === selectedBranch)?.nameAr || ""}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">الاسم</span>
-                  <span className="font-medium">{name}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">الهاتف</span>
-                  <span className="font-medium" dir="ltr">{phone}</span>
-                </div>
-                <div className="flex justify-between text-base font-bold pt-2 border-t">
-                  <span>المجموع المقدّر</span>
-                  <span className="text-terracotta tabular-nums">{Number(totalPrice ?? 0).toFixed(2)} د.أ</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation */}
-          <div className="flex items-center justify-between mt-8 pt-6 border-t">
-            {step > 0 ? (
-              <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-1">
-                <ChevronRight className="w-4 h-4" />
-                السابق
-              </Button>
-            ) : (
-              <div />
-            )}
-            {step < STEPS.length - 1 ? (
-              <Button
-                onClick={() => setStep(step + 1)}
-                disabled={!canNext()}
-                className="gap-1 gradient-terracotta text-white border-none"
-              >
-                التالي
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-            ) : (
-              <Button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="gap-1 gradient-terracotta text-white border-none"
-              >
-                {loading ? "جاري الحجز..." : "تأكيد الحجز ✨"}
-              </Button>
-            )}
-          </div>
         </div>
       </div>
     </div>
@@ -438,16 +453,7 @@ function BookingForm() {
 
 export default function BookingPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-cream py-20">
-        <div className="container mx-auto max-w-2xl px-4 text-center">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-muted rounded w-40 mx-auto" />
-            <div className="h-4 bg-muted rounded w-60 mx-auto" />
-          </div>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<div className="min-h-screen bg-cream flex items-center justify-center"><div className="w-8 h-8 border-2 border-sage-400 border-t-transparent rounded-full animate-spin" /></div>}>
       <BookingForm />
     </Suspense>
   );
