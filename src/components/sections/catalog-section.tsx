@@ -455,9 +455,17 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
     let publishAtValue: string | null = null;
     if (formData.publishAt && formData.publishAt !== "") {
       const days = parseInt(formData.publishAt);
-      const d = new Date();
-      d.setDate(d.getDate() + days);
-      publishAtValue = d.toISOString();
+      if (!isNaN(days)) {
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        publishAtValue = d.toISOString();
+      } else {
+        // Already an ISO date string from DB — use as-is if valid
+        const existing = new Date(formData.publishAt);
+        if (!isNaN(existing.getTime())) {
+          publishAtValue = existing.toISOString();
+        }
+      }
     }
 
     const payload: Record<string, unknown> = {
