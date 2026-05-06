@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { authUserId, name, address } = body;
+    const { authUserId, name, phone, address } = body;
 
     if (!authUserId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -64,6 +64,7 @@ export async function PUT(req: NextRequest) {
 
     const updateData: Record<string, unknown> = {};
     if (name !== undefined) updateData.name = name;
+    if (phone !== undefined) updateData.phone = phone;
     if (address !== undefined) updateData.address = address;
 
     const { data, error } = await supabase

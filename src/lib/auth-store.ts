@@ -17,10 +17,11 @@ interface AuthState {
   isInitialized: boolean;
   
   initialize: () => Promise<void>;
-  sendOtp: (phone: string) => Promise<{ error: string | null }>;
-  verifyOtp: (phone: string, token: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
   refreshClient: () => Promise<void>;
+  updateProfile: (data: { name?: string; phone?: string; address?: string }) => Promise<{ error: string | null }>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -61,41 +62,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
-  sendOtp: async (phone: string) => {
+  signUp: async (email: string, password: string) => {
     const supabase = getSupabaseBrowserClient();
-    
-    // Ensure phone is in international format
-    let formattedPhone = phone.trim();
-    if (formattedPhone.startsWith('0')) {
-      formattedPhone = '962' + formattedPhone.slice(1);
-    }
-    if (!formattedPhone.startsWith('+')) {
-      formattedPhone = '+' + formattedPhone;
-    }
 
-    const { error } = await supabase.auth.signInWithOtp({ phone: formattedPhone });
-    
-    if (error) {
-      return { error: error.message };
-    }
-    return { error: null };
-  },
-
-  verifyOtp: async (phone: string, token: string) => {
-    const supabase = getSupabaseBrowserClient();
-    
-    let formattedPhone = phone.trim();
-    if (formattedPhone.startsWith('0')) {
-      formattedPhone = '962' + formattedPhone.slice(1);
-    }
-    if (!formattedPhone.startsWith('+')) {
-      formattedPhone = '+' + formattedPhone;
-    }
-
-    const { data, error } = await supabase.auth.verifyOtp({
-      phone: formattedPhone,
-      token,
-      type: 'sms',
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
     });
 
     if (error) {
@@ -104,7 +76,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     if (data.user) {
       set({ user: data.user });
-      
+
       // Link to Client CRM
       try {
         const res = await fetch('/api/auth/link-client', {
@@ -112,7 +84,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             authUserId: data.user.id,
-            phone: formattedPhone,
+            email: email.trim().toLowerCase(),
+          }),
+        });
+        const clientData = await res.json();
+        if (clientData.client) {
+          set({ client: clientData.client });
+        }
+      } catch (err) {
+        console.error('Failed to link client:', err);
+      }
+    }
+
+    return { error: null };
+  },
+
+  signIn: async (email: string, password: string) => {
+    const supabase = getSupabaseBrowserClient();
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    if (data.user) {
+      set({ user: data.user });
+
+      // Link to Client CRM
+      try {
+        const res = await fetch('/api/auth/link-client', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            authUserId: data.user.id,
+            email: data.user.email || '',
           }),
         });
         const clientData = await res.json();
@@ -133,6 +142,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: null, client: null });
   },
 
+  updateProfile: async (data: { name?: string; phone?: string; address?: string }) => {
+    const user = get().user;
+    if (!user) return { error: 'Not authenticated' };
+
+    try {
+      const res = await fetch('/api/account', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ authUserId: user.id, ...data }),
+      });
+      const result = await res.json();
+      if (result.client) {
+        set({ client: result.client });
+      }
+      return { error: null };
+    } catch (err) {
+      console.error('Profile update error:', err);
+      return { error: 'Failed to update profile' };
+    }
+  },
+
   refreshClient: async () => {
     const user = get().user;
     if (!user) return;
@@ -143,7 +173,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           authUserId: user.id,
-          phone: user.phone || '',
+          email: user.email || '',
         }),
       });
       const data = await res.json();

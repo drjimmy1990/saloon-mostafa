@@ -50,7 +50,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 
 export default function AccountPage() {
   const router = useRouter();
-  const { user, client, isLoading, initialize, logout, refreshClient } = useAuthStore();
+  const { user, client, isLoading, initialize, logout, refreshClient, updateProfile } = useAuthStore();
 
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [orders, setOrders] = useState<OrderItem[]>([]);
@@ -60,6 +60,7 @@ export default function AccountPage() {
   // Profile editing
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -82,6 +83,7 @@ export default function AccountPage() {
   useEffect(() => {
     if (client) {
       setEditName(client.name || "");
+      setEditPhone(client.phone || "");
       setEditAddress(client.address || "");
     }
   }, [client]);
@@ -111,6 +113,7 @@ export default function AccountPage() {
         body: JSON.stringify({
           authUserId: user.id,
           name: editName,
+          phone: editPhone,
           address: editAddress,
         }),
       });
@@ -176,10 +179,15 @@ export default function AccountPage() {
                 <h2 className="font-bold text-lg">
                   {client?.name || "زائرة جديدة"}
                 </h2>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Phone className="w-3.5 h-3.5" />
-                  <span dir="ltr">{client?.phone || user?.phone || ""}</span>
+                <div className="text-sm text-muted-foreground" dir="ltr">
+                  {user?.email || ""}
                 </div>
+                {client?.phone && (
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground mt-0.5">
+                    <Phone className="w-3.5 h-3.5" />
+                    <span dir="ltr">{client.phone}</span>
+                  </div>
+                )}
               </div>
             </div>
             <button
@@ -198,6 +206,15 @@ export default function AccountPage() {
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   placeholder="اسمك الكامل"
+                />
+              </div>
+              <div>
+                <Label className="text-sm mb-1 block">رقم الهاتف</Label>
+                <Input
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="0790000000"
+                  dir="ltr"
                 />
               </div>
               <div>
