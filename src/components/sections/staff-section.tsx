@@ -654,26 +654,7 @@ export function StaffSection() {
               </div>
             </div>
 
-            {/* Services */}
-            <div className="space-y-2">
-              <Label className={cn(rtl && "font-arabic")}>{t(locale, "staff.services")}</Label>
-              <div className="max-h-40 overflow-y-auto border rounded-md p-2 space-y-1">
-                {products.map((product) => (
-                  <label key={product.id} className="flex items-center gap-2 py-1 px-2 rounded hover:bg-muted/50 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={formServices.includes(product.id)}
-                      onChange={() => toggleService(product.id)}
-                      className="rounded"
-                    />
-                    <span className={cn("text-sm", rtl && "font-arabic")}>{product.name}</span>
-                  </label>
-                ))}
-                {products.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-2">{t(locale, "noData")}</p>
-                )}
-              </div>
-            </div>
+            {/* Note: Staff-to-service assignment is managed from the Services section */}
           </div>
 
           <DialogFooter>
