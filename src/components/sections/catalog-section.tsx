@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { t, isRTL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -70,6 +70,12 @@ interface CategoryItem {
   color: string; // "sage" | "sand" | "terracotta" | "pink" | "amber" | "emerald"
 }
 
+interface StaffMember {
+  id: string;
+  name: string;
+  branchId?: string | null;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -86,6 +92,10 @@ interface Product {
   stock: number | null;
   branchId?: string | null;
   Branch?: Branch | null;
+  durationMinutes?: number;
+  durationMode?: 'time' | 'queue';
+  depositAmount?: number;
+  publishAt?: string | null;
 }
 
 interface ProductFormData {
@@ -100,6 +110,10 @@ interface ProductFormData {
   notes: string;
   stock: number | null;
   branchId: string;
+  durationMinutes: number;
+  durationMode: 'time' | 'queue';
+  depositAmount: number;
+  publishAt: string;
 }
 
 export type CatalogMode = 'services' | 'products';
@@ -217,7 +231,21 @@ const emptyProductFormData: ProductFormData = {
   notes: "",
   stock: null,
   branchId: "none",
+  durationMinutes: 30,
+  durationMode: 'time',
+  depositAmount: 0,
+  publishAt: "",
 };
+
+const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120, 180];
+
+const PUBLISH_OPTIONS = [
+  { value: "", labelAr: "حالاً", labelEn: "Immediately" },
+  { value: "1", labelAr: "بعد يوم", labelEn: "After 1 day" },
+  { value: "2", labelAr: "بعد يومين", labelEn: "After 2 days" },
+  { value: "3", labelAr: "بعد 3 أيام", labelEn: "After 3 days" },
+  { value: "7", labelAr: "بعد أسبوع", labelEn: "After 1 week" },
+];
 
 const emptyCategoryFormData: CategoryFormData = {
   label: "",
@@ -375,6 +403,10 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
       notes: product.notes || "",
       stock: product.stock ?? null,
       branchId: product.branchId || "none",
+      durationMinutes: product.durationMinutes ?? 30,
+      durationMode: product.durationMode ?? 'time',
+      depositAmount: product.depositAmount ?? 0,
+      publishAt: product.publishAt || "",
     });
     setProductDialogOpen(true);
   };
@@ -385,6 +417,15 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
   };
 
   const handleSaveProduct = async () => {
+    // Calculate publishAt date if set
+    let publishAtValue: string | null = null;
+    if (formData.publishAt && formData.publishAt !== "") {
+      const days = parseInt(formData.publishAt);
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      publishAtValue = d.toISOString();
+    }
+
     const payload: Record<string, unknown> = {
       name: formData.name,
       description: formData.description,
@@ -398,6 +439,10 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
       type: typeFilter,
       stock: isServices ? null : (formData.stock ?? 0),
       branchId: formData.branchId === "none" ? null : formData.branchId,
+      durationMinutes: formData.durationMinutes,
+      durationMode: formData.durationMode,
+      depositAmount: formData.depositAmount,
+      publishAt: publishAtValue,
     };
 
     try {
@@ -1146,6 +1191,94 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                 dir={rtl ? "rtl" : "ltr"}
               />
             </div>
+
+            {/* ─── Service-Only Fields (Duration, Mode, Deposit, Publish) ─── */}
+            {isServices && (
+              <>
+                {/* Duration & Mode */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className={cn("block", rtl && "text-right font-arabic")}>
+                      {rtl ? "مدة الخدمة (دقيقة)" : "Duration (min)"}
+                    </Label>
+                    <Select
+                      value={String(formData.durationMinutes)}
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, durationMinutes: parseInt(v) }))}
+                    >
+                      <SelectTrigger className={cn(rtl && "font-arabic")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DURATION_OPTIONS.map((d) => (
+                          <SelectItem key={d} value={String(d)}>
+                            {d >= 60 ? `${d / 60} ${rtl ? 'ساعة' : 'hr'}` : `${d} ${rtl ? 'دقيقة' : 'min'}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className={cn("block", rtl && "text-right font-arabic")}>
+                      {rtl ? "نوع الحجز" : "Booking Mode"}
+                    </Label>
+                    <Select
+                      value={formData.durationMode}
+                      onValueChange={(v: 'time' | 'queue') => setFormData(prev => ({ ...prev, durationMode: v }))}
+                    >
+                      <SelectTrigger className={cn(rtl && "font-arabic")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="time" className={cn(rtl && "font-arabic")}>
+                          {rtl ? "⏰ بالوقت" : "⏰ By Time"}
+                        </SelectItem>
+                        <SelectItem value="queue" className={cn(rtl && "font-arabic")}>
+                          {rtl ? "🔢 بالدور" : "🔢 By Queue"}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Deposit & Publish Timing */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className={cn("block", rtl && "text-right font-arabic")}>
+                      {rtl ? "العربون (JOD)" : "Deposit (JOD)"}
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.5}
+                      value={formData.depositAmount}
+                      onChange={(e) => setFormData(prev => ({ ...prev, depositAmount: parseFloat(e.target.value) || 0 }))}
+                      dir="ltr"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className={cn("block", rtl && "text-right font-arabic")}>
+                      {rtl ? "وقت النشر" : "Publish Timing"}
+                    </Label>
+                    <Select
+                      value={formData.publishAt}
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, publishAt: v }))}
+                    >
+                      <SelectTrigger className={cn(rtl && "font-arabic")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PUBLISH_OPTIONS.map((opt) => (
+                          <SelectItem key={opt.value || 'now'} value={opt.value || 'now'} className={cn(rtl && "font-arabic")}>
+                            {rtl ? opt.labelAr : opt.labelEn}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Availability Toggle */}
             <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">

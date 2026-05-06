@@ -33,6 +33,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.type !== undefined) updateData.type = body.type;
     if (body.stock !== undefined) updateData.stock = body.stock;
     if (body.branchId !== undefined) updateData.branchId = body.branchId || null;
+    if (body.durationMinutes !== undefined) updateData.durationMinutes = body.durationMinutes;
+    if (body.durationMode !== undefined) updateData.durationMode = body.durationMode;
+    if (body.depositAmount !== undefined) updateData.depositAmount = body.depositAmount;
+    if (body.publishAt !== undefined) updateData.publishAt = body.publishAt || null;
 
     const { data: product, error } = await supabase
       .from('Product')

@@ -64,6 +64,10 @@ export async function POST(request: NextRequest) {
         type: body.type ?? 'service',
         stock: body.stock ?? null,
         branchId: body.branchId || null,
+        durationMinutes: body.durationMinutes ?? 30,
+        durationMode: body.durationMode ?? 'time',
+        depositAmount: body.depositAmount ?? 0,
+        publishAt: body.publishAt || null,
       })
       .select("*, Branch(*)")
       .single();
