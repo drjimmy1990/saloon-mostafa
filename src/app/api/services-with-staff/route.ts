@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
     const supabase = getServiceRoleClient();
 
     // 1. Get all available services for this branch
-    let query = supabase
+    let svcQuery = supabase
       .from("Product")
       .select("id, name, price, images, category, durationMinutes, durationMode, depositAmount, branchId")
       .eq("isAvailable", true)
@@ -18,58 +18,103 @@ export async function GET(req: NextRequest) {
       .order("sortOrder", { ascending: true });
 
     if (branchId) {
-      query = query.eq("branchId", branchId);
+      svcQuery = svcQuery.eq("branchId", branchId);
     }
 
-    const { data: services, error: svcErr } = await query;
-    if (svcErr) throw svcErr;
+    const { data: services, error: svcErr } = await svcQuery;
+    if (svcErr) {
+      console.error("Services query error:", svcErr);
+      throw svcErr;
+    }
 
     if (!services || services.length === 0) {
       return NextResponse.json([]);
     }
 
-    // 2. Get all staff assignments for these services
+    // 2. Get all staff assignments — separate query to avoid join issues
     const serviceIds = services.map((s) => s.id);
     const { data: assignments, error: assignErr } = await supabase
       .from("StaffService")
-      .select("product_id, staff_id, Staff(id, name, nameAr, avatar, role, isActive, branchId)")
+      .select("product_id, staff_id")
       .in("product_id", serviceIds);
 
-    if (assignErr) throw assignErr;
+    if (assignErr) {
+      console.error("StaffService query error:", assignErr);
+      throw assignErr;
+    }
 
-    // 3. Build a map: productId -> staff[]
-    const staffMap: Record<string, any[]> = {};
+    // 3. Get unique staff IDs and fetch staff details
+    const staffIds = [...new Set((assignments || []).map((a) => a.staff_id))];
+    let staffMap: Record<string, any> = {};
+
+    if (staffIds.length > 0) {
+      let staffQuery = supabase
+        .from("Staff")
+        .select("id, name, nameAr, avatar, role, isActive, branchId")
+        .in("id", staffIds)
+        .eq("isActive", true);
+
+      if (branchId) {
+        staffQuery = staffQuery.eq("branchId", branchId);
+      }
+
+      const { data: staffData, error: staffErr } = await staffQuery;
+      if (staffErr) {
+        console.error("Staff query error:", staffErr);
+        throw staffErr;
+      }
+
+      for (const s of staffData || []) {
+        staffMap[s.id] = {
+          id: s.id,
+          name: s.name,
+          nameAr: s.nameAr,
+          avatar: s.avatar,
+          role: s.role,
+        };
+      }
+    }
+
+    // 4. Build product -> staff[] map
+    const productStaffMap: Record<string, any[]> = {};
     for (const a of assignments || []) {
-      const staff = (a as any).Staff;
-      if (!staff || !staff.isActive) continue;
-      if (branchId && staff.branchId !== branchId) continue;
-
-      if (!staffMap[a.product_id]) staffMap[a.product_id] = [];
-      staffMap[a.product_id].push({
-        id: staff.id,
-        name: staff.name,
-        nameAr: staff.nameAr,
-        avatar: staff.avatar,
-        role: staff.role,
-      });
+      const staff = staffMap[a.staff_id];
+      if (!staff) continue;
+      if (!productStaffMap[a.product_id]) productStaffMap[a.product_id] = [];
+      productStaffMap[a.product_id].push(staff);
     }
 
-    // 4. Group services by category
-    const categoryMap: Record<string, any[]> = {};
+    // 5. Fetch category labels (category field stores UUID)
+    const categoryIds = [...new Set(services.map(s => s.category).filter(Boolean))];
+    const catLabelMap: Record<string, string> = {};
+    if (categoryIds.length > 0) {
+      const { data: catData } = await supabase
+        .from("Category")
+        .select("id, label")
+        .in("id", categoryIds);
+      for (const c of catData || []) {
+        catLabelMap[c.id] = c.label;
+      }
+    }
+
+    // 6. Group services by category
+    const categoryMap: Record<string, { label: string; services: any[] }> = {};
     for (const svc of services) {
-      const cat = svc.category || "عام";
-      if (!categoryMap[cat]) categoryMap[cat] = [];
-      categoryMap[cat].push({
+      const catId = svc.category || "uncategorized";
+      const catLabel = catLabelMap[catId] || "عام";
+      if (!categoryMap[catId]) categoryMap[catId] = { label: catLabel, services: [] };
+      categoryMap[catId].services.push({
         ...svc,
-        staff: staffMap[svc.id] || [],
+        staff: productStaffMap[svc.id] || [],
       });
     }
 
-    // 5. Convert to array
-    const result = Object.entries(categoryMap).map(([category, services]) => ({
-      category,
-      image: services[0]?.images?.[0] || null,
-      services,
+    // 7. Convert to array
+    const result = Object.entries(categoryMap).map(([catId, { label, services: svcs }]) => ({
+      category: label,
+      categoryId: catId,
+      image: svcs[0]?.images?.[0] || null,
+      services: svcs,
     }));
 
     return NextResponse.json(result);
