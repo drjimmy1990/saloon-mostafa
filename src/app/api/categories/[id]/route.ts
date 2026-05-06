@@ -11,6 +11,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const updateData: Record<string, unknown> = {};
     if (body.label !== undefined) updateData.label = body.label;
     if (body.color !== undefined) updateData.color = body.color;
+    if (body.image !== undefined) updateData.image = body.image;
 
     const { data, error } = await supabase
       .from('Category')

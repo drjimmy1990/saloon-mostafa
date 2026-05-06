@@ -18,6 +18,7 @@ import {
   Loader2,
   ArrowUp,
   ArrowDown,
+  ImageIcon,
 } from "lucide-react";
 import { uploadImage, deleteImage } from "@/lib/storage";
 import {
@@ -67,7 +68,8 @@ interface Branch {
 interface CategoryItem {
   id: string;
   label: string;
-  color: string; // "sage" | "sand" | "terracotta" | "pink" | "amber" | "emerald"
+  color: string;
+  image?: string;
 }
 
 interface StaffMember {
@@ -121,6 +123,7 @@ export type CatalogMode = 'services' | 'products';
 interface CategoryFormData {
   label: string;
   color: string;
+  image: string;
 }
 
 // ─── Color Map ────────────────────────────────────────────────────────────────
@@ -250,6 +253,7 @@ const PUBLISH_OPTIONS = [
 const emptyCategoryFormData: CategoryFormData = {
   label: "",
   color: "sage",
+  image: "",
 };
 
 function slugify(text: string): string {
@@ -603,6 +607,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
     setCategoryFormData({
       label: cat.label,
       color: cat.color,
+      image: cat.image || "",
     });
   };
 
@@ -613,14 +618,14 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
         await fetch(`/api/categories/${editingCategory.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ label: categoryFormData.label, color: categoryFormData.color }),
+          body: JSON.stringify({ label: categoryFormData.label, color: categoryFormData.color, image: categoryFormData.image }),
         });
       } else {
         // Create new category via API
         await fetch("/api/categories", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ label: categoryFormData.label, color: categoryFormData.color, type: typeFilter }),
+          body: JSON.stringify({ label: categoryFormData.label, color: categoryFormData.color, image: categoryFormData.image, type: typeFilter }),
         });
       }
       await fetchCategories();
@@ -1521,6 +1526,40 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                     />
                   ))}
                 </div>
+              </div>
+
+              {/* Image Upload */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">
+                  {rtl ? "صورة الفئة" : "Category Image"}
+                </Label>
+                {categoryFormData.image ? (
+                  <div className="relative w-full h-28 rounded-lg overflow-hidden border">
+                    <img src={categoryFormData.image} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setCategoryFormData(prev => ({ ...prev, image: "" }))}
+                      className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs hover:bg-red-600"
+                    >✕</button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-28 rounded-lg border-2 border-dashed border-muted-foreground/25 cursor-pointer hover:border-muted-foreground/50 transition-colors">
+                    <ImageIcon className="w-6 h-6 text-muted-foreground/40 mb-1" />
+                    <span className="text-xs text-muted-foreground">{rtl ? "اختر صورة" : "Choose image"}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        if (!e.target.files?.[0]) return;
+                        try {
+                          const url = await uploadImage(e.target.files[0], 'saloon_uploads', 'categories');
+                          setCategoryFormData(prev => ({ ...prev, image: url }));
+                        } catch (err) { console.error("Category image upload failed:", err); }
+                      }}
+                    />
+                  </label>
+                )}
               </div>
 
               {/* Save / Cancel buttons for the form */}

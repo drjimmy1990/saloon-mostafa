@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
         label: body.label,
         color: body.color ?? 'sage',
         type: body.type ?? 'service',
+        image: body.image ?? '',
       })
       .select()
       .single();
