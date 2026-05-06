@@ -163,6 +163,8 @@ export function StaffSection() {
   const [formActive, setFormActive] = useState(true);
   const [formServices, setFormServices] = useState<string[]>([]);
   const [formBranchId, setFormBranchId] = useState<string>("none");
+  // Real service count per staff (from StaffService junction table)
+  const [staffServiceCount, setStaffServiceCount] = useState<Record<string, number>>({});
 
   // ─── Fetch Data ──────────────────────────────────────────────────────────────
 
@@ -259,7 +261,24 @@ export function StaffSection() {
     fetchProducts();
     fetchBranches();
     fetchRoles();
+    fetchStaffServiceCounts();
   }, []);
+
+  const fetchStaffServiceCounts = async () => {
+    try {
+      const res = await fetch('/api/staff-services');
+      const data = await res.json();
+      if (!Array.isArray(data)) return;
+      const counts: Record<string, number> = {};
+      for (const row of data) {
+        const sid = row.staff_id;
+        if (sid) counts[sid] = (counts[sid] || 0) + 1;
+      }
+      setStaffServiceCount(counts);
+    } catch (err) {
+      console.error('Failed to fetch staff service counts', err);
+    }
+  };
 
   // ─── Filtered list ───────────────────────────────────────────────────────────
 
@@ -488,7 +507,7 @@ export function StaffSection() {
                       </TableCell>
                       <TableCell className={cn(rtl && "text-right")}>
                         <span className="text-sm text-muted-foreground">
-                          {staff.services?.length || 0}
+                          {staffServiceCount[staff.id] || 0}
                         </span>
                       </TableCell>
                       <TableCell>

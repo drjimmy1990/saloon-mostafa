@@ -554,7 +554,6 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
     setSelectedStaffIds([]);
   };
 
-  // Save staff assignments for a product (called after product save)
   const saveStaffAssignments = async (productId: string) => {
     try {
       await fetch('/api/staff-services', {
@@ -562,6 +561,8 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId, staffIds: selectedStaffIds }),
       });
+      // Refresh staff map so cards update immediately
+      await fetchProductStaffMap();
     } catch (err) {
       console.error('Failed to save staff assignments', err);
     }
