@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('StaffService')
-      .select('*, Staff(id, name, branchId), Product(id, name, price, category)');
+      .select('*, Staff(id, name, nameAr, branchId), Product(id, name, price, category)');
 
     if (staffId) {
       query = query.eq('staff_id', staffId);

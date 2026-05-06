@@ -19,6 +19,7 @@ import {
   ArrowUp,
   ArrowDown,
   ImageIcon,
+  User,
 } from "lucide-react";
 import { uploadImage, deleteImage } from "@/lib/storage";
 import {
@@ -306,6 +307,8 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
   // Staff assignment states (services mode only)
   const [allStaff, setAllStaff] = useState<StaffMember[]>([]);
   const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
+  // Map productId -> assigned staff names (for card display)
+  const [productStaffMap, setProductStaffMap] = useState<Record<string, StaffMember[]>>({});
 
   const fetchCategories = async () => {
     try {
@@ -342,10 +345,31 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
 
   React.useEffect(() => {
     fetchCategories();
-    fetchProducts();
+    fetchProducts().then(() => { if (isServices) fetchProductStaffMap(); });
     fetchBranches();
     if (isServices) fetchAllStaff();
   }, []);
+
+  // Fetch all staff assignments for all products (for card display)
+  const fetchProductStaffMap = async () => {
+    try {
+      const res = await fetch('/api/staff-services');
+      const data = await res.json();
+      if (!Array.isArray(data)) return;
+      // data = [{ staff_id, product_id, Staff: { id, name, nameAr } }, ...]
+      const map: Record<string, StaffMember[]> = {};
+      for (const row of data) {
+        const pid = row.product_id;
+        const staff = row.Staff || row.staff;
+        if (!pid || !staff) continue;
+        if (!map[pid]) map[pid] = [];
+        map[pid].push({ id: staff.id, name: staff.nameAr || staff.name, branchId: staff.branchId });
+      }
+      setProductStaffMap(map);
+    } catch (err) {
+      console.error('Failed to fetch product staff map', err);
+    }
+  };
 
   // Fetch all staff for assignment
   const fetchAllStaff = async () => {
@@ -920,6 +944,18 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                     <Badge variant="secondary" className={cn("text-[10px]", rtl && "font-arabic")}>
                       {rtl ? product.Branch.nameAr || product.Branch.name : product.Branch.name}
                     </Badge>
+                  )}
+
+                  {/* Assigned Staff Names (services only) */}
+                  {isServices && productStaffMap[product.id]?.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {productStaffMap[product.id].map(st => (
+                        <Badge key={st.id} variant="outline" className={cn("text-[10px] gap-0.5", rtl && "font-arabic")}>
+                          <User className="w-2.5 h-2.5" />
+                          {st.name}
+                        </Badge>
+                      ))}
+                    </div>
                   )}
 
                   {/* Description Snippet */}
