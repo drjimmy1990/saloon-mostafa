@@ -130,7 +130,7 @@ export function AppSidebar() {
 
       {/* Footer controls */}
       <div className="p-3 space-y-2">
-        {/* <Button
+        <Button
           variant="ghost"
           size="sm"
           className="w-full flex items-center justify-start gap-3 px-3"
@@ -152,7 +152,7 @@ export function AppSidebar() {
           <span className="text-xs">
             {langLabel}
           </span>
-        </Button> */}
+        </Button>
         {/* Logout */}
         <Button
           variant="ghost"
@@ -253,7 +253,7 @@ export function MobileSidebar() {
         </ScrollArea>
 
         <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border space-y-2">
-          {/* <Button
+          <Button
             variant="ghost"
             size="sm"
             className="w-full flex items-center gap-3 px-3"
@@ -274,7 +274,7 @@ export function MobileSidebar() {
             <span className="text-xs">
               {langLabel}
             </span>
-          </Button> */}
+          </Button>
           <Button
             variant="ghost"
             size="sm"
