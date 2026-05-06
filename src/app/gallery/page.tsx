@@ -56,11 +56,11 @@ export default async function GalleryPage() {
         )}
 
         {items.length > 0 ? (
-          <div className="masonry-grid">
+          <div className="columns-2 md:columns-3 gap-4 space-y-4">
             {items.map((item, i) => (
               <div
                 key={item.id}
-                className="group relative rounded-2xl overflow-hidden shadow-sm card-hover animate-fade-in-up"
+                className="group relative rounded-2xl overflow-hidden shadow-sm card-hover animate-fade-in-up break-inside-avoid"
                 style={{ animationDelay: `${i * 80}ms` }}
               >
                 <div className="relative aspect-[3/4]">

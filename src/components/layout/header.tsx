@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { ShoppingBag, Menu, X, Flower2, ChevronLeft } from "lucide-react";
+import { ShoppingBag, Menu, X, Flower2, ChevronLeft, User } from "lucide-react";
 import { useCartStore } from "@/lib/cart-store";
+import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 
@@ -22,13 +23,15 @@ export function Header() {
   const [mounted, setMounted] = useState(false);
   const itemCount = useCartStore((s) => s.getItemCount());
   const pathname = usePathname();
+  const { user, initialize } = useAuthStore();
 
   useEffect(() => {
     setMounted(true);
+    initialize();
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [initialize]);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -88,6 +91,18 @@ export function Header() {
 
             {/* Actions */}
             <div className="flex items-center gap-2">
+              {/* Account — desktop only */}
+              <Link
+                href={user ? "/account" : "/login"}
+                className="hidden md:flex relative p-2.5 rounded-xl hover:bg-muted/80 transition-colors"
+                title={user ? "حسابي" : "تسجيل الدخول"}
+              >
+                <User className={cn("w-5 h-5", user ? "text-terracotta" : "text-foreground/60")} />
+                {mounted && user && (
+                  <span className="absolute -top-0.5 -left-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-white" />
+                )}
+              </Link>
+
               {/* Book CTA — desktop only */}
               <Link
                 href="/booking"
@@ -182,6 +197,26 @@ export function Header() {
                   </Link>
                 );
               })}
+
+              {/* Account link in mobile menu */}
+              <Link
+                href={user ? "/account" : "/login"}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center justify-between px-4 py-3.5 text-base font-medium rounded-xl transition-all",
+                  pathname === "/account" || pathname === "/login"
+                    ? "text-terracotta bg-terracotta/8 font-bold"
+                    : "text-foreground/70 hover:text-terracotta hover:bg-terracotta/5",
+                  mobileOpen && "animate-slide-in-right"
+                )}
+                style={{ animationDelay: `${navLinks.length * 50}ms` }}
+              >
+                <span className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  {user ? "حسابي" : "تسجيل الدخول"}
+                </span>
+                <ChevronLeft className="w-4 h-4 text-muted-foreground/30" />
+              </Link>
             </nav>
 
             {/* Mobile CTA */}

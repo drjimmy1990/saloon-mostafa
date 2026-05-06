@@ -21,7 +21,7 @@ export function WhatsAppFloat() {
       href={`https://wa.me/${whatsappNumber}?text=${message}`}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 left-6 z-50 group"
+      className="fixed bottom-6 left-6 z-50 group hidden md:block"
       aria-label="تواصل عبر الواتساب"
     >
       <div className="relative">

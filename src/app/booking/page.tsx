@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Check, ChevronLeft, ChevronRight, MapPin, Home, CalendarDays, User, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
+import { useAuthStore } from "@/lib/auth-store";
 
 interface Service {
   id: string;
@@ -19,19 +20,19 @@ interface Service {
   availableAtSalon?: boolean;
 }
 
-const STEPS = ["الخدمة", "الموعد", "المكان", "البيانات", "التأكيد"];
+const STEPS = ["الفرع", "الخدمة", "الموعد", "البيانات", "التأكيد"];
 
 function BookingForm() {
   const searchParams = useSearchParams();
   const preSelectedService = searchParams.get("service");
 
   const [step, setStep] = useState(0);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<string>("");
   const [services, setServices] = useState<Service[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-  const [location, setLocation] = useState<"salon" | "home">("salon");
-  const [address, setAddress] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
@@ -40,25 +41,60 @@ function BookingForm() {
   const [bookingStart, setBookingStart] = useState("09:00");
   const [bookingEnd, setBookingEnd] = useState("20:00");
 
+  const { user, client, initialize } = useAuthStore();
+
+  // Auto-fill from logged-in customer profile
   useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  useEffect(() => {
+    if (client) {
+      if (client.name && !name) setName(client.name);
+      if (client.phone && !phone) setPhone(client.phone);
+    }
+  }, [client]);
+
+  useEffect(() => {
+    async function fetchInitial() {
+      // Fetch branches
+      try {
+        const res = await fetch("/api/branches?active=true");
+        const data = await res.json();
+        setBranches(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error(err);
+      }
+      
+      // Fetch booking time config
+      try {
+        const r = await fetch("/api/settings");
+        const data = await r.json();
+        if (data.booking_start_time) setBookingStart(data.booking_start_time);
+        if (data.booking_end_time) setBookingEnd(data.booking_end_time);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchInitial();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedBranch) return;
     async function fetchServices() {
-      const res = await fetch("/api/services");
-      const data = await res.json();
-      setServices(Array.isArray(data) ? data : []);
-      if (preSelectedService && data?.some((s: Service) => s.id === preSelectedService)) {
-        setSelectedServices([preSelectedService]);
+      try {
+        const res = await fetch(`/api/services?branchId=${selectedBranch}`);
+        const data = await res.json();
+        setServices(Array.isArray(data) ? data : []);
+        if (preSelectedService && data?.some((s: Service) => s.id === preSelectedService)) {
+          setSelectedServices([preSelectedService]);
+        }
+      } catch (err) {
+        console.error(err);
       }
     }
     fetchServices();
-    // Fetch booking time config
-    fetch("/api/settings")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.booking_start_time) setBookingStart(data.booking_start_time);
-        if (data.booking_end_time) setBookingEnd(data.booking_end_time);
-      })
-      .catch(() => {});
-  }, [preSelectedService]);
+  }, [selectedBranch, preSelectedService]);
 
   const selectedServiceObjects = services.filter((s) => selectedServices.includes(s.id));
   const totalPrice = selectedServiceObjects.reduce((sum, s) => sum + (Number(s.price) || 0), 0);
@@ -71,9 +107,9 @@ function BookingForm() {
 
   const canNext = () => {
     switch (step) {
-      case 0: return selectedServices.length > 0;
-      case 1: return selectedDate && selectedTime;
-      case 2: return location === "salon" || (location === "home" && address.trim());
+      case 0: return !!selectedBranch;
+      case 1: return selectedServices.length > 0;
+      case 2: return selectedDate && selectedTime;
       case 3: return name.trim() && phone.trim();
       default: return true;
     }
@@ -90,12 +126,12 @@ function BookingForm() {
           serviceSummary: selectedServiceObjects.map((s) => s.name).join("، "),
           date: selectedDate,
           time: selectedTime,
-          location,
-          address: location === "home" ? address : "",
+          branchName: branches.find(b => b.id === selectedBranch)?.nameAr || "",
           name,
           phone,
           notes,
           totalPrice,
+          authUserId: user?.id || null,
         }),
       });
       if (!res.ok) throw new Error("Failed to create booking");
@@ -176,8 +212,35 @@ function BookingForm() {
         </div>
 
         <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-border/50">
-          {/* Step 0: Select Services */}
+          {/* Step 0: Select Branch */}
           {step === 0 && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold text-dark flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-terracotta" />
+                اختاري الفرع
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {branches.map(branch => (
+                  <button
+                    key={branch.id}
+                    onClick={() => setSelectedBranch(branch.id)}
+                    className={cn(
+                      "p-6 rounded-xl border-2 text-center transition-all",
+                      selectedBranch === branch.id
+                        ? "border-terracotta bg-terracotta/5"
+                        : "border-border hover:border-terracotta/30"
+                    )}
+                  >
+                    <MapPin className="w-8 h-8 mx-auto mb-2 text-sage" />
+                    <span className="font-bold block">{branch.nameAr}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 1: Select Services */}
+          {step === 1 && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-dark flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-terracotta" />
@@ -220,8 +283,8 @@ function BookingForm() {
             </div>
           )}
 
-          {/* Step 1: Date & Time */}
-          {step === 1 && (
+          {/* Step 2: Date & Time */}
+          {step === 2 && (
             <div className="space-y-6">
               <h2 className="text-xl font-bold text-dark flex items-center gap-2">
                 <CalendarDays className="w-5 h-5 text-terracotta" />
@@ -261,51 +324,7 @@ function BookingForm() {
             </div>
           )}
 
-          {/* Step 2: Location */}
-          {step === 2 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-bold text-dark flex items-center gap-2">
-                <MapPin className="w-5 h-5 text-terracotta" />
-                مكان الخدمة
-              </h2>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  onClick={() => setLocation("salon")}
-                  className={cn(
-                    "p-6 rounded-xl border-2 text-center transition-all",
-                    location === "salon"
-                      ? "border-terracotta bg-terracotta/5"
-                      : "border-border hover:border-terracotta/30"
-                  )}
-                >
-                  <MapPin className="w-8 h-8 mx-auto mb-2 text-sage" />
-                  <span className="font-bold block">في الصالون</span>
-                </button>
-                <button
-                  onClick={() => setLocation("home")}
-                  className={cn(
-                    "p-6 rounded-xl border-2 text-center transition-all",
-                    location === "home"
-                      ? "border-terracotta bg-terracotta/5"
-                      : "border-border hover:border-terracotta/30"
-                  )}
-                >
-                  <Home className="w-8 h-8 mx-auto mb-2 text-terracotta" />
-                  <span className="font-bold block">في المنزل</span>
-                </button>
-              </div>
-              {location === "home" && (
-                <div>
-                  <Label className="text-sm font-medium mb-2 block">العنوان</Label>
-                  <Input
-                    placeholder="شارع مكة، عمّان..."
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+
 
           {/* Step 3: Customer Info */}
           {step === 3 && (
@@ -363,15 +382,9 @@ function BookingForm() {
                   <span className="font-medium" dir="ltr">{selectedTime}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">المكان</span>
-                  <span className="font-medium">{location === "salon" ? "في الصالون" : "في المنزل"}</span>
+                  <span className="text-muted-foreground">الفرع</span>
+                  <span className="font-medium">{branches.find(b => b.id === selectedBranch)?.nameAr || ""}</span>
                 </div>
-                {location === "home" && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">العنوان</span>
-                    <span className="font-medium">{address}</span>
-                  </div>
-                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">الاسم</span>
                   <span className="font-medium">{name}</span>

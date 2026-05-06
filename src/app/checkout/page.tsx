@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { CreditCard, Banknote, Smartphone } from "lucide-react";
+import { useAuthStore } from "@/lib/auth-store";
 
 export default function CheckoutPage() {
   const items = useCartStore((s) => s.items);
@@ -34,6 +35,21 @@ export default function CheckoutPage() {
       .catch(() => {});
   }, []);
 
+  const { user, client, initialize } = useAuthStore();
+
+  useEffect(() => {
+    initialize();
+  }, [initialize]);
+
+  // Auto-fill from logged-in customer profile
+  useEffect(() => {
+    if (client) {
+      if (client.name && !name) setName(client.name);
+      if (client.phone && !phone) setPhone(client.phone);
+      if (client.address && !address) setAddress(client.address);
+    }
+  }, [client]);
+
   if (!mounted) return <div className="min-h-screen bg-cream py-20"><div className="container mx-auto max-w-2xl px-4"><div className="animate-pulse h-8 bg-muted rounded w-40 mx-auto"/></div></div>;
 
   if (items.length === 0) { router.push("/cart"); return null; }
@@ -52,6 +68,7 @@ export default function CheckoutPage() {
           customerName: name, customerPhone: phone, customerAddress: address,
           items: items.map(i => ({ productId: i.productId, name: i.name, price: i.price, qty: i.qty })),
           subtotal, deliveryFee, total, paymentMethod: payment, notes,
+          authUserId: user?.id || null,
         }),
       });
       const data = await res.json();

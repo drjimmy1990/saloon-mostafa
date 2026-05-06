@@ -5,7 +5,7 @@ import { getServiceRoleClient } from "@/lib/supabase";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { serviceSummary, date, time, location, address, name, phone, notes } = body;
+    const { serviceSummary, date, time, branchName, name, phone, notes, authUserId } = body;
 
     if (!name || !phone || !serviceSummary || !date || !time) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -13,32 +13,47 @@ export async function POST(req: NextRequest) {
 
     const supabase = getServiceRoleClient();
 
-    // 1. Find or create client by phone
+    // 1. Find or create client — prefer auth_user_id if provided
     let clientId: string | null = null;
-    const { data: existingClient } = await supabase
-      .from("Client")
-      .select("id")
-      .eq("phone", phone)
-      .single();
 
-    if (existingClient) {
-      clientId = existingClient.id;
-    } else {
-      const { data: newClient } = await supabase
+    if (authUserId) {
+      const { data: authClient } = await supabase
         .from("Client")
-        .insert({
-          name,
-          phone,
-          platform: "website",
-        })
         .select("id")
+        .eq("auth_user_id", authUserId)
         .single();
-      clientId = newClient?.id || null;
+      if (authClient) {
+        clientId = authClient.id;
+      }
+    }
+
+    if (!clientId) {
+      const { data: existingClient } = await supabase
+        .from("Client")
+        .select("id")
+        .eq("phone", phone)
+        .single();
+
+      if (existingClient) {
+        clientId = existingClient.id;
+      } else {
+        const { data: newClient } = await supabase
+          .from("Client")
+          .insert({
+            name,
+            phone,
+            platform: "website",
+            auth_user_id: authUserId || null,
+          })
+          .select("id")
+          .single();
+        clientId = newClient?.id || null;
+      }
     }
 
     // 2. Create booking
     const bookingDate = `${date}T${convertTo24h(time)}:00`;
-    const locationNote = location === "home" ? `📍 في المنزل: ${address}` : "🏪 في الصالون";
+    const locationNote = `🏪 الفرع: ${branchName}`;
     const fullSummary = [serviceSummary, locationNote, notes].filter(Boolean).join(" | ");
 
     const { data: booking, error } = await supabase
@@ -71,7 +86,7 @@ export async function POST(req: NextRequest) {
     //       clientPhone: phone,
     //       service: serviceSummary,
     //       date: bookingDate,
-    //       location,
+    //       branch: branchName,
     //       source: "website",
     //     }),
     //   });

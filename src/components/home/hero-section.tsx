@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Sparkles, ArrowLeft, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -118,45 +119,28 @@ export function HeroSection() {
             transition={{ delay: 0.3, duration: 0.8 }}
             className="hidden lg:grid grid-cols-2 gap-4"
           >
-            {/* Stats Cards instead of images (since we don't have hero images) */}
             <div className="space-y-4">
-              <div className="glass rounded-2xl p-6 card-hover border border-white/60">
-                <div className="w-12 h-12 rounded-xl bg-terracotta/10 flex items-center justify-center mb-3">
-                  <Sparkles className="w-6 h-6 text-terracotta" />
-                </div>
-                <div className="text-3xl font-black text-terracotta tabular-nums mb-1">
-                  <CountUp target={50} suffix="+" />
-                </div>
-                <p className="text-sm text-muted-foreground">خدمة متنوعة</p>
+              <div className="relative h-64 rounded-2xl overflow-hidden shadow-xl card-hover border border-white/60">
+                <Image src="/images/hero/hero_salon_1.png" alt="صالون جاردينيا" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />
               </div>
-              <div className="glass rounded-2xl p-6 card-hover border border-white/60 animate-float" style={{ animationDelay: "0.5s" }}>
-                <div className="flex items-center gap-1 mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-                <p className="text-sm font-medium text-dark">&quot;أفضل صالون في الأردن&quot;</p>
-                <p className="text-xs text-muted-foreground mt-1">— عميلة سعيدة</p>
+              <div className="relative h-48 rounded-2xl overflow-hidden shadow-xl card-hover border border-white/60 animate-float" style={{ animationDelay: "0.5s" }}>
+                <Image src="/images/hero/hero_salon_3.png" alt="مكياج احترافي" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />
               </div>
             </div>
-            <div className="space-y-4 pt-8">
-              <div className="glass rounded-2xl p-6 card-hover border border-white/60 animate-float" style={{ animationDelay: "1s" }}>
-                <div className="w-12 h-12 rounded-xl bg-sage/10 flex items-center justify-center mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-sage"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <div className="space-y-4 pt-12">
+              <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl card-hover border border-white/60 animate-float" style={{ animationDelay: "1s" }}>
+                <Image src="/images/hero/hero_salon_2.png" alt="تصفيف شعر" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+                   <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <div className="text-white text-xs font-bold bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full">
+                    +500 تقييم ممتاز
+                  </div>
                 </div>
-                <div className="text-3xl font-black text-sage tabular-nums mb-1">
-                  <CountUp target={500} suffix="+" />
-                </div>
-                <p className="text-sm text-muted-foreground">عميلة سعيدة</p>
-              </div>
-              <div className="glass rounded-2xl p-6 card-hover border border-white/60">
-                <div className="w-12 h-12 rounded-xl bg-sand/10 flex items-center justify-center mb-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-6 h-6 text-sand"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                </div>
-                <div className="text-3xl font-black text-sand tabular-nums mb-1">
-                  <CountUp target={10} suffix="+" />
-                </div>
-                <p className="text-sm text-muted-foreground">سنوات خبرة</p>
               </div>
             </div>
           </motion.div>
