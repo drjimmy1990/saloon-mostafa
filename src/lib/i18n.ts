@@ -55,6 +55,7 @@ export const translations = {
       pages: "Pages",
       blacklist: "Blacklist",
       settings: "Settings",
+      branches: "Branches",
     },
 
     // Dashboard
@@ -382,6 +383,7 @@ export const translations = {
       pages: "صفحات الموقع",
       blacklist: "القائمة السوداء",
       settings: "الإعدادات",
+      branches: "الفروع",
     },
 
     // Dashboard

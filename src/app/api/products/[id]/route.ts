@@ -5,7 +5,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   try {
     const { id } = await params;
     const supabase = getServiceRoleClient();
-    const { data: product, error } = await supabase.from('Product').select('*').eq('id', id).single();
+    const { data: product, error } = await supabase.from('Product').select('*, Branch(*)').eq('id', id).single();
     if (error || !product) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json(product);
   } catch (error) {
@@ -32,15 +32,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.notes !== undefined) updateData.notes = body.notes;
     if (body.type !== undefined) updateData.type = body.type;
     if (body.stock !== undefined) updateData.stock = body.stock;
+    if (body.branchId !== undefined) updateData.branchId = body.branchId || null;
 
     const { data: product, error } = await supabase
       .from('Product')
       .update(updateData)
       .eq('id', id)
-      .select()
+      .select("*, Branch(*)")
       .single();
 
     if (error) throw error;
+
     return NextResponse.json(product);
   } catch (error) {
     console.error(error);

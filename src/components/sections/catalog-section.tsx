@@ -58,6 +58,12 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface Branch {
+  id: string;
+  name: string;
+  nameAr: string;
+}
+
 interface CategoryItem {
   id: string;
   label: string;
@@ -78,6 +84,8 @@ interface Product {
   sortOrder: number;
   type: 'service' | 'product';
   stock: number | null;
+  branchId?: string | null;
+  Branch?: Branch | null;
 }
 
 interface ProductFormData {
@@ -91,6 +99,7 @@ interface ProductFormData {
   availableAtSalon: boolean;
   notes: string;
   stock: number | null;
+  branchId: string;
 }
 
 export type CatalogMode = 'services' | 'products';
@@ -207,6 +216,7 @@ const emptyProductFormData: ProductFormData = {
   availableAtSalon: true,
   notes: "",
   stock: null,
+  branchId: "none",
 };
 
 const emptyCategoryFormData: CategoryFormData = {
@@ -240,6 +250,8 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
 
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [filterBranch, setFilterBranch] = useState<string>("all");
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -282,9 +294,20 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
     }
   };
 
+  const fetchBranches = async () => {
+    try {
+      const res = await fetch("/api/branches?active=true");
+      const data = await res.json();
+      setBranches(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch branches", err);
+    }
+  };
+
   React.useEffect(() => {
     fetchCategories();
     fetchProducts();
+    fetchBranches();
   }, []);
 
   // ─── Derived Data ─────────────────────────────────────────────────────────
@@ -307,9 +330,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      const nameMatch = rtl
-        ? p.name?.toLowerCase().includes(searchQuery.toLowerCase())
-        : p.name?.toLowerCase().includes(searchQuery.toLowerCase());
+      const nameMatch = p.name?.toLowerCase().includes(searchQuery.toLowerCase());
 
       let categoryMatch = true;
       if (activeCategory === "uncategorized") {
@@ -318,9 +339,16 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
         categoryMatch = p.category === activeCategory;
       }
 
-      return nameMatch && categoryMatch;
+      let branchMatch = true;
+      if (filterBranch === "unassigned") {
+        branchMatch = !p.branchId;
+      } else if (filterBranch !== "all") {
+        branchMatch = p.branchId === filterBranch;
+      }
+
+      return nameMatch && categoryMatch && branchMatch;
     });
-  }, [products, searchQuery, activeCategory, rtl, categories]);
+  }, [products, searchQuery, activeCategory, filterBranch, categories]);
 
   // ─── Product Handlers ─────────────────────────────────────────────────────
 
@@ -346,6 +374,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
       availableAtSalon: product.availableAtSalon ?? true,
       notes: product.notes || "",
       stock: product.stock ?? null,
+      branchId: product.branchId || "none",
     });
     setProductDialogOpen(true);
   };
@@ -368,6 +397,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
       notes: formData.notes,
       type: typeFilter,
       stock: isServices ? null : (formData.stock ?? 0),
+      branchId: formData.branchId === "none" ? null : formData.branchId,
     };
 
     try {
@@ -600,6 +630,33 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
             {isServices ? t(locale, "services.addService") : t(locale, "productsSection.addProduct")}
           </Button>
         </div>
+
+        {/* Branch Filter */}
+        {branches.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Label className={cn("text-sm whitespace-nowrap", rtl && "font-arabic")}>
+              {rtl ? "الفرع" : "Branch"}
+            </Label>
+            <Select value={filterBranch} onValueChange={setFilterBranch}>
+              <SelectTrigger className={cn("w-[200px]", rtl && "font-arabic")}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className={cn(rtl && "font-arabic")}>
+                  {rtl ? "جميع الفروع" : "All Branches"}
+                </SelectItem>
+                <SelectItem value="unassigned" className={cn(rtl && "font-arabic")}>
+                  {rtl ? "بدون فرع" : "Unassigned"}
+                </SelectItem>
+                {branches.map((branch) => (
+                  <SelectItem key={branch.id} value={branch.id} className={cn(rtl && "font-arabic")}>
+                    {rtl ? branch.nameAr || branch.name : branch.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Category Filter Pills */}
@@ -747,6 +804,13 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                       </span>
                     </div>
                   </div>
+
+                  {/* Branch Badge */}
+                  {product.Branch && (
+                    <Badge variant="secondary" className={cn("text-[10px]", rtl && "font-arabic")}>
+                      {rtl ? product.Branch.nameAr || product.Branch.name : product.Branch.name}
+                    </Badge>
+                  )}
 
                   {/* Description Snippet */}
                   <p className={cn("text-xs text-muted-foreground line-clamp-2 leading-relaxed", rtl && "font-arabic")}>
@@ -916,6 +980,35 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                 </Select>
               </div>
             </div>
+
+            {/* Branch Selector */}
+            {branches.length > 0 && (
+              <div className="space-y-2">
+                <Label className={cn(rtl && "text-right block font-arabic")}>
+                  {rtl ? "الفرع" : "Branch"}
+                </Label>
+                <Select
+                  value={formData.branchId}
+                  onValueChange={(val) =>
+                    setFormData((prev) => ({ ...prev, branchId: val }))
+                  }
+                >
+                  <SelectTrigger className={cn("w-full", rtl && "font-arabic")}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none" className={cn(rtl && "font-arabic")}>
+                      {rtl ? "بدون فرع" : "No Branch"}
+                    </SelectItem>
+                    {branches.map((branch) => (
+                      <SelectItem key={branch.id} value={branch.id} className={cn(rtl && "font-arabic")}>
+                        {rtl ? branch.nameAr || branch.name : branch.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Location Availability Toggles — Services only */}
             {isServices && (

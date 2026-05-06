@@ -6,13 +6,13 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// GET — List all staff
+// GET — List all branches
 export async function GET(req: NextRequest) {
   const active = req.nextUrl.searchParams.get("active");
 
   let query = supabase
-    .from("Staff")
-    .select("*, Branch(id, name, nameAr)")
+    .from("Branch")
+    .select("*")
     .order("createdAt", { ascending: false });
 
   if (active === "true") {
@@ -22,27 +22,24 @@ export async function GET(req: NextRequest) {
   const { data, error } = await query;
 
   if (error) {
-    console.error("Staff GET error:", error.message, error.details, error.hint);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
   return NextResponse.json(data);
 }
 
-// POST — Create new staff member
+// POST — Create new branch
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
   const { data, error } = await supabase
-    .from("Staff")
+    .from("Branch")
     .insert({
       name: body.name,
+      nameAr: body.nameAr || "",
+      address: body.address || "",
       phone: body.phone || "",
-      role: body.role || "stylist",
-      avatar: body.avatar || "",
       isActive: body.isActive ?? true,
-      services: body.services || [],
-      branchId: body.branchId || null,
     })
     .select()
     .single();
@@ -54,7 +51,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json(data, { status: 201 });
 }
 
-// PUT — Update staff member
+// PUT — Update branch
 export async function PUT(req: NextRequest) {
   const body = await req.json();
 
@@ -63,15 +60,13 @@ export async function PUT(req: NextRequest) {
   }
 
   const { data, error } = await supabase
-    .from("Staff")
+    .from("Branch")
     .update({
       name: body.name,
+      nameAr: body.nameAr,
+      address: body.address,
       phone: body.phone,
-      role: body.role,
-      avatar: body.avatar,
       isActive: body.isActive,
-      services: body.services,
-      branchId: body.branchId || null,
     })
     .eq("id", body.id)
     .select()
@@ -84,7 +79,7 @@ export async function PUT(req: NextRequest) {
   return NextResponse.json(data);
 }
 
-// DELETE — Delete staff member
+// DELETE — Delete branch
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
 
@@ -92,7 +87,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  const { error } = await supabase.from("Staff").delete().eq("id", id);
+  const { error } = await supabase.from("Branch").delete().eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

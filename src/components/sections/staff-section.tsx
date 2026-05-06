@@ -16,6 +16,8 @@ import {
   XCircle,
   Loader2,
   Calendar,
+  X,
+  PlusCircle,
 } from "lucide-react";
 import {
   Card,
@@ -71,6 +73,12 @@ interface Staff {
   isActive: boolean;
   services: string[];
   createdAt: string;
+  branchId?: string | null;
+  Branch?: {
+    id: string;
+    name: string;
+    nameAr: string;
+  } | null;
 }
 
 interface ScheduleEntry {
@@ -86,7 +94,24 @@ interface Product {
   category: string;
 }
 
-const ROLES = ["stylist", "nail_tech", "manager", "receptionist"];
+interface Branch {
+  id: string;
+  name: string;
+  nameAr: string;
+}
+
+interface StaffRole {
+  key: string;
+  labelEn: string;
+  labelAr: string;
+}
+
+const DEFAULT_ROLES: StaffRole[] = [
+  { key: "stylist", labelEn: "Stylist", labelAr: "مصففة شعر" },
+  { key: "nail_tech", labelEn: "Nail Technician", labelAr: "فنية أظافر" },
+  { key: "manager", labelEn: "Manager", labelAr: "مديرة" },
+  { key: "receptionist", labelEn: "Receptionist", labelAr: "استقبال" },
+];
 
 const DAY_NAMES_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const DAY_NAMES_AR = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
@@ -107,6 +132,8 @@ export function StaffSection() {
   // Data state
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [roles, setRoles] = useState<StaffRole[]>(DEFAULT_ROLES);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -124,12 +151,18 @@ export function StaffSection() {
   const [schedule, setSchedule] = useState<ScheduleEntry[]>(DEFAULT_SCHEDULE);
   const [savingSchedule, setSavingSchedule] = useState(false);
 
+  // Role management state
+  const [newRoleEn, setNewRoleEn] = useState("");
+  const [newRoleAr, setNewRoleAr] = useState("");
+  const [showAddRole, setShowAddRole] = useState(false);
+
   // Form state
   const [formName, setFormName] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formRole, setFormRole] = useState("stylist");
   const [formActive, setFormActive] = useState(true);
   const [formServices, setFormServices] = useState<string[]>([]);
+  const [formBranchId, setFormBranchId] = useState<string>("none");
 
   // ─── Fetch Data ──────────────────────────────────────────────────────────────
 
@@ -156,9 +189,76 @@ export function StaffSection() {
     }
   };
 
+  const fetchBranches = async () => {
+    try {
+      const res = await fetch("/api/branches");
+      const data = await res.json();
+      setBranches(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch branches:", err);
+    }
+  };
+
+  const fetchRoles = async () => {
+    try {
+      const res = await fetch("/api/settings");
+      const data = await res.json();
+      if (data?.staff_roles) {
+        const parsed = JSON.parse(data.staff_roles);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setRoles(parsed);
+        }
+      }
+    } catch {
+      // Use defaults on error
+    }
+  };
+
+  const saveRoles = async (updated: StaffRole[]) => {
+    setRoles(updated);
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ staff_roles: JSON.stringify(updated) }),
+      });
+    } catch {
+      console.error("Failed to save roles");
+    }
+  };
+
+  const handleAddRole = () => {
+    if (!newRoleEn.trim()) return;
+    const key = newRoleEn.trim().toLowerCase().replace(/\s+/g, "_");
+    if (roles.some((r) => r.key === key)) return;
+    const updated = [...roles, { key, labelEn: newRoleEn.trim(), labelAr: newRoleAr.trim() || newRoleEn.trim() }];
+    saveRoles(updated);
+    setNewRoleEn("");
+    setNewRoleAr("");
+    setShowAddRole(false);
+  };
+
+  const handleRemoveRole = (key: string) => {
+    const updated = roles.filter((r) => r.key !== key);
+    if (updated.length === 0) return; // Keep at least one
+    saveRoles(updated);
+    if (formRole === key) setFormRole(updated[0].key);
+  };
+
+  const getRoleLabel = (key: string) => {
+    const role = roles.find((r) => r.key === key);
+    if (role) return rtl ? role.labelAr : role.labelEn;
+    // Fallback to i18n for legacy roles
+    const i18nKey = `staff.${key}`;
+    const translated = t(locale, i18nKey);
+    return translated !== i18nKey ? translated : key;
+  };
+
   useEffect(() => {
     fetchStaff();
     fetchProducts();
+    fetchBranches();
+    fetchRoles();
   }, []);
 
   // ─── Filtered list ───────────────────────────────────────────────────────────
@@ -183,6 +283,7 @@ export function StaffSection() {
     setFormRole("stylist");
     setFormActive(true);
     setFormServices([]);
+    setFormBranchId("none");
     setDialogOpen(true);
   };
 
@@ -193,6 +294,7 @@ export function StaffSection() {
     setFormRole(staff.role);
     setFormActive(staff.isActive);
     setFormServices(staff.services || []);
+    setFormBranchId(staff.branchId || "none");
     setDialogOpen(true);
   };
 
@@ -208,6 +310,7 @@ export function StaffSection() {
         role: formRole,
         isActive: formActive,
         services: formServices,
+        branchId: formBranchId === "none" ? null : formBranchId,
       };
 
       const method = editingStaff ? "PUT" : "POST";
@@ -336,6 +439,7 @@ export function StaffSection() {
                   <TableHead className={cn(rtl && "text-right font-arabic")}>{t(locale, "staff.staffName")}</TableHead>
                   <TableHead className={cn(rtl && "text-right font-arabic")}>{t(locale, "staff.staffPhone")}</TableHead>
                   <TableHead className={cn(rtl && "text-right font-arabic")}>{t(locale, "staff.staffRole")}</TableHead>
+                  <TableHead className={cn(rtl && "text-right font-arabic")}>{rtl ? "الفرع" : "Branch"}</TableHead>
                   <TableHead className={cn(rtl && "text-right font-arabic")}>{t(locale, "status")}</TableHead>
                   <TableHead className={cn(rtl && "text-right font-arabic")}>{t(locale, "staff.services")}</TableHead>
                   <TableHead className={cn(rtl && "text-right font-arabic")}>{t(locale, "actions")}</TableHead>
@@ -344,13 +448,13 @@ export function StaffSection() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12">
+                    <TableCell colSpan={7} className="text-center py-12">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : filteredStaff.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className={cn("text-center py-12 text-muted-foreground", rtl && "font-arabic")}>
+                    <TableCell colSpan={7} className={cn("text-center py-12 text-muted-foreground", rtl && "font-arabic")}>
                       {t(locale, "noData")}
                     </TableCell>
                   </TableRow>
@@ -364,7 +468,10 @@ export function StaffSection() {
                         {staff.phone || "—"}
                       </TableCell>
                       <TableCell className={cn(rtl && "text-right font-arabic")}>
-                        <Badge variant="outline">{t(locale, `staff.${staff.role}`)}</Badge>
+                        <Badge variant="outline">{getRoleLabel(staff.role)}</Badge>
+                      </TableCell>
+                      <TableCell className={cn(rtl && "text-right font-arabic")}>
+                        {staff.Branch ? (rtl ? staff.Branch.nameAr || staff.Branch.name : staff.Branch.name) : "—"}
                       </TableCell>
                       <TableCell className={cn(rtl && "text-right")}>
                         {staff.isActive ? (
@@ -443,15 +550,96 @@ export function StaffSection() {
 
             {/* Role */}
             <div className="space-y-2">
-              <Label className={cn(rtl && "font-arabic")}>{t(locale, "staff.staffRole")}</Label>
+              <div className="flex items-center justify-between">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "staff.staffRole")}</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs gap-1"
+                  onClick={() => setShowAddRole(!showAddRole)}
+                >
+                  {showAddRole ? <X className="w-3 h-3" /> : <PlusCircle className="w-3 h-3" />}
+                  {showAddRole ? (rtl ? "إلغاء" : "Cancel") : (rtl ? "دور جديد" : "New Role")}
+                </Button>
+              </div>
+
+              {showAddRole && (
+                <div className="flex gap-2 items-end p-2 rounded-md border bg-muted/30">
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-xs">{rtl ? "الاسم بالإنجليزي" : "English Name"}</Label>
+                    <Input
+                      value={newRoleEn}
+                      onChange={(e) => setNewRoleEn(e.target.value)}
+                      placeholder="e.g. Makeup Artist"
+                      className="h-8 text-sm"
+                      dir="ltr"
+                    />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-xs font-arabic">{rtl ? "الاسم بالعربي" : "Arabic Name"}</Label>
+                    <Input
+                      value={newRoleAr}
+                      onChange={(e) => setNewRoleAr(e.target.value)}
+                      placeholder="مثال: فنانة مكياج"
+                      className="h-8 text-sm font-arabic"
+                      dir="rtl"
+                    />
+                  </div>
+                  <Button type="button" size="sm" className="h-8" onClick={handleAddRole} disabled={!newRoleEn.trim()}>
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+
               <Select value={formRole} onValueChange={setFormRole}>
                 <SelectTrigger className={cn(rtl && "font-arabic")}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLES.map((role) => (
-                    <SelectItem key={role} value={role} className={cn(rtl && "font-arabic")}>
-                      {t(locale, `staff.${role}`)}
+                  {roles.map((role) => (
+                    <SelectItem key={role.key} value={role.key} className={cn(rtl && "font-arabic")}>
+                      <span className="flex items-center justify-between w-full gap-2">
+                        {rtl ? role.labelAr : role.labelEn}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Role chips with remove buttons */}
+              <div className="flex flex-wrap gap-1">
+                {roles.map((role) => (
+                  <Badge key={role.key} variant="secondary" className="gap-1 text-xs">
+                    {rtl ? role.labelAr : role.labelEn}
+                    {roles.length > 1 && (
+                      <button
+                        type="button"
+                        className="hover:text-destructive transition-colors"
+                        onClick={() => handleRemoveRole(role.key)}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    )}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Branch */}
+            <div className="space-y-2">
+              <Label className={cn(rtl && "font-arabic")}>{rtl ? "الفرع" : "Branch"}</Label>
+              <Select value={formBranchId} onValueChange={setFormBranchId}>
+                <SelectTrigger className={cn(rtl && "font-arabic")}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none" className={cn(rtl && "font-arabic")}>
+                    {rtl ? "غير محدد" : "None"}
+                  </SelectItem>
+                  {branches.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id} className={cn(rtl && "font-arabic")}>
+                      {rtl ? branch.nameAr || branch.name : branch.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

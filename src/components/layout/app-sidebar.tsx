@@ -5,6 +5,7 @@ import { useAppStore } from "@/lib/store";
 import { t, isRTL } from "@/lib/i18n";
 import {
   LayoutDashboard,
+  MapPin,
   Radio,
   Scissors,
   Package,
@@ -38,6 +39,7 @@ import { logout } from "@/app/login/actions";
 const navItems: { id: string; path: string; icon: React.ElementType; labelKey: string; adminOnly?: boolean }[] = [
   { id: "dashboard", path: "/", icon: LayoutDashboard, labelKey: "nav.dashboard" },
   { id: "channels", path: "/channels", icon: Radio, labelKey: "nav.channels" },
+  { id: "branches", path: "/branches", icon: MapPin, labelKey: "nav.branches" },
   { id: "services", path: "/services", icon: Scissors, labelKey: "nav.services" },
   { id: "products", path: "/products", icon: Package, labelKey: "nav.products" },
   { id: "offers", path: "/offers", icon: Percent, labelKey: "nav.offers" },

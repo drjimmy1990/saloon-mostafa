@@ -47,8 +47,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(mapped);
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("Clients GET error:", error?.message || error, error?.details, error?.hint);
     return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 });
   }
 }

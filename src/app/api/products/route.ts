@@ -1,20 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
 
-// GET /api/products?type=service|product
+// GET /api/products?type=service|product&branchId=uuid
 export async function GET(request: NextRequest) {
   try {
     const supabase = getServiceRoleClient();
     const { searchParams } = new URL(request.url);
     const typeFilter = searchParams.get('type'); // 'service' | 'product' | null
+    const branchId = searchParams.get('branchId');
 
     let query = supabase
       .from('Product')
-      .select('*')
+      .select("*, Branch(*)")
       .order('sortOrder', { ascending: true });
 
     if (typeFilter === 'service' || typeFilter === 'product') {
       query = query.eq('type', typeFilter);
+    }
+
+    if (branchId) {
+      query = query.eq('branchId', branchId);
     }
 
     const { data: products, error } = await query;
@@ -58,11 +63,13 @@ export async function POST(request: NextRequest) {
         sortOrder: nextSortOrder,
         type: body.type ?? 'service',
         stock: body.stock ?? null,
+        branchId: body.branchId || null,
       })
-      .select()
+      .select("*, Branch(*)")
       .single();
 
     if (error) throw error;
+
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error(error);
