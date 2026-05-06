@@ -69,3 +69,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to assign services' }, { status: 500 });
   }
 }
+
+// PUT /api/staff-services — Bulk assign staff to a product (product-centric)
+// Body: { productId: string, staffIds: string[] }
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { productId, staffIds } = body;
+
+    if (!productId || !Array.isArray(staffIds)) {
+      return NextResponse.json({ error: 'productId and staffIds[] required' }, { status: 400 });
+    }
+
+    const supabase = getServiceRoleClient();
+
+    // Delete existing assignments for this product
+    await supabase.from('StaffService').delete().eq('product_id', productId);
+
+    // Insert new assignments
+    if (staffIds.length > 0) {
+      const rows = staffIds.map((sid: string) => ({
+        staff_id: sid,
+        product_id: productId,
+      }));
+
+      const { error } = await supabase.from('StaffService').insert(rows);
+      if (error) throw error;
+    }
+
+    // Return updated list
+    const { data } = await supabase
+      .from('StaffService')
+      .select('*, Staff(id, name, branchId)')
+      .eq('product_id', productId);
+
+    return NextResponse.json(data || []);
+  } catch (error) {
+    console.error('StaffService PUT error:', error);
+    return NextResponse.json({ error: 'Failed to assign staff to product' }, { status: 500 });
+  }
+}

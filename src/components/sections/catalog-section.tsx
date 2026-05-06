@@ -299,6 +299,10 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
   const [deleteCategoryDialogOpen, setDeleteCategoryDialogOpen] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<CategoryItem | null>(null);
 
+  // Staff assignment states (services mode only)
+  const [allStaff, setAllStaff] = useState<StaffMember[]>([]);
+  const [selectedStaffIds, setSelectedStaffIds] = useState<string[]>([]);
+
   const fetchCategories = async () => {
     try {
       const res = await fetch(`/api/categories?type=${typeFilter}`);
@@ -336,7 +340,31 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
     fetchCategories();
     fetchProducts();
     fetchBranches();
+    if (isServices) fetchAllStaff();
   }, []);
+
+  // Fetch all staff for assignment
+  const fetchAllStaff = async () => {
+    try {
+      const res = await fetch("/api/staff");
+      const data = await res.json();
+      setAllStaff(Array.isArray(data) ? data.filter((s: any) => s.isActive) : []);
+    } catch (err) {
+      console.error("Failed to fetch staff", err);
+    }
+  };
+
+  // Fetch assigned staff for a product (when editing)
+  const fetchAssignedStaff = async (productId: string) => {
+    try {
+      const res = await fetch(`/api/staff-services?productId=${productId}`);
+      const data = await res.json();
+      setSelectedStaffIds(Array.isArray(data) ? data.map((d: any) => d.staff_id) : []);
+    } catch (err) {
+      console.error("Failed to fetch assigned staff", err);
+      setSelectedStaffIds([]);
+    }
+  };
 
   // ─── Derived Data ─────────────────────────────────────────────────────────
 
@@ -386,6 +414,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
       ...emptyProductFormData,
       category: categories.length > 0 ? categories[0].id : "",
     });
+    setSelectedStaffIds([]);
     setProductDialogOpen(true);
   };
 
@@ -408,6 +437,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
       depositAmount: product.depositAmount ?? 0,
       publishAt: product.publishAt || "",
     });
+    if (isServices) fetchAssignedStaff(product.id);
     setProductDialogOpen(true);
   };
 
@@ -446,6 +476,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
     };
 
     try {
+      let savedProductId: string | null = null;
       if (editingProduct) {
         // Find images that were in the original product but are no longer in the form data
         const removedImages = (editingProduct.images || []).filter(img => !formData.images.includes(img));
@@ -459,6 +490,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
           body: JSON.stringify(payload),
         });
         const updatedProduct = await res.json();
+        savedProductId = editingProduct.id;
         // Update in-place to preserve sort order
         setProducts(prev => prev.map(p => p.id === editingProduct.id ? { ...p, ...updatedProduct } : p));
       } else {
@@ -468,7 +500,13 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
           body: JSON.stringify(payload),
         });
         const newProduct = await res.json();
+        savedProductId = newProduct.id;
         setProducts(prev => [...prev, newProduct]);
+      }
+
+      // Save staff assignments
+      if (savedProductId && isServices) {
+        await saveStaffAssignments(savedProductId);
       }
     } catch (err) {
       console.error("Failed to save product", err);
@@ -477,6 +515,20 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
     setProductDialogOpen(false);
     setEditingProduct(null);
     setFormData(emptyProductFormData);
+    setSelectedStaffIds([]);
+  };
+
+  // Save staff assignments for a product (called after product save)
+  const saveStaffAssignments = async (productId: string) => {
+    try {
+      await fetch('/api/staff-services', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, staffIds: selectedStaffIds }),
+      });
+    } catch (err) {
+      console.error('Failed to save staff assignments', err);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -1199,7 +1251,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label className={cn("block", rtl && "text-right font-arabic")}>
-                      {rtl ? "مدة الخدمة (دقيقة)" : "Duration (min)"}
+                      {t(locale, "services.duration")}
                     </Label>
                     <Select
                       value={String(formData.durationMinutes)}
@@ -1219,7 +1271,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                   </div>
                   <div className="space-y-2">
                     <Label className={cn("block", rtl && "text-right font-arabic")}>
-                      {rtl ? "نوع الحجز" : "Booking Mode"}
+                      {t(locale, "services.bookingMode")}
                     </Label>
                     <Select
                       value={formData.durationMode}
@@ -1230,10 +1282,10 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="time" className={cn(rtl && "font-arabic")}>
-                          {rtl ? "⏰ بالوقت" : "⏰ By Time"}
+                          {t(locale, "services.byTime")}
                         </SelectItem>
                         <SelectItem value="queue" className={cn(rtl && "font-arabic")}>
-                          {rtl ? "🔢 بالدور" : "🔢 By Queue"}
+                          {t(locale, "services.byQueue")}
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -1244,7 +1296,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label className={cn("block", rtl && "text-right font-arabic")}>
-                      {rtl ? "العربون (JOD)" : "Deposit (JOD)"}
+                      {t(locale, "services.deposit")}
                     </Label>
                     <Input
                       type="number"
@@ -1258,7 +1310,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                   </div>
                   <div className="space-y-2">
                     <Label className={cn("block", rtl && "text-right font-arabic")}>
-                      {rtl ? "وقت النشر" : "Publish Timing"}
+                      {t(locale, "services.publishTiming")}
                     </Label>
                     <Select
                       value={formData.publishAt}
@@ -1278,6 +1330,51 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                   </div>
                 </div>
               </>
+            )}
+
+            {/* ─── Staff Assignment (Services only) ─── */}
+            {isServices && (
+              <div className="space-y-2">
+                <Label className={cn("block", rtl && "text-right font-arabic")}>
+                  {t(locale, "services.assignedStaff")}
+                </Label>
+                <div className="border rounded-lg p-3 max-h-40 overflow-y-auto space-y-2">
+                  {(formData.branchId !== "none"
+                    ? allStaff.filter(s => s.branchId === formData.branchId)
+                    : allStaff
+                  ).length > 0 ? (
+                    (formData.branchId !== "none"
+                      ? allStaff.filter(s => s.branchId === formData.branchId)
+                      : allStaff
+                    ).map(s => (
+                      <label key={s.id} className="flex items-center gap-3 cursor-pointer hover:bg-muted/50 rounded-md p-1.5 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={selectedStaffIds.includes(s.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedStaffIds(prev => [...prev, s.id]);
+                            } else {
+                              setSelectedStaffIds(prev => prev.filter(id => id !== s.id));
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-gray-300 text-sage-600 focus:ring-sage-500"
+                        />
+                        <span className={cn("text-sm", rtl && "font-arabic")}>{s.name}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className={cn("text-sm text-muted-foreground text-center py-2", rtl && "font-arabic")}>
+                      {t(locale, "services.noStaffAvailable")}
+                    </p>
+                  )}
+                </div>
+                {selectedStaffIds.length > 0 && (
+                  <p className={cn("text-xs text-muted-foreground", rtl && "text-right font-arabic")}>
+                    {selectedStaffIds.length} {rtl ? "عاملة مختارة" : "staff selected"}
+                  </p>
+                )}
+              </div>
             )}
 
             {/* Availability Toggle */}
