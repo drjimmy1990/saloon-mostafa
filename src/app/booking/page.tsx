@@ -6,69 +6,41 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, ChevronLeft, ChevronRight, MapPin, CalendarDays, User, Sparkles, Clock, Hash, CreditCard, FileText } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, MapPin, CalendarDays, User, Sparkles, Clock, Hash, CreditCard, Grid3X3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/lib/auth-store";
 
-interface Service {
-  id: string;
-  name: string;
-  price: number;
-  images: string[];
-  category?: string;
-  durationMinutes?: number;
-  durationMode?: "time" | "queue";
-  depositAmount?: number;
-}
+interface StaffInfo { id: string; name: string; nameAr?: string; avatar?: string; role?: string; }
+interface Service { id: string; name: string; price: number; images: string[]; category?: string; durationMinutes?: number; durationMode?: "time" | "queue"; depositAmount?: number; staff: StaffInfo[]; }
+interface CategoryGroup { category: string; image: string | null; services: Service[]; }
+interface BranchItem { id: string; name: string; nameAr?: string; address?: string; }
 
-interface StaffMember {
-  id: string;
-  name: string;
-  nameAr?: string;
-  avatar?: string;
-  role?: string;
-  branchId?: string;
-}
-
-interface BranchItem {
-  id: string;
-  name: string;
-  nameAr?: string;
-  address?: string;
-}
-
-const STEPS = ["الفرع", "الخدمة", "العاملة", "الموعد", "الشروط", "البيانات", "التأكيد"];
+const STEPS = ["الفرع", "نوع الخدمة", "اختاري", "الموعد", "البيانات", "التأكيد"];
 
 function BookingForm() {
   const searchParams = useSearchParams();
   const preSelectedService = searchParams.get("service");
 
-  // Step state
   const [step, setStep] = useState(0);
-
-  // Data
   const [branches, setBranches] = useState<BranchItem[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
-  const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [categories, setCategories] = useState<CategoryGroup[]>([]);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [terms, setTerms] = useState("");
 
-  // Selections
   const [selectedBranch, setSelectedBranch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedService, setSelectedService] = useState("");
   const [selectedStaff, setSelectedStaff] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  // Customer data
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
 
-  // UI state
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -78,13 +50,19 @@ function BookingForm() {
   const { user, client, initialize } = useAuthStore();
 
   // Derived
-  const serviceObj = services.find((s) => s.id === selectedService);
-  const staffObj = staffList.find((s) => s.id === selectedStaff);
-  const branchObj = branches.find((b) => b.id === selectedBranch);
+  const currentCat = categories.find(c => c.category === selectedCategory);
+  const allServicesInCat = currentCat?.services || [];
+  // Build staff-service cards: one card per staff per service
+  const staffServiceCards = allServicesInCat.flatMap(svc =>
+    svc.staff.map(st => ({ service: svc, staffMember: st, key: `${svc.id}-${st.id}` }))
+  );
+  const selectedCard = staffServiceCards.find(c => c.service.id === selectedService && c.staffMember.id === selectedStaff);
+  const serviceObj = selectedCard?.service;
+  const staffObj = selectedCard?.staffMember;
+  const branchObj = branches.find(b => b.id === selectedBranch);
   const isQueueMode = serviceObj?.durationMode === "queue";
   const depositAmount = serviceObj?.depositAmount || 0;
 
-  // Auth init & auto-fill
   useEffect(() => { initialize(); }, [initialize]);
   useEffect(() => {
     if (client) {
@@ -93,103 +71,71 @@ function BookingForm() {
     }
   }, [client]);
 
-  // Fetch branches on mount
+  // Fetch branches
   useEffect(() => {
     fetch("/api/branches?active=true").then(r => r.json()).then(d => setBranches(Array.isArray(d) ? d : [])).catch(console.error);
   }, []);
 
-  // Fetch services when branch selected
+  // Fetch services grouped by category when branch selected
   useEffect(() => {
     if (!selectedBranch) return;
-    setSelectedService(""); setSelectedStaff(""); setSelectedTime("");
-    fetch(`/api/services?branchId=${selectedBranch}`).then(r => r.json()).then(d => {
-      setServices(Array.isArray(d) ? d : []);
-      if (preSelectedService && d?.some((s: Service) => s.id === preSelectedService)) {
-        setSelectedService(preSelectedService);
-      }
-    }).catch(console.error);
-  }, [selectedBranch, preSelectedService]);
+    setSelectedCategory(""); setSelectedService(""); setSelectedStaff(""); setSelectedTime("");
+    fetch(`/api/services-with-staff?branchId=${selectedBranch}`)
+      .then(r => r.json())
+      .then(d => setCategories(Array.isArray(d) ? d : []))
+      .catch(console.error);
+  }, [selectedBranch]);
 
-  // Fetch staff when service selected
-  useEffect(() => {
-    if (!selectedService || !selectedBranch) return;
-    setSelectedStaff(""); setSelectedTime("");
-    fetch(`/api/staff-by-service?serviceId=${selectedService}&branchId=${selectedBranch}`)
-      .then(r => r.json()).then(d => setStaffList(Array.isArray(d) ? d : [])).catch(console.error);
-  }, [selectedService, selectedBranch]);
-
-  // Fetch availability when staff + date selected (time mode only)
+  // Fetch availability
   useEffect(() => {
     if (!selectedStaff || !selectedDate || !selectedService || isQueueMode) return;
-    setSlotsLoading(true);
-    setSelectedTime("");
+    setSlotsLoading(true); setSelectedTime("");
     fetch(`/api/availability?staffId=${selectedStaff}&serviceId=${selectedService}&date=${selectedDate}`)
-      .then(r => r.json()).then(d => {
-        setAvailableSlots(d.slots || []);
-        setSlotsLoading(false);
-      }).catch(() => setSlotsLoading(false));
+      .then(r => r.json()).then(d => { setAvailableSlots(d.slots || []); setSlotsLoading(false); })
+      .catch(() => setSlotsLoading(false));
   }, [selectedStaff, selectedDate, selectedService, isQueueMode]);
 
   // Fetch terms
   useEffect(() => {
-    if (step === 4) {
-      fetch("/api/terms?slug=booking-conditions").then(r => r.json()).then(d => setTerms(d.content || "")).catch(console.error);
-    }
+    if (step === 5) fetch("/api/terms?slug=booking-conditions").then(r => r.json()).then(d => setTerms(d.content || "")).catch(console.error);
   }, [step]);
 
   const canNext = () => {
     switch (step) {
       case 0: return !!selectedBranch;
-      case 1: return !!selectedService;
-      case 2: return !!selectedStaff;
+      case 1: return !!selectedCategory;
+      case 2: return !!selectedService && !!selectedStaff;
       case 3: return isQueueMode ? !!selectedDate : (!!selectedDate && !!selectedTime);
-      case 4: return agreedToTerms;
-      case 5: return name.trim() && phone.trim();
+      case 4: return name.trim() && phone.trim();
       default: return true;
     }
   };
 
   const handleSubmit = async () => {
+    if (!agreedToTerms) { toast.error("يرجى الموافقة على الشروط والأحكام"); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/booking", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          serviceId: selectedService,
-          serviceSummary: serviceObj?.name || "",
-          date: selectedDate,
-          time: isQueueMode ? null : selectedTime,
-          branchId: selectedBranch,
-          staffId: selectedStaff,
-          name, phone, notes,
-          depositAmount,
-          paymentMethod,
+          serviceId: selectedService, serviceSummary: serviceObj?.name || "",
+          date: selectedDate, time: isQueueMode ? null : selectedTime,
+          branchId: selectedBranch, staffId: selectedStaff,
+          name, phone, notes, depositAmount, paymentMethod,
           authUserId: user?.id || null,
           durationMode: serviceObj?.durationMode || "time",
           durationMinutes: serviceObj?.durationMinutes || 30,
         }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        toast.error(data.error || "حدث خطأ أثناء الحجز");
-        return;
-      }
-      setBookingResult(data);
-      setQueueNumber(data.queueNumber || null);
-      setSubmitted(true);
+      if (!res.ok) { toast.error(data.error || "حدث خطأ أثناء الحجز"); return; }
+      setBookingResult(data); setQueueNumber(data.queueNumber || null); setSubmitted(true);
       toast.success("تم تأكيد الحجز بنجاح! 🌸");
-    } catch {
-      toast.error("حدث خطأ أثناء الحجز. يرجى المحاولة مرة أخرى.");
-    } finally {
-      setLoading(false);
-    }
+    } catch { toast.error("حدث خطأ أثناء الحجز. يرجى المحاولة مرة أخرى."); }
+    finally { setLoading(false); }
   };
 
-  // Generate min date (today)
   const today = new Date().toISOString().split("T")[0];
-
-  // Format time to 12h Arabic
   const fmt12h = (t24: string) => {
     const [h, m] = t24.split(":").map(Number);
     const ampm = h >= 12 ? "م" : "ص";
@@ -205,35 +151,28 @@ function BookingForm() {
           <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6 animate-fade-in-up">
             <Check className="w-10 h-10 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold text-dark mb-3" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-            تم تأكيد حجزك! 🎉
-          </h1>
-          <p className="text-muted-foreground mb-2">{serviceObj?.name}</p>
+          <h1 className="text-3xl font-bold text-dark mb-3" style={{ fontFamily: "'Tajawal', sans-serif" }}>تم تأكيد حجزك! 🎉</h1>
+          <p className="text-muted-foreground mb-2">{serviceObj?.name} — {staffObj?.nameAr || staffObj?.name}</p>
           {isQueueMode && queueNumber && (
             <div className="my-4 p-4 bg-sage-50 rounded-xl border border-sage-200">
               <p className="text-sm text-muted-foreground mb-1">رقم دورك</p>
               <p className="text-5xl font-bold text-sage-700">{queueNumber}</p>
             </div>
           )}
-          {!isQueueMode && (
-            <p className="text-muted-foreground mb-6">
-              {selectedDate} — {selectedTime && fmt12h(selectedTime)}
-            </p>
-          )}
+          {!isQueueMode && <p className="text-muted-foreground mb-6">{selectedDate} — {selectedTime && fmt12h(selectedTime)}</p>}
           <p className="text-sm text-muted-foreground">سنتواصل معك على الرقم {phone} لتأكيد الموعد.</p>
         </div>
       </div>
     );
   }
 
-  // ─── Step Renderers ───
-
+  // ─── Step 0: Branch ───
   const renderBranchStep = () => (
     <div className="space-y-3">
       <h2 className="text-lg font-bold text-right font-arabic">اختاري الفرع</h2>
       <div className="grid gap-3">
         {branches.map((b) => (
-          <button key={b.id} onClick={() => setSelectedBranch(b.id)}
+          <button key={b.id} onClick={() => { setSelectedBranch(b.id); setTimeout(() => setStep(1), 200); }}
             className={cn("p-4 rounded-xl border-2 text-right transition-all hover:shadow-md", selectedBranch === b.id ? "border-sage-500 bg-sage-50 shadow-md" : "border-gray-200 bg-white hover:border-sage-300")}>
             <div className="flex items-center gap-3 justify-end">
               <div>
@@ -248,63 +187,97 @@ function BookingForm() {
     </div>
   );
 
-  const renderServiceStep = () => (
+  // ─── Step 1: Category ───
+  const renderCategoryStep = () => (
     <div className="space-y-3">
-      <h2 className="text-lg font-bold text-right font-arabic">اختاري الخدمة</h2>
+      <h2 className="text-lg font-bold text-right font-arabic">نوع الخدمة</h2>
+      <div className="grid grid-cols-2 gap-3">
+        {categories.map((cat) => (
+          <button key={cat.category} onClick={() => { setSelectedCategory(cat.category); setSelectedService(""); setSelectedStaff(""); setTimeout(() => setStep(2), 200); }}
+            className={cn(
+              "rounded-xl border-2 overflow-hidden transition-all hover:shadow-lg group",
+              selectedCategory === cat.category ? "border-sage-500 shadow-lg ring-1 ring-sage-300" : "border-gray-200 bg-white hover:border-sage-300"
+            )}>
+            <div className="aspect-[4/3] bg-sage-100 overflow-hidden">
+              {cat.image ? (
+                <img src={cat.image} alt={cat.category} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Grid3X3 className="w-10 h-10 text-sage-300" />
+                </div>
+              )}
+            </div>
+            <div className="p-3 text-center">
+              <p className="font-bold font-arabic text-sm">{cat.category}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{cat.services.length} خدمة</p>
+            </div>
+          </button>
+        ))}
+        {categories.length === 0 && <p className="text-center text-muted-foreground py-8 font-arabic col-span-2">لا توجد خدمات متاحة</p>}
+      </div>
+    </div>
+  );
+
+  // ─── Step 2: Service+Staff Cards ───
+  const renderServiceStaffStep = () => (
+    <div className="space-y-3">
+      <h2 className="text-lg font-bold text-right font-arabic">اختاري الخدمة والعاملة</h2>
+      <p className="text-sm text-right text-muted-foreground font-arabic">{selectedCategory}</p>
       <div className="grid gap-3">
-        {services.map((s) => (
-          <button key={s.id} onClick={() => setSelectedService(s.id)}
-            className={cn("p-4 rounded-xl border-2 text-right transition-all hover:shadow-md", selectedService === s.id ? "border-sage-500 bg-sage-50 shadow-md" : "border-gray-200 bg-white hover:border-sage-300")}>
-            <div className="flex items-center gap-3 justify-between">
-              <div className="flex items-center gap-2">
-                {Number(s.price) > 0 && <Badge variant="secondary">{s.price} JOD</Badge>}
-                {s.durationMinutes && (
-                  <Badge variant="outline" className="gap-1"><Clock className="w-3 h-3" />{s.durationMinutes >= 60 ? `${s.durationMinutes/60} ساعة` : `${s.durationMinutes} د`}</Badge>
+        {staffServiceCards.map(({ service: svc, staffMember: st, key }) => {
+          const isSelected = selectedService === svc.id && selectedStaff === st.id;
+          return (
+            <button key={key} onClick={() => { setSelectedService(svc.id); setSelectedStaff(st.id); setTimeout(() => setStep(3), 250); }}
+              className={cn(
+                "rounded-xl border-2 overflow-hidden transition-all hover:shadow-lg",
+                isSelected ? "border-sage-500 bg-sage-50 shadow-lg ring-1 ring-sage-300" : "border-gray-200 bg-white hover:border-sage-300"
+              )}>
+              <div className="flex items-stretch" dir="rtl">
+                {/* Service image */}
+                <div className="w-20 h-20 md:w-24 md:h-24 shrink-0 bg-sage-100 overflow-hidden">
+                  {svc.images?.[0] ? (
+                    <img src={svc.images[0]} alt={svc.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center"><Sparkles className="w-6 h-6 text-sage-300" /></div>
+                  )}
+                </div>
+                {/* Info */}
+                <div className="flex-1 p-3 flex flex-col justify-center gap-1">
+                  <p className="font-bold text-sm font-arabic leading-tight">{svc.name}</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-sage-200 flex items-center justify-center shrink-0 overflow-hidden">
+                      {st.avatar ? <img src={st.avatar} className="w-full h-full object-cover" alt="" /> : <User className="w-3.5 h-3.5 text-sage-600" />}
+                    </div>
+                    <span className="text-xs font-arabic text-muted-foreground">{st.nameAr || st.name}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {Number(svc.price) > 0 && <Badge className="bg-sage-600 text-white text-[10px] px-1.5 py-0">{svc.price} JOD</Badge>}
+                    {svc.durationMinutes && <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5"><Clock className="w-2.5 h-2.5" />{svc.durationMinutes >= 60 ? `${svc.durationMinutes/60} س` : `${svc.durationMinutes} د`}</Badge>}
+                    {svc.durationMode === "queue" && <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5"><Hash className="w-2.5 h-2.5" />بالدور</Badge>}
+                  </div>
+                </div>
+                {isSelected && (
+                  <div className="flex items-center px-2">
+                    <div className="w-5 h-5 rounded-full bg-sage-500 flex items-center justify-center"><Check className="w-3 h-3 text-white" /></div>
+                  </div>
                 )}
-                {s.durationMode === "queue" && <Badge variant="outline" className="gap-1"><Hash className="w-3 h-3" />بالدور</Badge>}
-                {(s.depositAmount || 0) > 0 && <Badge className="bg-amber-100 text-amber-800 gap-1"><CreditCard className="w-3 h-3" />عربون {s.depositAmount}</Badge>}
               </div>
-              <p className="font-bold font-arabic">{s.name}</p>
-            </div>
-          </button>
-        ))}
-        {services.length === 0 && <p className="text-center text-muted-foreground py-8 font-arabic">لا توجد خدمات متاحة لهذا الفرع</p>}
+            </button>
+          );
+        })}
+        {staffServiceCards.length === 0 && <p className="text-center text-muted-foreground py-8 font-arabic">لا توجد عاملات متاحات لهذه الخدمة</p>}
       </div>
     </div>
   );
 
-  const renderStaffStep = () => (
-    <div className="space-y-3">
-      <h2 className="text-lg font-bold text-right font-arabic">اختاري العاملة</h2>
-      <div className="grid gap-3">
-        {staffList.map((s) => (
-          <button key={s.id} onClick={() => setSelectedStaff(s.id)}
-            className={cn("p-4 rounded-xl border-2 text-right transition-all hover:shadow-md", selectedStaff === s.id ? "border-sage-500 bg-sage-50 shadow-md" : "border-gray-200 bg-white hover:border-sage-300")}>
-            <div className="flex items-center gap-3 justify-end">
-              <div>
-                <p className="font-bold font-arabic">{s.nameAr || s.name}</p>
-                {s.role && <p className="text-sm text-muted-foreground">{s.role}</p>}
-              </div>
-              <div className="w-10 h-10 rounded-full bg-sage-100 flex items-center justify-center shrink-0">
-                {s.avatar ? <img src={s.avatar} className="w-10 h-10 rounded-full object-cover" alt="" /> : <User className="w-5 h-5 text-sage-600" />}
-              </div>
-            </div>
-          </button>
-        ))}
-        {staffList.length === 0 && <p className="text-center text-muted-foreground py-8 font-arabic">لا توجد عاملات متاحات لهذه الخدمة</p>}
-      </div>
-    </div>
-  );
-
+  // ─── Step 3: Date/Time ───
   const renderDateTimeStep = () => (
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-right font-arabic">{isQueueMode ? "اختاري التاريخ" : "اختاري الموعد"}</h2>
-      {/* Date */}
       <div className="space-y-2">
         <Label className="text-right block font-arabic">التاريخ</Label>
         <Input type="date" min={today} value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} dir="ltr" />
       </div>
-      {/* Time slots (time mode only) */}
       {!isQueueMode && selectedDate && (
         <div className="space-y-2">
           <Label className="text-right block font-arabic">الأوقات المتاحة</Label>
@@ -324,23 +297,16 @@ function BookingForm() {
           )}
         </div>
       )}
+      {isQueueMode && selectedDate && (
+        <div className="bg-sage-50 border border-sage-200 rounded-xl p-4 text-center">
+          <Hash className="w-8 h-8 text-sage-600 mx-auto mb-2" />
+          <p className="text-sm font-arabic text-muted-foreground">سيتم تحديد رقم دورك عند التأكيد</p>
+        </div>
+      )}
     </div>
   );
 
-  const renderTermsStep = () => (
-    <div className="space-y-4">
-      <h2 className="text-lg font-bold text-right font-arabic">الشروط والأحكام</h2>
-      <div className="bg-white border rounded-xl p-4 max-h-60 overflow-y-auto">
-        <p className="text-sm text-right font-arabic leading-relaxed whitespace-pre-wrap">{terms || "جاري التحميل..."}</p>
-      </div>
-      <label className="flex items-center gap-3 justify-end cursor-pointer p-3 rounded-lg border hover:bg-sage-50 transition-colors">
-        <span className="text-sm font-arabic font-medium">أوافق على الشروط والأحكام</span>
-        <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)}
-          className="w-5 h-5 rounded border-gray-300 text-sage-600 focus:ring-sage-500" />
-      </label>
-    </div>
-  );
-
+  // ─── Step 4: Data ───
   const renderDataStep = () => (
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-right font-arabic">بياناتك</h2>
@@ -357,7 +323,6 @@ function BookingForm() {
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
           className="w-full rounded-lg border p-3 text-right font-arabic text-sm resize-none focus:ring-2 focus:ring-sage-400 outline-none" dir="rtl" placeholder="أي ملاحظات إضافية..." />
       </div>
-      {/* Payment Method */}
       {depositAmount > 0 && (
         <div className="space-y-2">
           <Label className="text-right block font-arabic">طريقة دفع العربون ({depositAmount} JOD)</Label>
@@ -374,6 +339,7 @@ function BookingForm() {
     </div>
   );
 
+  // ─── Step 5: Confirm ───
   const renderConfirmStep = () => (
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-right font-arabic">تأكيد الحجز</h2>
@@ -401,10 +367,16 @@ function BookingForm() {
           <p className="text-sm text-right font-arabic"><strong>ملاحظات:</strong> {notes}</p>
         </div>
       )}
+      {/* Inline terms */}
+      <label className="flex items-center gap-3 justify-end cursor-pointer p-3 rounded-lg border hover:bg-sage-50 transition-colors">
+        <span className="text-sm font-arabic font-medium">أوافق على الشروط والأحكام</span>
+        <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)}
+          className="w-5 h-5 rounded border-gray-300 text-sage-600 focus:ring-sage-500" />
+      </label>
     </div>
   );
 
-  const stepRenderers = [renderBranchStep, renderServiceStep, renderStaffStep, renderDateTimeStep, renderTermsStep, renderDataStep, renderConfirmStep];
+  const stepRenderers = [renderBranchStep, renderCategoryStep, renderServiceStaffStep, renderDateTimeStep, renderDataStep, renderConfirmStep];
 
   return (
     <div className="min-h-screen bg-cream py-10">
@@ -440,7 +412,7 @@ function BookingForm() {
               التالي <ChevronLeft className="w-4 h-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={loading} className="gap-2 font-arabic bg-sage-600 hover:bg-sage-700">
+            <Button onClick={handleSubmit} disabled={loading || !agreedToTerms} className="gap-2 font-arabic bg-sage-600 hover:bg-sage-700">
               {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Sparkles className="w-4 h-4" />}
               تأكيد الحجز
             </Button>
