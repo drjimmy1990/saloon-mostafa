@@ -84,36 +84,36 @@ export async function GET(req: NextRequest) {
       productStaffMap[a.product_id].push(staff);
     }
 
-    // 5. Fetch category labels (category field stores UUID)
+    // 5. Fetch category labels + images (category field stores UUID)
     const categoryIds = [...new Set(services.map(s => s.category).filter(Boolean))];
-    const catLabelMap: Record<string, string> = {};
+    const catInfoMap: Record<string, { label: string; image: string }> = {};
     if (categoryIds.length > 0) {
       const { data: catData } = await supabase
         .from("Category")
-        .select("id, label")
+        .select("id, label, image")
         .in("id", categoryIds);
       for (const c of catData || []) {
-        catLabelMap[c.id] = c.label;
+        catInfoMap[c.id] = { label: c.label, image: c.image || "" };
       }
     }
 
     // 6. Group services by category
-    const categoryMap: Record<string, { label: string; services: any[] }> = {};
+    const categoryMap: Record<string, { label: string; image: string; services: any[] }> = {};
     for (const svc of services) {
       const catId = svc.category || "uncategorized";
-      const catLabel = catLabelMap[catId] || "عام";
-      if (!categoryMap[catId]) categoryMap[catId] = { label: catLabel, services: [] };
+      const catInfo = catInfoMap[catId] || { label: "عام", image: "" };
+      if (!categoryMap[catId]) categoryMap[catId] = { label: catInfo.label, image: catInfo.image, services: [] };
       categoryMap[catId].services.push({
         ...svc,
         staff: productStaffMap[svc.id] || [],
       });
     }
 
-    // 7. Convert to array
-    const result = Object.entries(categoryMap).map(([catId, { label, services: svcs }]) => ({
+    // 7. Convert to array — use category image, fallback to first service image
+    const result = Object.entries(categoryMap).map(([catId, { label, image, services: svcs }]) => ({
       category: label,
       categoryId: catId,
-      image: svcs[0]?.images?.[0] || null,
+      image: image || svcs[0]?.images?.[0] || null,
       services: svcs,
     }));
 
