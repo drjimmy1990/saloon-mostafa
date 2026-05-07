@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     if (staffIds.length > 0) {
       let staffQuery = supabase
         .from("Staff")
-        .select("id, name, nameAr, avatar, role, isActive, branchId")
+        .select("id, name, role, isActive, branchId")
         .in("id", staffIds)
         .eq("isActive", true);
 
@@ -68,8 +68,6 @@ export async function GET(req: NextRequest) {
         staffMap[s.id] = {
           id: s.id,
           name: s.name,
-          nameAr: s.nameAr,
-          avatar: s.avatar,
           role: s.role,
         };
       }
@@ -88,10 +86,25 @@ export async function GET(req: NextRequest) {
     const categoryIds = [...new Set(services.map(s => s.category).filter(Boolean))];
     const catInfoMap: Record<string, { label: string; image: string }> = {};
     if (categoryIds.length > 0) {
-      const { data: catData } = await supabase
+      // Try with image column first, fallback without it
+      let catData: any[] | null = null;
+      const { data: catDataFull, error: catErr } = await supabase
         .from("Category")
         .select("id, label, image")
         .in("id", categoryIds);
+      
+      if (catErr) {
+        // image column might not exist — fallback
+        console.warn("Category query with image failed, trying without:", catErr.message);
+        const { data: catDataBasic } = await supabase
+          .from("Category")
+          .select("id, label")
+          .in("id", categoryIds);
+        catData = catDataBasic;
+      } else {
+        catData = catDataFull;
+      }
+
       for (const c of catData || []) {
         catInfoMap[c.id] = { label: c.label, image: c.image || "" };
       }
