@@ -367,7 +367,15 @@ function BookingForm() {
           <p className="text-sm text-right font-arabic"><strong>ملاحظات:</strong> {notes}</p>
         </div>
       )}
-      {/* Inline terms */}
+      {/* Terms & Conditions */}
+      {terms && (
+        <div className="bg-gray-50 border rounded-xl p-4 max-h-48 overflow-y-auto">
+          <h4 className="text-sm font-bold font-arabic text-right mb-2">الشروط والأحكام</h4>
+          <div className="text-xs text-muted-foreground font-arabic text-right leading-relaxed whitespace-pre-line"
+            dangerouslySetInnerHTML={{ __html: terms }}
+          />
+        </div>
+      )}
       <label className="flex items-center gap-3 justify-end cursor-pointer p-3 rounded-lg border hover:bg-sage-50 transition-colors">
         <span className="text-sm font-arabic font-medium">أوافق على الشروط والأحكام</span>
         <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)}
