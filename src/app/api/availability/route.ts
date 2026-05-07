@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
     const effectiveSchedule = schedule && !schedule.isOff
       ? schedule
       : !schedule
-        ? { startTime: "09:00", endTime: "21:00", isOff: false } // default if no schedule at all
+        ? { startTime: "09:00", endTime: "21:00", isOff: false }
         : null;
 
     if (!effectiveSchedule || effectiveSchedule.isOff) {
@@ -77,13 +77,12 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 3. Get all confirmed/pending bookings for this staff on this date
+    // 3. Get ALL confirmed/pending bookings for this staff on this date
+    //    Use text-based date comparison to avoid timezone issues
     const { data: bookings } = await supabase
       .from("Booking")
-      .select("bookingDate, endTime")
+      .select("bookingDate, endTime, serviceId")
       .eq("staff_id", staffId)
-      .gte("bookingDate", `${date}T00:00:00`)
-      .lt("bookingDate", `${date}T23:59:59`)
       .neq("status", "cancelled");
 
     // 4. Generate available time slots
@@ -93,26 +92,38 @@ export async function GET(req: NextRequest) {
     const scheduleStart = startH * 60 + (startM || 0);
     const scheduleEnd = endH * 60 + (endM || 0);
 
-    // Parse existing bookings into minute ranges
+    // Parse existing bookings into minute ranges — only for the requested date
     const bookedRanges: Array<{ start: number; end: number }> = [];
     if (bookings) {
       for (const b of bookings) {
         if (!b.bookingDate) continue;
-        const bDate = new Date(b.bookingDate);
-        const bStart = bDate.getHours() * 60 + bDate.getMinutes();
+
+        // Extract the date part from bookingDate for comparison
+        const bDateStr = b.bookingDate.substring(0, 10); // "YYYY-MM-DD"
+        if (bDateStr !== date) continue; // Skip bookings on other dates
+
+        // Parse the time from the booking
+        const bDateObj = new Date(b.bookingDate);
+        const bStart = bDateObj.getUTCHours() * 60 + bDateObj.getUTCMinutes();
         let bEnd: number;
         if (b.endTime) {
-          const eDate = new Date(b.endTime);
-          bEnd = eDate.getHours() * 60 + eDate.getMinutes();
+          const eDateObj = new Date(b.endTime);
+          bEnd = eDateObj.getUTCHours() * 60 + eDateObj.getUTCMinutes();
         } else {
           bEnd = bStart + duration; // fallback
         }
+
+        // Handle edge case where end time is 0 (midnight wrap) 
+        if (bEnd <= bStart) bEnd = bStart + duration;
+
         bookedRanges.push({ start: bStart, end: bEnd });
       }
     }
 
+    console.log(`[availability] date=${date} staff=${staffId} bookedRanges:`, bookedRanges);
+
     // Generate slots at intervals matching service duration
-    const interval = duration; // slot every <duration> minutes
+    const interval = duration;
     const slots: string[] = [];
     for (let t = scheduleStart; t + duration <= scheduleEnd; t += interval) {
       const slotEnd = t + duration;

@@ -70,14 +70,18 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Calculate booking date and end time
+    // Store as UTC so the time value matches exactly what user selected
     const bookingDate =
       time && durationMode !== "queue"
-        ? `${date}T${time}:00`
-        : `${date}T00:00:00`;
+        ? `${date}T${time}:00Z`
+        : `${date}T00:00:00Z`;
     const duration = durationMinutes || 30;
-    const endTimeDate = new Date(bookingDate);
-    endTimeDate.setMinutes(endTimeDate.getMinutes() + duration);
-    const endTime = endTimeDate.toISOString();
+    // Calculate end time manually to avoid timezone shifts
+    const [timeH, timeM] = (time || "00:00").split(":").map(Number);
+    const endMinutes = timeH * 60 + timeM + duration;
+    const endH = Math.floor(endMinutes / 60);
+    const endM = endMinutes % 60;
+    const endTime = `${date}T${endH.toString().padStart(2, "0")}:${endM.toString().padStart(2, "0")}:00Z`;
 
     // 3. For time-based bookings: double-check for overlap
     if (durationMode !== "queue" && staffId && time) {
@@ -91,7 +95,7 @@ export async function POST(req: NextRequest) {
 
       if (overlaps) {
         const newStart = new Date(bookingDate).getTime();
-        const newEnd = endTimeDate.getTime();
+        const newEnd = new Date(endTime).getTime();
 
         const hasConflict = overlaps.some((b) => {
           const bStart = new Date(b.bookingDate).getTime();
