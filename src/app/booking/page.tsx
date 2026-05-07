@@ -286,8 +286,8 @@ function BookingForm() {
           ) : availableSlots.length > 0 ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {availableSlots.map((slot) => (
-                <button key={slot} onClick={() => setSelectedTime(slot)}
-                  className={cn("py-2 px-3 rounded-lg border text-sm font-medium transition-all", selectedTime === slot ? "border-sage-500 bg-sage-50 text-sage-700" : "border-gray-200 bg-white hover:border-sage-300")}>
+              <button key={slot} type="button" onClick={() => setSelectedTime(slot)}
+                  className={cn("py-2.5 px-3 rounded-lg border text-sm font-bold transition-all cursor-pointer", selectedTime === slot ? "border-sage-600 bg-sage-600 text-white shadow-md scale-105 ring-2 ring-sage-300" : "border-gray-200 bg-white hover:border-sage-400 hover:bg-sage-50 text-gray-700")}>
                   {fmt12h(slot)}
                 </button>
               ))}

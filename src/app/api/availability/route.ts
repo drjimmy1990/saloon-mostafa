@@ -111,9 +111,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Generate 15-minute interval slots
+    // Generate slots at intervals matching service duration
+    const interval = duration; // slot every <duration> minutes
     const slots: string[] = [];
-    for (let t = scheduleStart; t + duration <= scheduleEnd; t += 15) {
+    for (let t = scheduleStart; t + duration <= scheduleEnd; t += interval) {
       const slotEnd = t + duration;
 
       // Check for overlap with any existing booking
