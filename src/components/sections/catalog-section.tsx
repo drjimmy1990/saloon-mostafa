@@ -363,7 +363,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
         const staff = row.Staff || row.staff;
         if (!pid || !staff) continue;
         if (!map[pid]) map[pid] = [];
-        map[pid].push({ id: staff.id, name: staff.nameAr || staff.name, branchId: staff.branchId });
+        map[pid].push({ id: staff.id, name: staff.name, branchId: staff.branchId });
       }
       setProductStaffMap(map);
     } catch (err) {
@@ -556,11 +556,17 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
 
   const saveStaffAssignments = async (productId: string) => {
     try {
-      await fetch('/api/staff-services', {
+      console.log('[saveStaffAssignments] productId:', productId, 'staffIds:', selectedStaffIds);
+      const res = await fetch('/api/staff-services', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ productId, staffIds: selectedStaffIds }),
       });
+      const result = await res.json();
+      console.log('[saveStaffAssignments] response:', res.status, result);
+      if (!res.ok) {
+        console.error('[saveStaffAssignments] API error:', result);
+      }
       // Refresh staff map so cards update immediately
       await fetchProductStaffMap();
     } catch (err) {

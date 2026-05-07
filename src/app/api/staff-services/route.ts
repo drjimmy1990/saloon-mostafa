@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('StaffService')
-      .select('*, Staff(id, name, nameAr, branchId), Product(id, name, price, category)');
+      .select('*, Staff(id, name, branchId), Product(id, name, price, category)');
 
     if (staffId) {
       query = query.eq('staff_id', staffId);
@@ -84,7 +84,12 @@ export async function PUT(request: NextRequest) {
     const supabase = getServiceRoleClient();
 
     // Delete existing assignments for this product
-    await supabase.from('StaffService').delete().eq('product_id', productId);
+    console.log('[staff-services PUT] Deleting existing for productId:', productId);
+    const { error: delErr } = await supabase.from('StaffService').delete().eq('product_id', productId);
+    if (delErr) {
+      console.error('[staff-services PUT] Delete error:', delErr);
+      throw delErr;
+    }
 
     // Insert new assignments
     if (staffIds.length > 0) {
@@ -92,9 +97,13 @@ export async function PUT(request: NextRequest) {
         staff_id: sid,
         product_id: productId,
       }));
+      console.log('[staff-services PUT] Inserting rows:', rows);
 
       const { error } = await supabase.from('StaffService').insert(rows);
-      if (error) throw error;
+      if (error) {
+        console.error('[staff-services PUT] Insert error:', error);
+        throw error;
+      }
     }
 
     // Return updated list
