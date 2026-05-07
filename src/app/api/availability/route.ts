@@ -59,7 +59,14 @@ export async function GET(req: NextRequest) {
       .eq("dayOfWeek", dayOfWeek)
       .single();
 
-    if (!schedule || schedule.isOff) {
+    // Use schedule or default working hours if none set
+    const effectiveSchedule = schedule && !schedule.isOff
+      ? schedule
+      : !schedule
+        ? { startTime: "09:00", endTime: "21:00", isOff: false } // default if no schedule at all
+        : null;
+
+    if (!effectiveSchedule || effectiveSchedule.isOff) {
       return NextResponse.json({
         mode: "time",
         slots: [],
@@ -81,8 +88,8 @@ export async function GET(req: NextRequest) {
 
     // 4. Generate available time slots
     const duration = service.durationMinutes || 30;
-    const [startH, startM] = schedule.startTime.split(":").map(Number);
-    const [endH, endM] = schedule.endTime.split(":").map(Number);
+    const [startH, startM] = effectiveSchedule.startTime.split(":").map(Number);
+    const [endH, endM] = effectiveSchedule.endTime.split(":").map(Number);
     const scheduleStart = startH * 60 + (startM || 0);
     const scheduleEnd = endH * 60 + (endM || 0);
 
@@ -127,8 +134,8 @@ export async function GET(req: NextRequest) {
       mode: "time",
       slots,
       staffSchedule: {
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
+        startTime: effectiveSchedule.startTime,
+        endTime: effectiveSchedule.endTime,
       },
       serviceDuration: duration,
       depositAmount: service.depositAmount || 0,
