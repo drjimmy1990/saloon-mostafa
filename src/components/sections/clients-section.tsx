@@ -19,6 +19,8 @@ import {
   Ban,
   MessageCircle,
   CalendarCheck,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import {
   Card,
@@ -85,6 +87,7 @@ export interface Client {
   bookings_count?: number;
   createdAt?: string;
   channel_id?: string;
+  auth_user_id?: string | null;
   Channel?: { name: string; type: string } | null;
 }
 
@@ -103,6 +106,7 @@ export function ClientsSection() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [aiFilter, setAiFilter] = useState<"all" | "active" | "inactive">("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
+  const [clientTypeFilter, setClientTypeFilter] = useState<string>("all");
 
   const uniqueChannels = useMemo(() => {
     const channelMap = new Map<string, { value: string, label: string }>();
@@ -170,8 +174,14 @@ export function ClientsSection() {
       result = result.filter((c) => (c.channel_id || c.platform) === channelFilter);
     }
 
+    if (clientTypeFilter === "registered") {
+      result = result.filter((c) => !!c.auth_user_id);
+    } else if (clientTypeFilter === "guest") {
+      result = result.filter((c) => !c.auth_user_id);
+    }
+
     return result;
-  }, [clients, searchQuery, aiFilter, channelFilter]);
+  }, [clients, searchQuery, aiFilter, channelFilter, clientTypeFilter]);
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
@@ -333,6 +343,26 @@ export function ClientsSection() {
             </SelectItem>
           </SelectContent>
         </Select>
+
+        <Select
+          value={clientTypeFilter}
+          onValueChange={(val: string) => setClientTypeFilter(val)}
+        >
+          <SelectTrigger className={cn("w-[160px] shrink-0", rtl && "font-arabic")}>
+            <SelectValue placeholder={rtl ? "نوع العميل" : "Client Type"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className={cn(rtl && "font-arabic")}>
+              {rtl ? "الكل" : "All"}
+            </SelectItem>
+            <SelectItem value="registered" className={cn(rtl && "font-arabic")}>
+              {rtl ? "مسجّل" : "Registered"}
+            </SelectItem>
+            <SelectItem value="guest" className={cn(rtl && "font-arabic")}>
+              {rtl ? "ضيف" : "Guest"}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Stats Card */}
@@ -433,6 +463,17 @@ export function ClientsSection() {
                           <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-1.5">
                               {client.name}
+                              {client.auth_user_id ? (
+                                <Badge variant="outline" className="gap-1 text-[10px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40">
+                                  <UserCheck className="w-3 h-3" />
+                                  {rtl ? "مسجّل" : "Reg"}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="gap-1 text-[10px] font-medium bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800/40">
+                                  <UserX className="w-3 h-3" />
+                                  {rtl ? "ضيف" : "Guest"}
+                                </Badge>
+                              )}
                               {(client.unread_count ?? 0) > 0 && (
                                 <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4 leading-none shrink-0 rounded-full bg-primary text-primary-foreground">
                                   {client.unread_count}

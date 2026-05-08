@@ -21,6 +21,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Users,
+  Globe,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import {
   Card,
@@ -67,7 +70,7 @@ import { Separator } from "@/components/ui/separator";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
-type ChannelSource = "whatsapp" | "facebook" | "instagram";
+type ChannelSource = "whatsapp" | "facebook" | "instagram" | "website";
 
 export interface Booking {
   id: string;
@@ -78,7 +81,12 @@ export interface Booking {
     phone: string;
     address?: string;
     avatar_url?: string;
+    auth_user_id?: string | null;
   };
+  staff?: {
+    id: string;
+    name: string;
+  } | null;
   serviceSummary: string;
   channelType: ChannelSource;
   bookingDate: string;
@@ -164,6 +172,13 @@ const channelConfig: Record<
     textColor: "text-pink-700 dark:text-pink-400",
     icon: MessageCircle,
   },
+  website: {
+    label: "Website",
+    labelAr: "الموقع",
+    bgColor: "bg-violet-50 dark:bg-violet-900/20",
+    textColor: "text-violet-700 dark:text-violet-400",
+    icon: Globe,
+  },
 };
 
 const statCardConfig = [
@@ -237,6 +252,7 @@ export function BookingsSection() {
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [staffFilter, setStaffFilter] = useState<string>("all");
+  const [clientTypeFilter, setClientTypeFilter] = useState<string>("all");
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [updateStatusDialogOpen, setUpdateStatusDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -309,14 +325,19 @@ export function BookingsSection() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [channelFilter, statusFilter, staffFilter, dateFrom, dateTo]);
+  }, [channelFilter, statusFilter, staffFilter, clientTypeFilter, dateFrom, dateTo]);
 
   // Fetch on param change
   useEffect(() => {
     fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
   }, [page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo, fetchBookings]);
 
-  const filteredBookings = bookings;
+  const filteredBookings = clientTypeFilter === "all"
+    ? bookings
+    : bookings.filter((b) => {
+        const isRegistered = !!b.client?.auth_user_id;
+        return clientTypeFilter === "registered" ? isRegistered : !isRegistered;
+      });
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
@@ -516,6 +537,23 @@ export function BookingsSection() {
               ))}
             </SelectContent>
           </Select>
+
+          <Select value={clientTypeFilter} onValueChange={setClientTypeFilter}>
+            <SelectTrigger className={cn("w-full sm:w-[180px]", rtl && "font-arabic")}>
+              <SelectValue placeholder={rtl ? "الكل" : "All Types"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className={rtl ? "font-arabic" : ""}>
+                {rtl ? "الكل" : "All Types"}
+              </SelectItem>
+              <SelectItem value="registered" className={rtl ? "font-arabic" : ""}>
+                {rtl ? "مسجّل" : "Registered"}
+              </SelectItem>
+              <SelectItem value="guest" className={rtl ? "font-arabic" : ""}>
+                {rtl ? "ضيف" : "Guest"}
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Date Range Filter */}
@@ -701,7 +739,20 @@ export function BookingsSection() {
                           rtl && "text-right font-arabic"
                         )}
                       >
-                        {booking.client?.name || 'Unknown'}
+                        <div className="flex items-center gap-2">
+                          <span>{booking.client?.name || 'Unknown'}</span>
+                          {booking.client?.auth_user_id ? (
+                            <Badge variant="outline" className="gap-1 text-[10px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40">
+                              <UserCheck className="w-3 h-3" />
+                              {rtl ? "مسجّل" : "Reg"}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="gap-1 text-[10px] font-medium bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800/40">
+                              <UserX className="w-3 h-3" />
+                              {rtl ? "ضيف" : "Guest"}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell
                         className={cn(
@@ -726,7 +777,7 @@ export function BookingsSection() {
                       >
                         <div className="flex items-center gap-1.5">
                           <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-sm">{(booking as any).staff?.name || (rtl ? 'غير محدد' : 'Unassigned')}</span>
+                          <span className="text-sm">{booking.staff?.name || (rtl ? 'غير محدد' : 'Unassigned')}</span>
                         </div>
                       </TableCell>
                       <TableCell className={rtl ? "text-right" : ""}>

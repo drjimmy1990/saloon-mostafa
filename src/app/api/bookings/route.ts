@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Build filtered query
     let query = supabase
       .from('Booking')
-      .select('*, client:Client!inner(*), staff:Staff(id, name)', { count: 'exact' });
+      .select('*, client:Client(*), staff:Staff(id, name)', { count: 'exact' });
 
     if (channel !== 'all') {
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(channel);
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       query = query.eq('staff_id', staffFilter);
     }
     if (search) {
-      query = query.ilike('client.name', `%${search}%`);
+      query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`, { referencedTable: 'Client' });
     }
     if (dateFrom) {
       query = query.gte('bookingDate', `${dateFrom}T00:00:00Z`);
