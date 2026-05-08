@@ -1,4 +1,4 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     title: "صالون نون",
     description:
       "خدمات تجميل احترافية — حجز أونلاين، منتجات تجميل، توصيل للمنزل",
-    locale: "ar_JO",
+    locale: "ar_SA",
     type: "website",
   },
 };

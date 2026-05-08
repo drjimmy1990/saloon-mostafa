@@ -58,7 +58,7 @@ export function BottomNav() {
                 <Icon className={cn("w-5 h-5 transition-transform", isActive && "scale-110")} strokeWidth={isActive ? 2.5 : 1.8} />
                 {/* Cart badge */}
                 {isCart && mounted && itemCount > 0 && (
-                  <span className="absolute -top-1.5 -left-2 min-w-[18px] h-[18px] rounded-full bg-terracotta text-white text-[9px] font-bold flex items-center justify-center px-1 animate-bounce-subtle">
+                  <span className="absolute -top-1.5 -right-2 min-w-[18px] h-[18px] rounded-full bg-terracotta text-white text-[9px] font-bold flex items-center justify-center px-1 animate-bounce-subtle">
                     {itemCount}
                   </span>
                 )}

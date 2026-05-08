@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
@@ -229,36 +229,28 @@ function BookingForm() {
           return (
             <button key={key} onClick={() => { setSelectedService(svc.id); setSelectedStaff(st.id); setTimeout(() => setStep(3), 250); }}
               className={cn(
-                "rounded-xl border-2 overflow-hidden transition-all hover:shadow-lg",
-                isSelected ? "border-sage-500 bg-sage-50 shadow-lg ring-1 ring-sage-300" : "border-gray-200 bg-white hover:border-sage-300"
+                "rounded-2xl border-2 overflow-hidden transition-all hover:shadow-lg text-right",
+                isSelected ? "border-terracotta-500 bg-terracotta-50 shadow-lg ring-1 ring-terracotta-300" : "border-gray-200 bg-white hover:border-terracotta-200"
               )}>
-              <div className="flex items-stretch" dir="rtl">
-                {/* Service image */}
-                <div className="w-20 h-20 md:w-24 md:h-24 shrink-0 bg-sage-100 overflow-hidden">
-                  {svc.images?.[0] ? (
-                    <img src={svc.images[0]} alt={svc.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center"><Sparkles className="w-6 h-6 text-sage-300" /></div>
-                  )}
+              <div className="flex items-center gap-4 p-4" dir="rtl">
+                {/* Staff avatar */}
+                <div className="w-14 h-14 rounded-full bg-sage-100 flex items-center justify-center shrink-0 overflow-hidden border-2 border-white shadow-sm">
+                  {st.avatar ? <img src={st.avatar} className="w-full h-full object-cover" alt="" /> : <User className="w-7 h-7 text-sage-500" />}
                 </div>
                 {/* Info */}
-                <div className="flex-1 p-3 flex flex-col justify-center gap-1">
-                  <p className="font-bold text-sm font-arabic leading-tight">{svc.name}</p>
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-sage-200 flex items-center justify-center shrink-0 overflow-hidden">
-                      {st.avatar ? <img src={st.avatar} className="w-full h-full object-cover" alt="" /> : <User className="w-3.5 h-3.5 text-sage-600" />}
-                    </div>
-                    <span className="text-xs font-arabic text-muted-foreground">{st.nameAr || st.name}</span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-1">
-                    {Number(svc.price) > 0 && <Badge className="bg-sage-600 text-white text-[10px] px-1.5 py-0">{svc.price} SAR</Badge>}
-                    {svc.durationMinutes && <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5"><Clock className="w-2.5 h-2.5" />{svc.durationMinutes >= 60 ? `${svc.durationMinutes/60} س` : `${svc.durationMinutes} د`}</Badge>}
-                    {svc.durationMode === "queue" && <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5"><Hash className="w-2.5 h-2.5" />بالدور</Badge>}
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-base font-arabic text-dark">{st.nameAr || st.name}</p>
+                  <p className="text-sm font-arabic text-muted-foreground mt-0.5">{svc.name}</p>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                    {Number(svc.price) > 0 && <Badge className="bg-terracotta text-white text-[11px] px-2 py-0.5 font-bold">{svc.price} ر.س</Badge>}
+                    {svc.durationMinutes && <Badge variant="outline" className="text-[11px] px-2 py-0.5 gap-1"><Clock className="w-3 h-3" />{svc.durationMinutes >= 60 ? `${svc.durationMinutes/60} ساعة` : `${svc.durationMinutes} دقيقة`}</Badge>}
+                    {svc.durationMode === "queue" && <Badge variant="outline" className="text-[11px] px-2 py-0.5 gap-1"><Hash className="w-3 h-3" />بالدور</Badge>}
                   </div>
                 </div>
+                {/* Selected checkmark */}
                 {isSelected && (
-                  <div className="flex items-center px-2">
-                    <div className="w-5 h-5 rounded-full bg-sage-500 flex items-center justify-center"><Check className="w-3 h-3 text-white" /></div>
+                  <div className="w-7 h-7 rounded-full bg-terracotta flex items-center justify-center shrink-0">
+                    <Check className="w-4 h-4 text-white" />
                   </div>
                 )}
               </div>
@@ -325,7 +317,7 @@ function BookingForm() {
       </div>
       <div className="space-y-2">
         <Label className="text-right block font-arabic">رقم الهاتف</Label>
-        <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07XXXXXXXX" dir="ltr" type="tel" />
+        <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+966 5X XXX XXXX" dir="ltr" type="tel" />
       </div>
       <div className="space-y-2">
         <Label className="text-right block font-arabic">ملاحظات (اختياري)</Label>
@@ -399,20 +391,20 @@ function BookingForm() {
     <div className="min-h-screen bg-cream py-10">
       <div className="container mx-auto max-w-lg px-4">
         {/* Stepper */}
-        <div className="flex items-center justify-center gap-1 mb-8">
+        <div className="flex items-center justify-center gap-1 mb-8 flex-row-reverse">
           {STEPS.map((s, i) => (
-            <div key={i} className="flex items-center gap-1">
+            <div key={i} className="flex items-center gap-1 flex-row-reverse">
               <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all",
-                i < step ? "bg-sage-500 text-white" : i === step ? "bg-sage-100 text-sage-700 ring-2 ring-sage-400" : "bg-gray-100 text-gray-400")}>
+                i < step ? "bg-terracotta text-white" : i === step ? "bg-terracotta-100 text-terracotta-700 ring-2 ring-terracotta-400" : "bg-gray-100 text-gray-400")}>
                 {i < step ? <Check className="w-4 h-4" /> : i + 1}
               </div>
-              {i < STEPS.length - 1 && <div className={cn("w-4 h-0.5", i < step ? "bg-sage-400" : "bg-gray-200")} />}
+              {i < STEPS.length - 1 && <div className={cn("w-4 h-0.5", i < step ? "bg-terracotta-400" : "bg-gray-200")} />}
             </div>
           ))}
         </div>
 
         {/* Step Content */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 mb-6 border border-white/50">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100" dir="rtl">
           {stepRenderers[step]()}
         </div>
 
@@ -425,11 +417,11 @@ function BookingForm() {
           )}
           <div className="flex-1" />
           {step < STEPS.length - 1 ? (
-            <Button onClick={() => setStep(step + 1)} disabled={!canNext()} className="gap-2 font-arabic bg-sage-600 hover:bg-sage-700">
+            <Button onClick={() => setStep(step + 1)} disabled={!canNext()} className="gap-2 font-arabic bg-terracotta hover:bg-terracotta-600 text-white px-6 py-3 text-base rounded-xl shadow-md">
               التالي <ChevronLeft className="w-4 h-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={loading || !agreedToTerms} className="gap-2 font-arabic bg-sage-600 hover:bg-sage-700">
+            <Button onClick={handleSubmit} disabled={loading || !agreedToTerms} className="gap-2 font-arabic bg-terracotta hover:bg-terracotta-600 text-white px-6 py-3 text-base rounded-xl shadow-md">
               {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Sparkles className="w-4 h-4" />}
               تأكيد الحجز
             </Button>

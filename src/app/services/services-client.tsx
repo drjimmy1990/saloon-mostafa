@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import Image from "next/image";
@@ -136,7 +136,7 @@ export function ServicesClient({
 
                   {/* Offer badge */}
                   {offer && (
-                    <div className="absolute top-3 left-3">
+                    <div className="absolute top-3 right-3">
                       <Badge className="bg-red-500 text-white border-none shadow-lg font-bold text-xs px-3 py-1">
                         {offer.discountType === "percentage"
                           ? `خصم ${offer.discountValue}%`
@@ -158,7 +158,7 @@ export function ServicesClient({
                 </div>
 
                 {/* Info */}
-                <div className="p-5 md:p-6">
+                <div className="p-5 md:p-6 text-right">
                   <Link href={`/services/${service.id}`}>
                     <h3 className="font-bold text-lg text-dark mb-2 group-hover:text-terracotta transition-colors">
                       {service.name}
@@ -188,7 +188,7 @@ export function ServicesClient({
                   </div>
 
                   {/* Price + CTA */}
-                  <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                  <div className="flex items-center justify-between pt-4 border-t border-border/50" dir="rtl">
                     <div className="flex items-baseline gap-2">
                       <span className="text-2xl font-black text-terracotta tabular-nums">
                         {Number(discountedPrice ?? 0).toFixed(2)}
