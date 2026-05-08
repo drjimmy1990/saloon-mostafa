@@ -391,9 +391,9 @@ function BookingForm() {
     <div className="min-h-screen bg-cream py-10">
       <div className="container mx-auto max-w-lg px-4">
         {/* Stepper */}
-        <div className="flex items-center justify-center gap-1 mb-8 flex-row-reverse">
+        <div className="flex items-center justify-center gap-1 mb-8">
           {STEPS.map((s, i) => (
-            <div key={i} className="flex items-center gap-1 flex-row-reverse">
+            <div key={i} className="flex items-center gap-1">
               <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all",
                 i < step ? "bg-terracotta text-white" : i === step ? "bg-terracotta-100 text-terracotta-700 ring-2 ring-terracotta-400" : "bg-gray-100 text-gray-400")}>
                 {i < step ? <Check className="w-4 h-4" /> : i + 1}
@@ -404,12 +404,12 @@ function BookingForm() {
         </div>
 
         {/* Step Content */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100" dir="rtl">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border border-gray-100">
           {stepRenderers[step]()}
         </div>
 
         {/* Navigation */}
-        <div className="flex gap-3 justify-between" dir="rtl">
+        <div className="flex gap-3 justify-between">
           {step > 0 && (
             <Button variant="outline" onClick={() => setStep(step - 1)} className="gap-2 font-arabic">
               <ChevronRight className="w-4 h-4" /> السابق
