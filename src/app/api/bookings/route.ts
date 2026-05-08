@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
+import { getAuthUser } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/bookings?page=1&limit=10&search=&channel=all&status=all&staff=all&dateFrom=&dateTo=
 export async function GET(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const supabase = getServiceRoleClient();
     const { searchParams } = request.nextUrl;
 
@@ -88,6 +91,8 @@ export async function GET(request: NextRequest) {
 // POST /api/bookings
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await request.json();
     const supabase = getServiceRoleClient();
     const { data: booking, error } = await supabase

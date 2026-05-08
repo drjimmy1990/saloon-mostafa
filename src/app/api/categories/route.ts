@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
+import { getAuthUser } from '@/lib/auth';
 
 // GET /api/categories?type=service|product
 export async function GET(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const supabase = getServiceRoleClient();
     const { searchParams } = new URL(request.url);
     const typeFilter = searchParams.get('type');
@@ -29,6 +32,8 @@ export async function GET(request: NextRequest) {
 // POST /api/categories
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await request.json();
     const supabase = getServiceRoleClient();
     const { data, error } = await supabase

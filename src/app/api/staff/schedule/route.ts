@@ -1,13 +1,13 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getServiceRoleClient } from "@/lib/supabase";
+import { getAuthUser } from "@/lib/auth";
 
 // GET — Get schedule for a staff member (7 days)
 export async function GET(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = getServiceRoleClient();
   const staffId = req.nextUrl.searchParams.get("staff_id");
 
   if (!staffId) {
@@ -29,6 +29,10 @@ export async function GET(req: NextRequest) {
 
 // PUT — Batch upsert schedule (array of 7 day entries)
 export async function PUT(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = getServiceRoleClient();
   const body = await req.json();
 
   if (!body.staff_id || !body.schedule || !Array.isArray(body.schedule)) {

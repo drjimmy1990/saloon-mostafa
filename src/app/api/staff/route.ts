@@ -1,14 +1,14 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getServiceRoleClient } from "@/lib/supabase";
+import { getAuthUser } from "@/lib/auth";
 
 // GET — List all staff
 export async function GET(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const active = req.nextUrl.searchParams.get("active");
+  const supabase = getServiceRoleClient();
 
   let query = supabase
     .from("Staff")
@@ -31,7 +31,11 @@ export async function GET(req: NextRequest) {
 
 // POST — Create new staff member
 export async function POST(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const body = await req.json();
+  const supabase = getServiceRoleClient();
 
   const { data, error } = await supabase
     .from("Staff")
@@ -56,12 +60,16 @@ export async function POST(req: NextRequest) {
 
 // PUT — Update staff member
 export async function PUT(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const body = await req.json();
 
   if (!body.id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
+  const supabase = getServiceRoleClient();
   const { data, error } = await supabase
     .from("Staff")
     .update({
@@ -86,12 +94,16 @@ export async function PUT(req: NextRequest) {
 
 // DELETE — Delete staff member
 export async function DELETE(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const id = req.nextUrl.searchParams.get("id");
 
   if (!id) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
+  const supabase = getServiceRoleClient();
   const { error } = await supabase.from("Staff").delete().eq("id", id);
 
   if (error) {

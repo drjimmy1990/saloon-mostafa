@@ -1,13 +1,13 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getServiceRoleClient } from "@/lib/supabase";
+import { getAuthUser } from "@/lib/auth";
 
 // GET — List all CMS pages or a single page by slug
 export async function GET(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = getServiceRoleClient();
   const slug = req.nextUrl.searchParams.get("slug");
 
   if (slug) {
@@ -37,6 +37,10 @@ export async function GET(req: NextRequest) {
 
 // PUT — Update page content
 export async function PUT(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = getServiceRoleClient();
   const body = await req.json();
 
   if (!body.id) {

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
+import { getAuthUser } from '@/lib/auth';
 
 // GET /api/clients?page=1&limit=10&ai_enabled=true&search=john
 export async function GET(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const supabase = getServiceRoleClient();
     const { searchParams } = new URL(request.url);
     const ai_enabled = searchParams.get('ai_enabled');
@@ -56,6 +59,8 @@ export async function GET(request: NextRequest) {
 // POST /api/clients
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await request.json();
     const supabase = getServiceRoleClient();
     

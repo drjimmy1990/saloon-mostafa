@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
+import { getAuthUser } from '@/lib/auth';
 
 // GET /api/staff-services?staffId=xxx OR ?productId=xxx
 export async function GET(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const supabase = getServiceRoleClient();
     const { searchParams } = new URL(request.url);
     const staffId = searchParams.get('staffId');
@@ -34,6 +37,8 @@ export async function GET(request: NextRequest) {
 // Body: { staffId: string, productIds: string[] }
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await request.json();
     const { staffId, productIds } = body;
 
@@ -74,6 +79,8 @@ export async function POST(request: NextRequest) {
 // Body: { productId: string, staffIds: string[] }
 export async function PUT(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await request.json();
     const { productId, staffIds } = body;
 

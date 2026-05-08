@@ -1,13 +1,14 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { getServiceRoleClient } from "@/lib/supabase";
+import { getAuthUser } from "@/lib/auth";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-// GET — Export all clients as CSV
+// GET — Export all clients as CSV (admin-only)
 export async function GET() {
+  const user = await getAuthUser();
+  if (!user || user.role !== "admin")
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
+  const supabase = getServiceRoleClient();
   const { data, error } = await supabase
     .from("Client")
     .select("name, phone, email, address, tags, notes, status, createdAt")

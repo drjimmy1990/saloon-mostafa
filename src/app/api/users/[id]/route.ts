@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
+import { getAuthUser } from '@/lib/auth';
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const user = await getAuthUser();
+    if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     const { id } = await params;
     const body = await request.json();
     const supabase = getServiceRoleClient();
@@ -30,7 +33,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       if (authError) throw authError;
     }
 
-    const { data: user, error } = await supabase
+    const { data: updatedUser, error } = await supabase
       .from('AppUserRole')
       .update(updateData)
       .eq('id', id)
@@ -38,7 +41,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .single();
 
     if (error) throw error;
-    return NextResponse.json(user);
+    return NextResponse.json(updatedUser);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
@@ -47,6 +50,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const user = await getAuthUser();
+    if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     const { id } = await params;
     const supabase = getServiceRoleClient();
     const { error } = await supabase.from('AppUserRole').delete().eq('id', id);

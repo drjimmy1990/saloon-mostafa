@@ -1,26 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
 import { getServiceRoleClient } from '@/lib/supabase';
-
-// Helper to check if current user is admin
-async function checkIsAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return false;
-
-  const { data: role } = await getServiceRoleClient()
-    .from('AppUserRole')
-    .select('role')
-    .eq('user_id', user.id)
-    .single();
-
-  return role?.role === 'admin';
-}
+import { getAuthUser } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const isAdmin = await checkIsAdmin();
-    if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    const user = await getAuthUser();
+    if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
     const supabase = getServiceRoleClient();
     const { data: users, error } = await supabase
@@ -38,8 +23,8 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const isAdmin = await checkIsAdmin();
-    if (!isAdmin) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    const user = await getAuthUser();
+    if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
     const body = await request.json();
     const { email, password, name, role, permissions } = body;

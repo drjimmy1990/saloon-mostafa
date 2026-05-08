@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
+import { getAuthUser } from '@/lib/auth';
 
 // GET /api/settings
 export async function GET() {
@@ -25,6 +26,8 @@ export async function GET() {
 // POST /api/settings (Bulk update)
 export async function POST(request: NextRequest) {
   try {
+    const user = await getAuthUser();
+    if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     const body = await request.json(); // Expected format: { "salon_address": "123 Main St", ... }
     const supabase = getServiceRoleClient();
     

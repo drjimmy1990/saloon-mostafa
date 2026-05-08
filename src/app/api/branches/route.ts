@@ -1,13 +1,13 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { getServiceRoleClient } from "@/lib/supabase";
+import { getAuthUser } from "@/lib/auth";
 
 // GET — List all branches
 export async function GET(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = getServiceRoleClient();
   const active = req.nextUrl.searchParams.get("active");
 
   let query = supabase
@@ -30,6 +30,10 @@ export async function GET(req: NextRequest) {
 
 // POST — Create new branch
 export async function POST(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = getServiceRoleClient();
   const body = await req.json();
 
   const { data, error } = await supabase
@@ -53,6 +57,10 @@ export async function POST(req: NextRequest) {
 
 // PUT — Update branch
 export async function PUT(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = getServiceRoleClient();
   const body = await req.json();
 
   if (!body.id) {
@@ -81,6 +89,10 @@ export async function PUT(req: NextRequest) {
 
 // DELETE — Delete branch
 export async function DELETE(req: NextRequest) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const supabase = getServiceRoleClient();
   const id = req.nextUrl.searchParams.get("id");
 
   if (!id) {
