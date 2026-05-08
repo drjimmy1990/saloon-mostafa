@@ -3,7 +3,7 @@ import { getServiceRoleClient } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
-// GET /api/bookings?page=1&limit=10&search=&channel=all&status=all&dateFrom=&dateTo=
+// GET /api/bookings?page=1&limit=10&search=&channel=all&status=all&staff=all&dateFrom=&dateTo=
 export async function GET(request: NextRequest) {
   try {
     const supabase = getServiceRoleClient();
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search')?.trim() || '';
     const channel = searchParams.get('channel') || 'all';
     const status = searchParams.get('status') || 'all';
+    const staffFilter = searchParams.get('staff') || 'all';
     const dateFrom = searchParams.get('dateFrom') || '';
     const dateTo = searchParams.get('dateTo') || '';
 
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Build filtered query
     let query = supabase
       .from('Booking')
-      .select('*, client:Client!inner(*)', { count: 'exact' });
+      .select('*, client:Client!inner(*), staff:Staff(id, name)', { count: 'exact' });
 
     if (channel !== 'all') {
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(channel);
@@ -35,6 +36,9 @@ export async function GET(request: NextRequest) {
     }
     if (status !== 'all') {
       query = query.eq('status', status);
+    }
+    if (staffFilter !== 'all') {
+      query = query.eq('staff_id', staffFilter);
     }
     if (search) {
       query = query.ilike('client.name', `%${search}%`);

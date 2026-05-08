@@ -20,6 +20,7 @@ import {
   MoreHorizontal,
   ChevronLeft,
   ChevronRight,
+  Users,
 } from "lucide-react";
 import {
   Card,
@@ -235,6 +236,7 @@ export function BookingsSection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [staffFilter, setStaffFilter] = useState<string>("all");
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [updateStatusDialogOpen, setUpdateStatusDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -244,11 +246,16 @@ export function BookingsSection() {
   const [dateTo, setDateTo] = useState("");
 
   const [channels, setChannels] = useState<{ id: string; name: string; type: string }[]>([]);
+  const [staffList, setStaffList] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     fetch('/api/channels')
       .then(r => r.json())
       .then(data => setChannels(Array.isArray(data) ? data : []))
+      .catch(console.error);
+    fetch('/api/staff')
+      .then(r => r.json())
+      .then(data => setStaffList(Array.isArray(data) ? data : []))
       .catch(console.error);
   }, []);
 
@@ -261,7 +268,7 @@ export function BookingsSection() {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   // ─── Fetch Data ───────────────────────────────────────────────────────────
-  const fetchBookings = useCallback(async (p: number, limit: number, search: string, channel: string, status: string, from: string, to: string) => {
+  const fetchBookings = useCallback(async (p: number, limit: number, search: string, channel: string, status: string, staff: string, from: string, to: string) => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams({
@@ -270,6 +277,7 @@ export function BookingsSection() {
         search,
         channel,
         status,
+        staff,
       });
       if (from) params.set("dateFrom", from);
       if (to) params.set("dateTo", to);
@@ -301,12 +309,12 @@ export function BookingsSection() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1);
-  }, [channelFilter, statusFilter, dateFrom, dateTo]);
+  }, [channelFilter, statusFilter, staffFilter, dateFrom, dateTo]);
 
   // Fetch on param change
   useEffect(() => {
-    fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, dateFrom, dateTo);
-  }, [page, pageSize, debouncedSearch, channelFilter, statusFilter, dateFrom, dateTo, fetchBookings]);
+    fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
+  }, [page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo, fetchBookings]);
 
   const filteredBookings = bookings;
 
@@ -339,7 +347,7 @@ export function BookingsSection() {
       });
       
       if (res.ok) {
-        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, dateFrom, dateTo);
+        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
       }
     } catch (err) {
       console.error("Failed to update status", err);
@@ -492,6 +500,22 @@ export function BookingsSection() {
               </SelectItem>
             </SelectContent>
           </Select>
+
+          <Select value={staffFilter} onValueChange={setStaffFilter}>
+            <SelectTrigger className={cn("w-full sm:w-[180px]", rtl && "font-arabic")}>
+              <SelectValue placeholder={rtl ? "كل العاملات" : "All Staff"} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className={rtl ? "font-arabic" : ""}>
+                {rtl ? "كل العاملات" : "All Staff"}
+              </SelectItem>
+              {staffList.map((s) => (
+                <SelectItem key={s.id} value={s.id} className={rtl ? "font-arabic" : ""}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Date Range Filter */}
@@ -611,6 +635,13 @@ export function BookingsSection() {
                       rtl && "text-right font-arabic"
                     )}
                   >
+                    {rtl ? "العاملة" : "Staff"}
+                  </TableHead>
+                  <TableHead
+                    className={cn(
+                      rtl && "text-right font-arabic"
+                    )}
+                  >
                     {t(locale, "bookings.channelSource")}
                   </TableHead>
                   <TableHead
@@ -640,7 +671,7 @@ export function BookingsSection() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={8}
                       className={cn(
                         "h-24 text-center text-muted-foreground",
                         rtl && "font-arabic"
@@ -652,7 +683,7 @@ export function BookingsSection() {
                 ) : filteredBookings.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={8}
                       className={cn(
                         "h-24 text-center text-muted-foreground",
                         rtl && "font-arabic"
@@ -687,6 +718,16 @@ export function BookingsSection() {
                         )}
                       >
                         {booking.serviceSummary}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          rtl && "text-right font-arabic"
+                        )}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-sm">{(booking as any).staff?.name || (rtl ? 'غير محدد' : 'Unassigned')}</span>
+                        </div>
                       </TableCell>
                       <TableCell className={rtl ? "text-right" : ""}>
                         {renderChannelBadge(booking.channelType)}
