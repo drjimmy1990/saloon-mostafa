@@ -220,44 +220,87 @@ function BookingForm() {
 
   // ─── Step 2: Service+Staff Cards ───
   const renderServiceStaffStep = () => (
-    <div className="space-y-3">
-      <h2 className="text-lg font-bold text-right font-arabic">اختاري الخدمة والعاملة</h2>
-      <p className="text-sm text-right text-muted-foreground font-arabic">{selectedCategory}</p>
-      <div className="grid gap-3">
+    <div className="space-y-4">
+      <div className="flex flex-col text-right">
+        <h2 className="text-xl font-bold font-arabic text-dark">اختاري الخدمة والعاملة</h2>
+        <p className="text-sm text-muted-foreground font-arabic mt-1">{selectedCategory}</p>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {staffServiceCards.map(({ service: svc, staffMember: st, key }) => {
           const isSelected = selectedService === svc.id && selectedStaff === st.id;
           return (
             <button key={key} onClick={() => { setSelectedService(svc.id); setSelectedStaff(st.id); setTimeout(() => setStep(3), 250); }}
               className={cn(
-                "rounded-2xl border-2 overflow-hidden transition-all hover:shadow-lg text-right",
-                isSelected ? "border-terracotta-500 bg-terracotta-50 shadow-lg ring-1 ring-terracotta-300" : "border-gray-200 bg-white hover:border-terracotta-200"
-              )}>
-              <div className="flex items-center gap-4 p-4" dir="rtl">
-                {/* Staff avatar */}
-                <div className="w-14 h-14 rounded-full bg-sage-100 flex items-center justify-center shrink-0 overflow-hidden border-2 border-white shadow-sm">
-                  {st.avatar ? <img src={st.avatar} className="w-full h-full object-cover" alt="" /> : <User className="w-7 h-7 text-sage-500" />}
-                </div>
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-base font-arabic text-dark">{svc.name}</p>
-                  <p className="text-sm font-arabic text-muted-foreground mt-0.5">{st.nameAr || st.name}</p>
-                  <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                    {Number(svc.price) > 0 && <Badge className="bg-terracotta text-white text-[11px] px-2 py-0.5 font-bold">{svc.price} ر.س</Badge>}
-                    {svc.durationMinutes && <Badge variant="outline" className="text-[11px] px-2 py-0.5 gap-1"><Clock className="w-3 h-3" />{svc.durationMinutes >= 60 ? `${svc.durationMinutes/60} ساعة` : `${svc.durationMinutes} دقيقة`}</Badge>}
-                    {svc.durationMode === "queue" && <Badge variant="outline" className="text-[11px] px-2 py-0.5 gap-1"><Hash className="w-3 h-3" />بالدور</Badge>}
-                  </div>
-                </div>
-                {/* Selected checkmark */}
-                {isSelected && (
-                  <div className="w-7 h-7 rounded-full bg-terracotta flex items-center justify-center shrink-0">
-                    <Check className="w-4 h-4 text-white" />
+                "group flex flex-col text-right rounded-2xl border-2 overflow-hidden transition-all duration-300 hover:shadow-xl",
+                isSelected ? "border-terracotta-500 bg-terracotta-50/50 shadow-lg ring-1 ring-terracotta-300" : "border-gray-100 bg-white hover:border-terracotta-300"
+              )}
+              dir="rtl"
+            >
+              {/* Top Image Section */}
+              <div className="w-full aspect-[4/3] bg-sage-50 overflow-hidden relative">
+                {svc.images && svc.images.length > 0 ? (
+                  <img src={svc.images[0]} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={svc.name} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Grid3X3 className="w-12 h-12 text-sage-300" />
                   </div>
                 )}
+                
+                {/* Selected Overlay Indicator */}
+                {isSelected && (
+                  <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center shadow-md animate-in zoom-in duration-200">
+                    <Check className="w-5 h-5 text-white" />
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Info Section */}
+              <div className="p-4 flex flex-col flex-1 w-full justify-between gap-3">
+                <div>
+                  <p className="font-bold text-base font-arabic text-dark leading-tight mb-3 line-clamp-2">{svc.name}</p>
+                  
+                  {/* Staff Info */}
+                  <div className="flex items-center gap-2.5 bg-gray-50/80 rounded-xl p-2 border border-gray-100 transition-colors group-hover:bg-white group-hover:border-gray-200">
+                    <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-sm border border-gray-200 shrink-0">
+                      {st.avatar ? <img src={st.avatar} className="w-full h-full object-cover" alt="" /> : <User className="w-4 h-4 text-gray-400" />}
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <span className="text-[10px] text-muted-foreground leading-none mb-1">العاملة</span>
+                      <p className="text-sm font-bold font-arabic text-gray-800 leading-none">{st.nameAr || st.name}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Badges */}
+                <div className="flex flex-wrap items-center gap-2 mt-auto pt-1">
+                  {Number(svc.price) > 0 && (
+                    <Badge className="bg-terracotta text-white text-xs px-2.5 py-1 font-bold shadow-sm">
+                      {svc.price} ر.س
+                    </Badge>
+                  )}
+                  {svc.durationMinutes && (
+                    <Badge variant="outline" className="text-xs px-2 py-1 gap-1.5 border-gray-200 text-gray-600 bg-white">
+                      <Clock className="w-3 h-3" />
+                      {svc.durationMinutes >= 60 ? `${svc.durationMinutes/60} ساعة` : `${svc.durationMinutes} دقيقة`}
+                    </Badge>
+                  )}
+                  {svc.durationMode === "queue" && (
+                    <Badge variant="outline" className="text-xs px-2 py-1 gap-1.5 border-gray-200 text-gray-600 bg-white">
+                      <Hash className="w-3 h-3" />
+                      بالدور
+                    </Badge>
+                  )}
+                </div>
               </div>
             </button>
           );
         })}
-        {staffServiceCards.length === 0 && <p className="text-center text-muted-foreground py-8 font-arabic">لا توجد عاملات متاحات لهذه الخدمة</p>}
+        {staffServiceCards.length === 0 && (
+          <div className="col-span-full py-12 text-center border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50">
+            <p className="text-muted-foreground font-arabic">لا توجد عاملات متاحات لهذه الخدمة حالياً</p>
+          </div>
+        )}
       </div>
     </div>
   );
