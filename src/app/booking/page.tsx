@@ -284,10 +284,10 @@ function BookingForm() {
                   className={cn(
                     "py-2.5 px-3 rounded-lg border text-sm font-bold transition-all",
                     slot.booked
-                      ? "border-gray-100 bg-gray-100 text-gray-300 line-through cursor-not-allowed opacity-60"
+                      ? "border-red-100 bg-red-50 text-red-300 line-through cursor-not-allowed opacity-60"
                       : selectedTime === slot.time
-                        ? "border-sage-600 bg-sage-600 text-white shadow-md scale-105 ring-2 ring-sage-300 cursor-pointer"
-                        : "border-gray-200 bg-white hover:border-sage-400 hover:bg-sage-50 text-gray-700 cursor-pointer"
+                        ? "border-terracotta bg-terracotta text-white shadow-md scale-105 ring-2 ring-terracotta-300 cursor-pointer"
+                        : "border-gray-200 bg-white hover:border-terracotta-300 hover:bg-terracotta-50 text-gray-700 cursor-pointer"
                   )}>
                   {fmt12h(slot.time)}
                 </button>
@@ -352,14 +352,14 @@ function BookingForm() {
           { label: "التاريخ", value: selectedDate },
           ...(!isQueueMode ? [{ label: "الوقت", value: selectedTime ? fmt12h(selectedTime) : "" }] : []),
           { label: "المدة", value: serviceObj?.durationMinutes ? `${serviceObj.durationMinutes} دقيقة` : "" },
-          { label: "السعر", value: serviceObj?.price ? `${serviceObj.price} SAR` : "" },
-          ...(depositAmount > 0 ? [{ label: "العربون", value: `${depositAmount} SAR (${paymentMethod === "card" ? "بطاقة" : "كاش"})` }] : []),
+          { label: "السعر", value: serviceObj?.price ? `${serviceObj.price} ر.س` : "" },
+          ...(depositAmount > 0 ? [{ label: "العربون", value: `${depositAmount} ر.س (${paymentMethod === "card" ? "بطاقة" : "كاش"})` }] : []),
           { label: "الاسم", value: name },
           { label: "الهاتف", value: phone },
         ].filter(r => r.value).map((row, i) => (
           <div key={i} className="flex justify-between items-center p-3">
-            <span className="text-sm text-muted-foreground">{row.value}</span>
             <span className="text-sm font-bold font-arabic">{row.label}</span>
+            <span className="text-sm text-muted-foreground">{row.value}</span>
           </div>
         ))}
       </div>
