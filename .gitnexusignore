@@ -1,0 +1,6 @@
+node_modules
+.next
+.gitnexus
+build
+coverage
+out
