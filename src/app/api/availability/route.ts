@@ -124,7 +124,7 @@ export async function GET(req: NextRequest) {
 
     // Generate slots at intervals matching service duration
     const interval = duration;
-    const slots: string[] = [];
+    const slots: Array<{ time: string; booked: boolean }> = [];
     for (let t = scheduleStart; t + duration <= scheduleEnd; t += interval) {
       const slotEnd = t + duration;
 
@@ -133,13 +133,12 @@ export async function GET(req: NextRequest) {
         (range) => t < range.end && slotEnd > range.start
       );
 
-      if (!hasOverlap) {
-        const h = Math.floor(t / 60);
-        const m = t % 60;
-        slots.push(
-          `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`
-        );
-      }
+      const h = Math.floor(t / 60);
+      const m = t % 60;
+      slots.push({
+        time: `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`,
+        booked: hasOverlap,
+      });
     }
 
     return NextResponse.json({

@@ -25,7 +25,7 @@ function BookingForm() {
   const [step, setStep] = useState(0);
   const [branches, setBranches] = useState<BranchItem[]>([]);
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<Array<{ time: string; booked: boolean }>>([]);
   const [terms, setTerms] = useState("");
 
   const [selectedBranch, setSelectedBranch] = useState("");
@@ -286,9 +286,18 @@ function BookingForm() {
           ) : availableSlots.length > 0 ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {availableSlots.map((slot) => (
-              <button key={slot} type="button" onClick={() => setSelectedTime(slot)}
-                  className={cn("py-2.5 px-3 rounded-lg border text-sm font-bold transition-all cursor-pointer", selectedTime === slot ? "border-sage-600 bg-sage-600 text-white shadow-md scale-105 ring-2 ring-sage-300" : "border-gray-200 bg-white hover:border-sage-400 hover:bg-sage-50 text-gray-700")}>
-                  {fmt12h(slot)}
+              <button key={slot.time} type="button"
+                  onClick={() => !slot.booked && setSelectedTime(slot.time)}
+                  disabled={slot.booked}
+                  className={cn(
+                    "py-2.5 px-3 rounded-lg border text-sm font-bold transition-all",
+                    slot.booked
+                      ? "border-gray-100 bg-gray-100 text-gray-300 line-through cursor-not-allowed opacity-60"
+                      : selectedTime === slot.time
+                        ? "border-sage-600 bg-sage-600 text-white shadow-md scale-105 ring-2 ring-sage-300 cursor-pointer"
+                        : "border-gray-200 bg-white hover:border-sage-400 hover:bg-sage-50 text-gray-700 cursor-pointer"
+                  )}>
+                  {fmt12h(slot.time)}
                 </button>
               ))}
             </div>
