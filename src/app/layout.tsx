@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "AI Bot Control Hub - مركز تحكم البوت الذكي",
   description: "Smart SaaS Dashboard for managing AI bot interactions across multiple channels",
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/icon.png",
   },
 };
 

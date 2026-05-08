@@ -345,7 +345,7 @@ export const translations = {
   },
   ar: {
     // General
-    appTitle: "مركز تحكم صالون جاردينا",
+    appTitle: "مركز تحكم صالون نون",
     loading: "جارٍ التحميل...",
     save: "حفظ",
     cancel: "إلغاء",
