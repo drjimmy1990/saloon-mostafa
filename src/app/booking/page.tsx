@@ -239,8 +239,8 @@ function BookingForm() {
                 </div>
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-bold text-base font-arabic text-dark">{st.nameAr || st.name}</p>
-                  <p className="text-sm font-arabic text-muted-foreground mt-0.5">{svc.name}</p>
+                  <p className="font-bold text-base font-arabic text-dark">{svc.name}</p>
+                  <p className="text-sm font-arabic text-muted-foreground mt-0.5">{st.nameAr || st.name}</p>
                   <div className="flex flex-wrap items-center gap-1.5 mt-2">
                     {Number(svc.price) > 0 && <Badge className="bg-terracotta text-white text-[11px] px-2 py-0.5 font-bold">{svc.price} ر.س</Badge>}
                     {svc.durationMinutes && <Badge variant="outline" className="text-[11px] px-2 py-0.5 gap-1"><Clock className="w-3 h-3" />{svc.durationMinutes >= 60 ? `${svc.durationMinutes/60} ساعة` : `${svc.durationMinutes} دقيقة`}</Badge>}
