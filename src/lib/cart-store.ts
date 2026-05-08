@@ -1,4 +1,4 @@
-import { create } from "zustand";
+﻿import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface CartItem {
@@ -64,6 +64,6 @@ export const useCartStore = create<CartStore>()(
 
       getItemCount: () => get().items.reduce((sum, i) => sum + i.qty, 0),
     }),
-    { name: "gardenia-cart" }
+    { name: "Noon-cart" }
   )
 );

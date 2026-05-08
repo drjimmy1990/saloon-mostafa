@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState, useEffect } from "react";
 import { useCartStore } from "@/lib/cart-store";
 import { Input } from "@/components/ui/input";
@@ -99,7 +99,7 @@ export default function CheckoutPage() {
             <h2 className="font-bold text-lg">بياناتك</h2>
             <div><Label className="text-sm mb-1 block">الاسم الكامل *</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="سارة أحمد"/></div>
             <div><Label className="text-sm mb-1 block">رقم الهاتف *</Label><Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="0790000000" dir="ltr"/></div>
-            <div><Label className="text-sm mb-1 block">عنوان التوصيل</Label><Input value={address} onChange={e => setAddress(e.target.value)} placeholder="شارع مكة، عمّان..."/></div>
+            <div><Label className="text-sm mb-1 block">عنوان التوصيل</Label><Input value={address} onChange={e => setAddress(e.target.value)} placeholder="شارع مكة، الرياض..."/></div>
             <div><Label className="text-sm mb-1 block">ملاحظات</Label><Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="ملاحظات إضافية..."/></div>
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-border/50 space-y-3">
@@ -113,12 +113,12 @@ export default function CheckoutPage() {
           </div>
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-border/50">
             <h2 className="font-bold text-lg mb-4">ملخص الطلب</h2>
-            {items.map(i => (<div key={i.productId} className="flex justify-between text-sm mb-2"><span>{i.name} × {i.qty}</span><span className="tabular-nums">{(i.price * i.qty).toFixed(2)} د.أ</span></div>))}
+            {items.map(i => (<div key={i.productId} className="flex justify-between text-sm mb-2"><span>{i.name} × {i.qty}</span><span className="tabular-nums">{(i.price * i.qty).toFixed(2)} ر.س</span></div>))}
             <Separator className="my-3"/>
-            <div className="flex justify-between text-sm mb-1"><span className="text-muted-foreground">المجموع الفرعي</span><span className="tabular-nums">{subtotal.toFixed(2)} د.أ</span></div>
-            <div className="flex justify-between text-sm mb-3"><span className="text-muted-foreground">رسوم التوصيل</span><span className="tabular-nums">{deliveryFee.toFixed(2)} د.أ</span></div>
+            <div className="flex justify-between text-sm mb-1"><span className="text-muted-foreground">المجموع الفرعي</span><span className="tabular-nums">{subtotal.toFixed(2)} ر.س</span></div>
+            <div className="flex justify-between text-sm mb-3"><span className="text-muted-foreground">رسوم التوصيل</span><span className="tabular-nums">{deliveryFee.toFixed(2)} ر.س</span></div>
             <Separator className="my-3"/>
-            <div className="flex justify-between text-lg font-bold"><span>الإجمالي</span><span className="text-terracotta tabular-nums">{total.toFixed(2)} د.أ</span></div>
+            <div className="flex justify-between text-lg font-bold"><span>الإجمالي</span><span className="text-terracotta tabular-nums">{total.toFixed(2)} ر.س</span></div>
             <button onClick={handleSubmit} disabled={loading} className="w-full mt-6 px-8 py-4 text-base font-bold text-white rounded-2xl gradient-terracotta shadow-lg hover:shadow-terracotta/30 transition-all disabled:opacity-50">
               {loading ? "جاري إنشاء الطلب..." : "تأكيد الطلب ✨"}
             </button>

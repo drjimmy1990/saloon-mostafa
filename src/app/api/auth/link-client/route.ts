@@ -7,7 +7,7 @@ import { getServiceRoleClient } from "@/lib/supabase";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { authUserId, email } = body;
+    const { authUserId, email, name, phone } = body;
 
     if (!authUserId) {
       return NextResponse.json({ error: "Missing authUserId" }, { status: 400 });
@@ -23,6 +23,14 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (existingByAuth) {
+      // Update name/phone if they were missing and now provided
+      const updates: Record<string, string> = {};
+      if ((!existingByAuth.name || existingByAuth.name.trim() === "") && name) updates.name = name;
+      if ((!existingByAuth.phone || existingByAuth.phone.trim() === "") && phone) updates.phone = phone;
+      if (Object.keys(updates).length > 0) {
+        await supabase.from("Client").update(updates).eq("id", existingByAuth.id);
+        return NextResponse.json({ client: { ...existingByAuth, ...updates } });
+      }
       return NextResponse.json({ client: existingByAuth });
     }
 
@@ -36,18 +44,17 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (existingByEmail) {
-        // Stamp auth_user_id on existing client
-        await supabase
-          .from("Client")
-          .update({ auth_user_id: authUserId })
-          .eq("id", existingByEmail.id);
+        // Stamp auth_user_id and update name/phone if missing
+        const updates: Record<string, string | null> = { auth_user_id: authUserId };
+        if ((!existingByEmail.name || existingByEmail.name.trim() === "") && name) updates.name = name;
+        if ((!existingByEmail.phone || existingByEmail.phone.trim() === "") && phone) updates.phone = phone;
+        await supabase.from("Client").update(updates).eq("id", existingByEmail.id);
 
-        return NextResponse.json({ client: existingByEmail });
+        return NextResponse.json({ client: { ...existingByEmail, ...updates } });
       }
     }
 
     // 3. Try to find client by phone (legacy: guests who booked by phone via bot)
-    // This case handles migration from the old phone-OTP system
     const { data: authUser } = await supabase.auth.admin.getUserById(authUserId);
     const authPhone = authUser?.user?.phone;
 
@@ -70,12 +77,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Create new client with email
+    // 4. Create new client with name, phone, and email
     const { data: newClient, error } = await supabase
       .from("Client")
       .insert({
-        name: null,
-        phone: "",
+        name: name || null,
+        phone: phone || "",
         email: email || "",
         platform: "website",
         auth_user_id: authUserId,

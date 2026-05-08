@@ -1,4 +1,4 @@
-import { Award, Truck, CalendarCheck, Gem } from "lucide-react";
+﻿import { Award, Truck, CalendarCheck, Gem } from "lucide-react";
 import { SectionHeader } from "@/components/shared/section-header";
 
 const features = [
@@ -41,7 +41,7 @@ export function WhyUs() {
     <section className="py-16 md:py-24 gradient-mesh relative overflow-hidden">
       <div className="container mx-auto max-w-7xl px-4 relative z-10">
         <SectionHeader
-          title="لماذا جاردينيا؟"
+          title="لماذا نون؟"
           subtitle="نحن هنا لنقدم لك تجربة تجميل فريدة ومميزة"
           gradient
         />

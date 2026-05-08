@@ -6,7 +6,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Flower2, Mail, Lock, Loader2, UserPlus, LogIn } from "lucide-react";
+import { Flower2, Mail, Lock, Loader2, UserPlus, LogIn, User, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -18,6 +18,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -29,6 +31,29 @@ export default function LoginPage() {
       router.replace("/account");
     }
   }, [isLoading, user, router]);
+
+  // Format Saudi phone — auto-add +966 prefix
+  const formatSaudiPhone = (val: string) => {
+    // Strip everything except digits
+    let digits = val.replace(/[^\d]/g, "");
+    // If starts with 966, keep as is
+    if (digits.startsWith("966")) {
+      digits = digits.substring(3);
+    }
+    // If starts with 0, remove leading 0
+    if (digits.startsWith("0")) {
+      digits = digits.substring(1);
+    }
+    // Limit to 9 digits (Saudi mobile without country code)
+    digits = digits.substring(0, 9);
+    return digits;
+  };
+
+  const isValidSaudiPhone = (phone: string) => {
+    const digits = formatSaudiPhone(phone);
+    // Saudi mobile: starts with 5, 9 digits total
+    return /^5\d{8}$/.test(digits);
+  };
 
   const handleLogin = async () => {
     if (!email.trim()) {
@@ -59,6 +84,14 @@ export default function LoginPage() {
   };
 
   const handleSignUp = async () => {
+    if (!fullName.trim()) {
+      toast.error("يرجى إدخال الاسم الكامل");
+      return;
+    }
+    if (!phoneNumber.trim() || !isValidSaudiPhone(phoneNumber)) {
+      toast.error("يرجى إدخال رقم جوال سعودي صحيح (05xxxxxxxx)");
+      return;
+    }
     if (!email.trim()) {
       toast.error("يرجى إدخال البريد الإلكتروني");
       return;
@@ -73,7 +106,8 @@ export default function LoginPage() {
     }
 
     setSubmitting(true);
-    const { error } = await signUp(email, password);
+    const formattedPhone = "+966" + formatSaudiPhone(phoneNumber);
+    const { error } = await signUp(email, password, fullName.trim(), formattedPhone);
     setSubmitting(false);
 
     if (error) {
@@ -148,6 +182,49 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-border/50 space-y-5">
+          {/* Name Field (Signup only) */}
+          {mode === "signup" && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-terracotta" />
+                <Label className="text-sm font-bold">الاسم الكامل</Label>
+              </div>
+              <Input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="مثال: نورة أحمد"
+                dir="rtl"
+                className="h-12 text-base"
+              />
+            </div>
+          )}
+
+          {/* Phone Field (Signup only) */}
+          {mode === "signup" && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-terracotta" />
+                <Label className="text-sm font-bold">رقم الجوال</Label>
+              </div>
+              <div className="relative">
+                <Input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(formatSaudiPhone(e.target.value))}
+                  placeholder="5xxxxxxxx"
+                  dir="ltr"
+                  className="h-12 text-base pl-20"
+                  maxLength={9}
+                />
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-mono bg-gray-100 px-2 py-1 rounded">
+                  +966
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground text-right">رقم الجوال السعودي (يبدأ بـ 05)</p>
+            </div>
+          )}
+
           {/* Email Field */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">

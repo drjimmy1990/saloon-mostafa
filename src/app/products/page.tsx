@@ -1,4 +1,4 @@
-import { getServiceRoleClient } from "@/lib/supabase";
+﻿import { getServiceRoleClient } from "@/lib/supabase";
 import Image from "next/image";
 import Link from "next/link";
 import { Metadata } from "next";
@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/catalog/add-to-cart-button";
 
 export const metadata: Metadata = {
-  title: "المنتجات | صالون جاردينيا",
-  description: "تسوّقي منتجات التجميل والعناية من صالون جاردينيا — شحن وتوصيل في الأردن.",
+  title: "المنتجات | صالون نون",
+  description: "تسوّقي منتجات التجميل والعناية من صالون نون — شحن وتوصيل في السعودية.",
 };
 
 interface Product {
@@ -74,7 +74,7 @@ export default async function ProductsPage() {
         <div className="container mx-auto max-w-7xl px-4 relative z-10">
           <SectionHeader
             title="منتجاتنا"
-            subtitle="منتجات تجميل وعناية عالية الجودة — توصيل في الأردن"
+            subtitle="منتجات تجميل وعناية عالية الجودة — توصيل في السعودية"
             gradient
           />
         </div>
@@ -117,7 +117,7 @@ export default async function ProductsPage() {
                         <Badge className="bg-red-500 text-white border-none shadow-lg font-bold text-xs px-2.5 py-1">
                           {offer.discountType === "percentage"
                             ? `${offer.discountValue}%`
-                            : `${offer.discountValue} د.أ`}
+                            : `${offer.discountValue} ر.س`}
                         </Badge>
                       </div>
                     )}
@@ -165,7 +165,7 @@ export default async function ProductsPage() {
                     <span className="text-lg font-black text-terracotta tabular-nums">
                       {Number(discountedPrice ?? 0).toFixed(2)}
                     </span>
-                    <span className="text-[10px] text-muted-foreground font-medium">د.أ</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">ر.س</span>
                     {offer && (
                       <span className="text-xs text-muted-foreground line-through tabular-nums">
                         {Number(product.price ?? 0).toFixed(2)}

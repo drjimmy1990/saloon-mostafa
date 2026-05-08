@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -7,11 +7,11 @@ import { WhatsAppFloat } from "@/components/shared/whatsapp-float";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "صالون جاردينيا | خدمات تجميل احترافية في الأردن",
+  title: "صالون نون | خدمات تجميل احترافية في السعودية",
   description:
-    "احجزي خدمات التجميل من تصفيف الشعر والأظافر والمكياج. توصيل للمنزل. صالون جاردينيا — الأردن",
+    "احجزي خدمات التجميل من تصفيف الشعر والأظافر والمكياج. توصيل للمنزل. صالون نون — السعودية",
   openGraph: {
-    title: "صالون جاردينيا",
+    title: "صالون نون",
     description:
       "خدمات تجميل احترافية — حجز أونلاين، منتجات تجميل، توصيل للمنزل",
     locale: "ar_JO",

@@ -1,4 +1,4 @@
-import { getServiceRoleClient } from "@/lib/supabase";
+﻿import { getServiceRoleClient } from "@/lib/supabase";
 import Link from "next/link";
 import Image from "next/image";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -87,7 +87,7 @@ export async function FeaturedServices() {
                     variant="secondary"
                     className="bg-terracotta/8 text-terracotta border-none text-xs tabular-nums font-bold"
                   >
-                    {Number(service.price ?? 0).toFixed(2)} د.أ
+                    {Number(service.price ?? 0).toFixed(2)} ر.س
                   </Badge>
                   <span className="text-[10px] text-muted-foreground">
                     ابتداءً من

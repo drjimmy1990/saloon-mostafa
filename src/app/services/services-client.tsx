@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import Image from "next/image";
@@ -140,7 +140,7 @@ export function ServicesClient({
                       <Badge className="bg-red-500 text-white border-none shadow-lg font-bold text-xs px-3 py-1">
                         {offer.discountType === "percentage"
                           ? `خصم ${offer.discountValue}%`
-                          : `خصم ${offer.discountValue} د.أ`}
+                          : `خصم ${offer.discountValue} ر.س`}
                       </Badge>
                     </div>
                   )}
@@ -193,7 +193,7 @@ export function ServicesClient({
                       <span className="text-2xl font-black text-terracotta tabular-nums">
                         {Number(discountedPrice ?? 0).toFixed(2)}
                       </span>
-                      <span className="text-xs text-muted-foreground font-medium">د.أ</span>
+                      <span className="text-xs text-muted-foreground font-medium">ر.س</span>
                       {offer && (
                         <span className="text-sm text-muted-foreground line-through tabular-nums">
                           {Number(service.price ?? 0).toFixed(2)}

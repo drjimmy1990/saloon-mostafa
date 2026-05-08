@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Flower2, Phone, MapPin, Clock } from "lucide-react";
 import { getSiteSettings } from "@/lib/settings";
 
@@ -19,7 +19,7 @@ const legalLinks = [
 export async function Footer() {
   const settings = await getSiteSettings();
   const phoneNumber = settings.salon_phone || "962786753791";
-  const salonAddress = settings.salon_address || "عمّان، الأردن";
+  const salonAddress = settings.salon_address || "الرياض، السعودية";
   const workingWeekdays = settings.working_hours_weekdays || "السبت - الخميس: 10:00 ص - 8:00 م";
   const workingFriday = settings.working_hours_friday || "الجمعة: مغلق";
   const instagramUrl = settings.instagram_url || "#";
@@ -41,13 +41,13 @@ export async function Footer() {
               </div>
               <div>
                 <h3 className="text-lg font-black text-white" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  صالون جاردينيا
+                  صالون نون
                 </h3>
-                <p className="text-[10px] text-white/40 tracking-[0.2em] uppercase">Gardenia Salon</p>
+                <p className="text-[10px] text-white/40 tracking-[0.2em] uppercase">SALOON NOON</p>
               </div>
             </div>
             <p className="text-sm leading-relaxed text-white/50">
-              خدمات تجميل احترافية في الأردن. نقدم لك أفضل خدمات العناية بالشعر والبشرة والأظافر.
+              خدمات تجميل احترافية في السعودية. نقدم لك أفضل خدمات العناية بالشعر والبشرة والأظافر.
             </p>
             {/* Social icons */}
             <div className="flex items-center gap-2">
@@ -138,7 +138,7 @@ export async function Footer() {
         <div className="mt-12 pt-8 border-t border-white/8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-xs text-white/30">
-              © {new Date().getFullYear()} صالون جاردينيا. جميع الحقوق محفوظة.
+              © {new Date().getFullYear()} صالون نون. جميع الحقوق محفوظة.
             </p>
             <div className="flex items-center gap-6">
               {legalLinks.map((link) => (

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/button";
@@ -251,7 +251,7 @@ function BookingForm() {
                     <span className="text-xs font-arabic text-muted-foreground">{st.nameAr || st.name}</span>
                   </div>
                   <div className="flex flex-wrap items-center gap-1">
-                    {Number(svc.price) > 0 && <Badge className="bg-sage-600 text-white text-[10px] px-1.5 py-0">{svc.price} JOD</Badge>}
+                    {Number(svc.price) > 0 && <Badge className="bg-sage-600 text-white text-[10px] px-1.5 py-0">{svc.price} SAR</Badge>}
                     {svc.durationMinutes && <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5"><Clock className="w-2.5 h-2.5" />{svc.durationMinutes >= 60 ? `${svc.durationMinutes/60} س` : `${svc.durationMinutes} د`}</Badge>}
                     {svc.durationMode === "queue" && <Badge variant="outline" className="text-[10px] px-1.5 py-0 gap-0.5"><Hash className="w-2.5 h-2.5" />بالدور</Badge>}
                   </div>
@@ -334,7 +334,7 @@ function BookingForm() {
       </div>
       {depositAmount > 0 && (
         <div className="space-y-2">
-          <Label className="text-right block font-arabic">طريقة دفع العربون ({depositAmount} JOD)</Label>
+          <Label className="text-right block font-arabic">طريقة دفع العربون ({depositAmount} SAR)</Label>
           <div className="grid grid-cols-2 gap-2">
             {[{ v: "cash", l: "كاش" }, { v: "card", l: "بطاقة" }].map(({ v, l }) => (
               <button key={v} onClick={() => setPaymentMethod(v)}
@@ -360,8 +360,8 @@ function BookingForm() {
           { label: "التاريخ", value: selectedDate },
           ...(!isQueueMode ? [{ label: "الوقت", value: selectedTime ? fmt12h(selectedTime) : "" }] : []),
           { label: "المدة", value: serviceObj?.durationMinutes ? `${serviceObj.durationMinutes} دقيقة` : "" },
-          { label: "السعر", value: serviceObj?.price ? `${serviceObj.price} JOD` : "" },
-          ...(depositAmount > 0 ? [{ label: "العربون", value: `${depositAmount} JOD (${paymentMethod === "card" ? "بطاقة" : "كاش"})` }] : []),
+          { label: "السعر", value: serviceObj?.price ? `${serviceObj.price} SAR` : "" },
+          ...(depositAmount > 0 ? [{ label: "العربون", value: `${depositAmount} SAR (${paymentMethod === "card" ? "بطاقة" : "كاش"})` }] : []),
           { label: "الاسم", value: name },
           { label: "الهاتف", value: phone },
         ].filter(r => r.value).map((row, i) => (

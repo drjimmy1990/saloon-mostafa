@@ -1,11 +1,11 @@
-import { getServiceRoleClient } from "@/lib/supabase";
+﻿import { getServiceRoleClient } from "@/lib/supabase";
 import Image from "next/image";
 import { Metadata } from "next";
 import { SectionHeader } from "@/components/shared/section-header";
 
 export const metadata: Metadata = {
-  title: "المعرض | صالون جاردينيا",
-  description: "شاهدي أحدث أعمالنا في تصفيف الشعر والمكياج والأظافر — صالون جاردينيا",
+  title: "المعرض | صالون نون",
+  description: "شاهدي أحدث أعمالنا في تصفيف الشعر والمكياج والأظافر — صالون نون",
 };
 
 interface GalleryItem {
@@ -66,7 +66,7 @@ export default async function GalleryPage() {
                 <div className="relative aspect-[3/4]">
                   <Image
                     src={item.imageUrl}
-                    alt={item.title || "عمل من أعمال جاردينيا"}
+                    alt={item.title || "عمل من أعمال نون"}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                     sizes="(max-width: 768px) 50vw, 33vw"

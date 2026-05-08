@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -57,10 +57,10 @@ export function Header() {
               </div>
               <div className="flex flex-col">
                 <span className="text-lg font-black text-dark leading-tight" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  جاردينيا
+                  نون
                 </span>
                 <span className="text-[9px] text-muted-foreground -mt-0.5 tracking-[0.2em] uppercase font-medium">
-                  Gardenia Salon
+                  SALOON NOON
                 </span>
               </div>
             </Link>
@@ -166,7 +166,7 @@ export function Header() {
                   <Flower2 className="w-4 h-4 text-white" />
                 </div>
                 <span className="font-black text-dark text-lg" style={{ fontFamily: "'Tajawal', sans-serif" }}>
-                  جاردينيا
+                  نون
                 </span>
               </div>
               <button onClick={() => setMobileOpen(false)} className="p-2 rounded-xl hover:bg-muted transition-colors">

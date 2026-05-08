@@ -39,7 +39,7 @@ export default async function ProductDetailPage({ params }: Props) {
               {offer && (
                 <div className="absolute top-4 left-4">
                   <Badge className="bg-red-500 text-white border-none shadow-lg text-sm font-bold">
-                    {offer.discountType === "percentage" ? `${offer.discountValue}%` : `${offer.discountValue} د.أ`}
+                    {offer.discountType === "percentage" ? `${offer.discountValue}%` : `${offer.discountValue} ر.س`}
                   </Badge>
                 </div>
               )}
@@ -64,7 +64,7 @@ export default async function ProductDetailPage({ params }: Props) {
               <h1 className="text-3xl font-bold text-dark mb-2" style={{ fontFamily: "'Tajawal', sans-serif" }}>{product.name}</h1>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-black text-terracotta tabular-nums">{discountedPrice.toFixed(2)}</span>
-                <span className="text-sm text-muted-foreground">د.أ</span>
+                <span className="text-sm text-muted-foreground">ر.س</span>
                 {offer && <span className="text-lg text-muted-foreground line-through tabular-nums">{Number(product.price ?? 0).toFixed(2)}</span>}
               </div>
             </div>

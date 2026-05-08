@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         auth_token: token, amount_cents: "0", expiration: 3600, order_id: orderData.id,
         billing_data: { first_name: "NA", last_name: "NA", email: "NA", phone_number: "NA", apartment: "NA", floor: "NA", street: "NA", building: "NA", shipping_method: "NA", postal_code: "NA", city: "NA", country: "JO", state: "NA" },
-        currency: "JOD", integration_id: parseInt(integrationId),
+        currency: "SAR", integration_id: parseInt(integrationId),
       }),
     });
     const { token: paymentKey } = await keyRes.json();

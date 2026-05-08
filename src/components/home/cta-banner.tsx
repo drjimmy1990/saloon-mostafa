@@ -1,11 +1,11 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { MessageCircle, Sparkles } from "lucide-react";
 import { getSiteSettings } from "@/lib/settings";
 
 export async function CtaBanner() {
   const settings = await getSiteSettings();
   const whatsappNumber = settings.whatsapp_number || "962786753791";
-  const message = encodeURIComponent("مرحباً، أريد حجز موعد في صالون جاردينيا 🌸");
+  const message = encodeURIComponent("مرحباً، أريد حجز موعد في صالون نون 🌸");
 
   return (
     <section className="py-16 md:py-24">

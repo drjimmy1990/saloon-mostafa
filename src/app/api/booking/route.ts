@@ -42,10 +42,10 @@ export async function POST(req: NextRequest) {
         .single();
       if (authClient) {
         clientId = authClient.id;
-        // Update name/phone if missing (registration creates client without these)
+        // Always update name/phone from booking form so user can change them
         const updates: Record<string, string> = {};
-        if ((!authClient.name || authClient.name.trim() === "") && name) updates.name = name;
-        if ((!authClient.phone || authClient.phone.trim() === "") && phone) updates.phone = phone;
+        if (name && name !== authClient.name) updates.name = name;
+        if (phone && phone !== authClient.phone) updates.phone = phone;
         if (Object.keys(updates).length > 0) {
           await supabase.from("Client").update(updates).eq("id", authClient.id);
         }

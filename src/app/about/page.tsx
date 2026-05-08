@@ -1,10 +1,10 @@
-import { getServiceRoleClient } from "@/lib/supabase";
+﻿import { getServiceRoleClient } from "@/lib/supabase";
 import { Metadata } from "next";
 import { SectionHeader } from "@/components/shared/section-header";
 
 export const metadata: Metadata = {
-  title: "من نحن | صالون جاردينيا",
-  description: "تعرّفي على صالون جاردينيا — خبرة سنوات في مجال التجميل والعناية بالجمال في الأردن.",
+  title: "من نحن | صالون نون",
+  description: "تعرّفي على صالون نون — خبرة سنوات في مجال التجميل والعناية بالجمال في السعودية.",
 };
 
 async function getPageContent(slug: string) {
@@ -33,7 +33,7 @@ export default async function AboutPage() {
         ) : (
           <div className="bg-white rounded-2xl p-8 shadow-sm border border-border/50 text-center">
             <p className="text-lg text-muted-foreground leading-relaxed">
-              صالون جاردينيا — وجهتك الأولى للجمال والعناية في الأردن. 
+              صالون نون — وجهتك الأولى للجمال والعناية في السعودية. 
               نقدم لك خدمات احترافية بأيدي خبيرات متميزات مع استخدام أفضل المنتجات العالمية.
             </p>
           </div>

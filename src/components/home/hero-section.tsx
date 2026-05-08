@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -51,7 +51,7 @@ export function HeroSection() {
               className="inline-flex items-center gap-2 px-5 py-2 rounded-full glass border border-terracotta/15 text-terracotta text-sm font-medium mb-8"
             >
               <Sparkles className="w-4 h-4" />
-              <span>خدمات تجميل احترافية في الأردن</span>
+              <span>خدمات تجميل احترافية في السعودية</span>
             </motion.div>
 
             {/* Heading */}
@@ -61,7 +61,7 @@ export function HeroSection() {
             >
               مرحباً بك في{" "}
               <span className="gradient-text relative inline-block">
-                صالون جاردينيا
+                صالون نون
                 <svg
                   className="absolute -bottom-1 left-0 w-full"
                   viewBox="0 0 200 8"
@@ -121,7 +121,7 @@ export function HeroSection() {
           >
             <div className="space-y-4">
               <div className="relative h-64 rounded-2xl overflow-hidden shadow-xl card-hover border border-white/60">
-                <Image src="/images/hero/hero_salon_1.png" alt="صالون جاردينيا" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />
+                <Image src="/images/hero/hero_salon_1.png" alt="صالون نون" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />
               </div>
               <div className="relative h-48 rounded-2xl overflow-hidden shadow-xl card-hover border border-white/60 animate-float" style={{ animationDelay: "0.5s" }}>
                 <Image src="/images/hero/hero_salon_3.png" alt="مكياج احترافي" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />

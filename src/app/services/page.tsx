@@ -1,10 +1,10 @@
-import { getServiceRoleClient } from "@/lib/supabase";
+﻿import { getServiceRoleClient } from "@/lib/supabase";
 import { Metadata } from "next";
 import { ServicesClient } from "./services-client";
 
 export const metadata: Metadata = {
-  title: "الخدمات | صالون جاردينيا",
-  description: "تصفحي جميع خدمات التجميل المتاحة في صالون جاردينيا — تصفيف الشعر، المكياج، الأظافر، والعناية بالبشرة.",
+  title: "الخدمات | صالون نون",
+  description: "تصفحي جميع خدمات التجميل المتاحة في صالون نون — تصفيف الشعر، المكياج، الأظافر، والعناية بالبشرة.",
 };
 
 async function getServices() {

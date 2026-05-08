@@ -1,12 +1,12 @@
-import { getSiteSettings } from "@/lib/settings";
+﻿import { getSiteSettings } from "@/lib/settings";
 import { getServiceRoleClient } from "@/lib/supabase";
 import { Metadata } from "next";
 import { SectionHeader } from "@/components/shared/section-header";
 import { Phone, MapPin, MessageCircle, Clock } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "تواصلي معنا | صالون جاردينيا",
-  description: "تواصلي مع صالون جاردينيا — العنوان، الهاتف، واتساب. عمّان، الأردن.",
+  title: "تواصلي معنا | صالون نون",
+  description: "تواصلي مع صالون نون — العنوان، الهاتف، واتساب. الرياض، السعودية.",
 };
 
 async function getContactInfo() {
@@ -22,7 +22,7 @@ export default async function ContactPage() {
   const { page, settings } = await getContactInfo();
   const phoneNumber = settings.salon_phone || "962786753791";
   const whatsappNumber = settings.whatsapp_number || phoneNumber;
-  const salonAddress = settings.salon_address || "عمّان، الأردن";
+  const salonAddress = settings.salon_address || "الرياض، السعودية";
   const workingWeekdays = settings.working_hours_weekdays || "السبت - الخميس: 10:00 ص - 8:00 م";
   const workingFriday = settings.working_hours_friday || "الجمعة: مغلق";
   const mapsUrl = settings.google_maps_url || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d217257.96330223998!2d35.72862505!3d31.9539494!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x151b5fb85d7981b1%3A0x631c30c0f8dc65e8!2sAmman%2C%20Jordan!5e0!3m2!1sar!2sus!4v1";
@@ -108,7 +108,7 @@ export default async function ContactPage() {
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              title="موقع صالون جاردينيا"
+              title="موقع صالون نون"
             />
           </div>
         </div>

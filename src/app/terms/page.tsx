@@ -1,9 +1,9 @@
-import { getServiceRoleClient } from "@/lib/supabase";
+﻿import { getServiceRoleClient } from "@/lib/supabase";
 import { Metadata } from "next";
 import { SectionHeader } from "@/components/shared/section-header";
 
 export const metadata: Metadata = {
-  title: "الشروط والأحكام | صالون جاردينيا",
+  title: "الشروط والأحكام | صالون نون",
 };
 
 async function getPageContent(slug: string) {

@@ -17,7 +17,7 @@ interface AuthState {
   isInitialized: boolean;
   
   initialize: () => Promise<void>;
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, name?: string, phone?: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   logout: () => Promise<void>;
   refreshClient: () => Promise<void>;
@@ -62,7 +62,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
-  signUp: async (email: string, password: string) => {
+  signUp: async (email: string, password: string, name?: string, phone?: string) => {
     const supabase = getSupabaseBrowserClient();
 
     const { data, error } = await supabase.auth.signUp({
@@ -77,7 +77,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (data.user) {
       set({ user: data.user });
 
-      // Link to Client CRM
+      // Link to Client CRM with name and phone
       try {
         const res = await fetch('/api/auth/link-client', {
           method: 'POST',
@@ -85,6 +85,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           body: JSON.stringify({
             authUserId: data.user.id,
             email: email.trim().toLowerCase(),
+            name: name || null,
+            phone: phone || '',
           }),
         });
         const clientData = await res.json();

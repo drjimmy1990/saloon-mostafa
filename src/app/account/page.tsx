@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -346,7 +346,7 @@ export default function AccountPage() {
                     <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
                       <span>{formatDate(o.createdAt)}</span>
                       <span className="font-bold text-terracotta tabular-nums">
-                        {o.total?.toFixed(2)} د.أ
+                        {o.total?.toFixed(2)} ر.س
                       </span>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCartStore, CartItem } from "@/lib/cart-store";
 import Image from "next/image";
@@ -85,7 +85,7 @@ export default function CartPage() {
               <div className="flex-1 min-w-0">
                 <h3 className="font-bold text-sm text-dark line-clamp-1">{item.name}</h3>
                 <p className="text-sm text-terracotta font-bold tabular-nums mt-1">
-                  {item.price.toFixed(2)} د.أ
+                  {item.price.toFixed(2)} ر.س
                 </p>
 
                 {/* Qty controls */}
@@ -109,7 +109,7 @@ export default function CartPage() {
               {/* Total + Remove */}
               <div className="flex flex-col items-end gap-2">
                 <span className="text-base font-black text-dark tabular-nums">
-                  {(item.price * item.qty).toFixed(2)} د.أ
+                  {(item.price * item.qty).toFixed(2)} ر.س
                 </span>
                 <button
                   onClick={() => removeItem(item.productId)}
@@ -126,7 +126,7 @@ export default function CartPage() {
         <div className="mt-8 bg-white rounded-2xl p-6 shadow-sm border border-border/50">
           <div className="flex items-center justify-between mb-2">
             <span className="text-muted-foreground">المجموع الفرعي</span>
-            <span className="font-bold tabular-nums">{getTotal().toFixed(2)} د.أ</span>
+            <span className="font-bold tabular-nums">{getTotal().toFixed(2)} ر.س</span>
           </div>
           <div className="flex items-center justify-between mb-4">
             <span className="text-muted-foreground">رسوم التوصيل</span>
@@ -136,7 +136,7 @@ export default function CartPage() {
           <div className="flex items-center justify-between mb-6">
             <span className="text-lg font-bold">الإجمالي</span>
             <span className="text-xl font-black text-terracotta tabular-nums">
-              {getTotal().toFixed(2)} د.أ
+              {getTotal().toFixed(2)} ر.س
             </span>
           </div>
           <Link
