@@ -1,4 +1,4 @@
-﻿import { getServiceRoleClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase";
 import Link from "next/link";
 import Image from "next/image";
 import { SectionHeader } from "@/components/shared/section-header";
@@ -78,20 +78,26 @@ export async function FeaturedServices() {
               </div>
 
               {/* Info */}
-              <div className="p-4">
-                <h3 className="font-bold text-sm md:text-base text-dark line-clamp-1 group-hover:text-terracotta transition-colors">
+              <div className="p-5 flex flex-col gap-3 relative bg-white">
+                <h3 className="font-bold text-base md:text-lg text-foreground line-clamp-2 leading-snug group-hover:text-terracotta transition-colors" dir="rtl">
                   {service.name}
                 </h3>
-                <div className="flex items-center justify-between mt-2.5">
-                  <Badge
-                    variant="secondary"
-                    className="bg-terracotta/8 text-terracotta border-none text-xs tabular-nums font-bold"
-                  >
-                    {Number(service.price ?? 0).toFixed(2)} ر.س
-                  </Badge>
-                  <span className="text-[10px] text-muted-foreground">
-                    ابتداءً من
-                  </span>
+                
+                <div className="flex items-center justify-between mt-auto pt-3 border-t border-border/40" dir="rtl">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-medium">
+                      ابتداءً من
+                    </span>
+                    <span className="text-sm md:text-base font-black text-terracotta tabular-nums bg-terracotta/5 px-2 py-1 rounded-md">
+                      {Number(service.price ?? 0).toFixed(2)}
+                      <span className="text-[10px] font-bold mr-1">ر.س</span>
+                    </span>
+                  </div>
+                  
+                  {/* Subtle arrow indicator for booking */}
+                  <div className="w-8 h-8 rounded-full bg-terracotta/5 flex items-center justify-center group-hover:bg-terracotta group-hover:-translate-x-1 transition-all duration-300 shadow-sm">
+                    <ArrowLeft className="w-4 h-4 text-terracotta group-hover:text-white transition-colors" />
+                  </div>
                 </div>
               </div>
             </Link>
