@@ -37,11 +37,18 @@ export async function POST(req: NextRequest) {
     if (authUserId) {
       const { data: authClient } = await supabase
         .from("Client")
-        .select("id")
+        .select("id, name, phone")
         .eq("auth_user_id", authUserId)
         .single();
       if (authClient) {
         clientId = authClient.id;
+        // Update name/phone if missing (registration creates client without these)
+        const updates: Record<string, string> = {};
+        if ((!authClient.name || authClient.name.trim() === "") && name) updates.name = name;
+        if ((!authClient.phone || authClient.phone.trim() === "") && phone) updates.phone = phone;
+        if (Object.keys(updates).length > 0) {
+          await supabase.from("Client").update(updates).eq("id", authClient.id);
+        }
       }
     }
 
