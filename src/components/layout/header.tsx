@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -52,9 +52,11 @@ export function Header() {
           <div className="flex items-center justify-between h-16 md:h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-terracotta to-terracotta/80 flex items-center justify-center shadow-lg shadow-terracotta/20 group-hover:shadow-terracotta/40 transition-all group-hover:scale-105">
-                <Flower2 className="w-5 h-5 text-white" />
-              </div>
+              <img 
+                src="/icon.png" 
+                alt="صالون نون" 
+                className="w-10 h-10 rounded-xl shadow-lg shadow-black/10 group-hover:shadow-black/20 transition-all group-hover:scale-105 object-cover"
+              />
               <div className="flex flex-col">
                 <span className="text-lg font-black text-dark leading-tight" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   نون
@@ -162,9 +164,11 @@ export function Header() {
             {/* Mobile header */}
             <div className="flex items-center justify-between p-5 border-b border-border/50">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl gradient-terracotta flex items-center justify-center shadow-sm">
-                  <Flower2 className="w-4 h-4 text-white" />
-                </div>
+                <img 
+                  src="/icon.png" 
+                  alt="صالون نون" 
+                  className="w-9 h-9 rounded-xl shadow-sm object-cover"
+                />
                 <span className="font-black text-dark text-lg" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   نون
                 </span>

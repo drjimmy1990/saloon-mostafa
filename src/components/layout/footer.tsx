@@ -36,9 +36,11 @@ export async function Footer() {
           {/* Brand */}
           <div className="md:col-span-1 space-y-5">
             <div className="flex items-center gap-2.5">
-              <div className="w-11 h-11 rounded-xl gradient-terracotta flex items-center justify-center shadow-lg shadow-terracotta/20">
-                <Flower2 className="w-5 h-5 text-white" />
-              </div>
+              <img 
+                src="/icon.png" 
+                alt="صالون نون" 
+                className="w-11 h-11 rounded-xl shadow-lg shadow-black/20 object-cover"
+              />
               <div>
                 <h3 className="text-lg font-black text-white" style={{ fontFamily: "'Tajawal', sans-serif" }}>
                   صالون نون
