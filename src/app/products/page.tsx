@@ -1,10 +1,12 @@
-﻿import { getServiceRoleClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase";
 import Image from "next/image";
 import Link from "next/link";
 import { Metadata } from "next";
 import { SectionHeader } from "@/components/shared/section-header";
 import { Badge } from "@/components/ui/badge";
 import { AddToCartButton } from "@/components/catalog/add-to-cart-button";
+
+export const revalidate = 300; // ISR: revalidate every 5 minutes
 
 export const metadata: Metadata = {
   title: "المنتجات | صالون نون",

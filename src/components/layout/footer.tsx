@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { Flower2, Phone, MapPin, Clock } from "lucide-react";
 import { getSiteSettings } from "@/lib/settings";
 
@@ -74,7 +74,7 @@ export async function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm text-white/50 hover:text-terracotta hover:translate-x-1 transition-all inline-block"
+                    className="text-sm text-white/50 hover:text-terracotta hover:-translate-x-1 transition-all inline-block"
                   >
                     {link.label}
                   </Link>

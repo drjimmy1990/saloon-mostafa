@@ -1,6 +1,8 @@
-﻿import { getServiceRoleClient } from "@/lib/supabase";
+import { getServiceRoleClient } from "@/lib/supabase";
 import { Metadata } from "next";
 import { ServicesClient } from "./services-client";
+
+export const revalidate = 300; // ISR: revalidate every 5 minutes
 
 export const metadata: Metadata = {
   title: "الخدمات | صالون نون",

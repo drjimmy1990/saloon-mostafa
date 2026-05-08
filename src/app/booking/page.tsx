@@ -174,12 +174,12 @@ function BookingForm() {
         {branches.map((b) => (
           <button key={b.id} onClick={() => { setSelectedBranch(b.id); setTimeout(() => setStep(1), 200); }}
             className={cn("p-4 rounded-xl border-2 text-right transition-all hover:shadow-md", selectedBranch === b.id ? "border-sage-500 bg-sage-50 shadow-md" : "border-gray-200 bg-white hover:border-sage-300")}>
-            <div className="flex items-center gap-3 justify-end">
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-sage-600 shrink-0" />
               <div>
                 <p className="font-bold font-arabic">{b.nameAr || b.name}</p>
                 {b.address && <p className="text-sm text-muted-foreground">{b.address}</p>}
               </div>
-              <MapPin className="w-5 h-5 text-sage-600 shrink-0" />
             </div>
           </button>
         ))}
@@ -420,10 +420,10 @@ function BookingForm() {
           />
         </div>
       )}
-      <label className="flex items-center gap-3 justify-end cursor-pointer p-3 rounded-lg border hover:bg-sage-50 transition-colors">
-        <span className="text-sm font-arabic font-medium">أوافق على الشروط والأحكام</span>
+      <label className="flex items-center gap-3 cursor-pointer p-3 rounded-lg border hover:bg-sage-50 transition-colors">
         <input type="checkbox" checked={agreedToTerms} onChange={(e) => setAgreedToTerms(e.target.checked)}
           className="w-5 h-5 rounded border-gray-300 text-sage-600 focus:ring-sage-500" />
+        <span className="text-sm font-arabic font-medium">أوافق على الشروط والأحكام</span>
       </label>
     </div>
   );
@@ -434,16 +434,26 @@ function BookingForm() {
     <div className="min-h-screen bg-cream py-10">
       <div className="container mx-auto max-w-lg px-4">
         {/* Stepper */}
-        <div className="flex items-center justify-center gap-1 mb-8">
-          {STEPS.map((s, i) => (
-            <div key={i} className="flex items-center gap-1">
-              <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all",
-                i < step ? "bg-terracotta text-white" : i === step ? "bg-terracotta-100 text-terracotta-700 ring-2 ring-terracotta-400" : "bg-gray-100 text-gray-400")}>
-                {i < step ? <Check className="w-4 h-4" /> : i + 1}
+        <div className="mb-8">
+          {/* Step label */}
+          <div className="text-center mb-4">
+            <span className="text-xs text-muted-foreground font-medium">الخطوة {step + 1} من {STEPS.length}</span>
+            <h2 className="text-lg font-bold text-dark font-arabic mt-0.5">{STEPS[step]}</h2>
+          </div>
+          {/* Progress bar */}
+          <div className="flex items-center justify-center gap-1.5">
+            {STEPS.map((s, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300",
+                  i < step ? "bg-terracotta text-white shadow-sm shadow-terracotta/25" : i === step ? "bg-terracotta-100 text-terracotta-700 ring-2 ring-terracotta-400 scale-110" : "bg-gray-100 text-gray-400")}>
+                  {i < step ? <Check className="w-4 h-4" /> : i + 1}
+                </div>
+                {i < STEPS.length - 1 && (
+                  <div className={cn("w-6 sm:w-8 h-[3px] rounded-full transition-all duration-500", i < step ? "bg-terracotta-400" : "bg-gray-200")} />
+                )}
               </div>
-              {i < STEPS.length - 1 && <div className={cn("w-4 h-0.5", i < step ? "bg-terracotta-400" : "bg-gray-200")} />}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Step Content */}

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -112,7 +112,30 @@ export function HeroSection() {
             </motion.div>
           </motion.div>
 
-          {/* Decorative Image Grid */}
+          {/* Mobile Hero Image */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+            className="lg:hidden relative mx-auto max-w-sm w-full"
+          >
+            <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-white/60">
+              <Image src="/images/hero/hero_salon_2.png" alt="صالون نون — خدمات تجميل احترافية" fill sizes="(max-width: 1024px) 90vw, 0" priority className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <div className="text-white text-[10px] font-bold bg-white/20 backdrop-blur-md px-2.5 py-1 rounded-full">
+                  +500 تقييم ممتاز
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Desktop Decorative Image Grid */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -145,6 +168,30 @@ export function HeroSection() {
             </div>
           </motion.div>
         </div>
+
+        {/* Desktop Stats Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="hidden lg:flex items-center justify-center gap-12 mt-14"
+        >
+          {[
+            { number: 10, suffix: "+", label: "سنوات خبرة", color: "text-terracotta" },
+            { number: 500, suffix: "+", label: "عميلة سعيدة", color: "text-sage" },
+            { number: 50, suffix: "+", label: "خدمة متنوعة", color: "text-sand" },
+            { number: 15, suffix: "+", label: "خبيرة تجميل", color: "text-terracotta-600" },
+          ].map((stat) => (
+            <div key={stat.label} className="text-center group">
+              <div className={`text-3xl font-black tabular-nums ${stat.color} group-hover:scale-110 transition-transform`}>
+                <CountUp target={stat.number} suffix={stat.suffix} />
+              </div>
+              <div className="text-xs text-muted-foreground mt-1 font-medium">
+                {stat.label}
+              </div>
+            </div>
+          ))}
+        </motion.div>
 
         {/* Mobile Stats Row */}
         <motion.div

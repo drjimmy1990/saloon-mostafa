@@ -1,7 +1,9 @@
-﻿import { getServiceRoleClient } from "@/lib/supabase";
-import Image from "next/image";
+import { getServiceRoleClient } from "@/lib/supabase";
 import { Metadata } from "next";
 import { SectionHeader } from "@/components/shared/section-header";
+import { GalleryClient } from "./gallery-client";
+
+export const revalidate = 300; // ISR: revalidate every 5 minutes
 
 export const metadata: Metadata = {
   title: "المعرض | صالون نون",
@@ -38,56 +40,7 @@ export default async function GalleryPage() {
           subtitle="لمحة عن إبداعاتنا في عالم التجميل"
         />
 
-        {/* Category tabs */}
-        {categories.length > 0 && (
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
-            <span className="px-4 py-2 text-sm font-medium bg-terracotta text-white rounded-full cursor-pointer">
-              الكل
-            </span>
-            {categories.map((cat) => (
-              <span
-                key={cat}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground bg-white border rounded-full cursor-pointer hover:bg-terracotta/10 transition-colors"
-              >
-                {cat}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {items.length > 0 ? (
-          <div className="columns-2 md:columns-3 gap-4 space-y-4">
-            {items.map((item, i) => (
-              <div
-                key={item.id}
-                className="group relative rounded-2xl overflow-hidden shadow-sm card-hover animate-fade-in-up break-inside-avoid"
-                style={{ animationDelay: `${i * 80}ms` }}
-              >
-                <div className="relative aspect-[3/4]">
-                  <Image
-                    src={item.imageUrl}
-                    alt={item.title || "عمل من أعمال نون"}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 50vw, 33vw"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                    {item.title && <p className="text-sm font-bold">{item.title}</p>}
-                    {item.category && (
-                      <p className="text-xs text-white/70 mt-0.5">{item.category}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20 text-muted-foreground">
-            <p className="text-xl">سيتم إضافة أعمالنا قريباً ✨</p>
-          </div>
-        )}
+        <GalleryClient items={items} categories={categories} />
       </div>
     </div>
   );
