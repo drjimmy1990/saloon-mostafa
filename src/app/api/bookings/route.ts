@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Build filtered query
     let query = supabase
       .from('Booking')
-      .select('*, client:Client(*), staff:Staff(id, name)', { count: 'exact' });
+      .select('*, client:Client(*), staff:Staff!Booking_staff_id_fkey(id, name)', { count: 'exact' });
 
     if (channel !== 'all') {
       const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(channel);
