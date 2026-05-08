@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **workspace** (1597 symbols, 2713 relationships, 26 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **saloon-mostafa** (1699 symbols, 3124 relationships, 85 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -24,10 +24,10 @@ This project is indexed by GitNexus as **workspace** (1597 symbols, 2713 relatio
 
 | Resource | Use for |
 |----------|---------|
-| `gitnexus://repo/workspace/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/workspace/clusters` | All functional areas |
-| `gitnexus://repo/workspace/processes` | All execution flows |
-| `gitnexus://repo/workspace/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/saloon-mostafa/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/saloon-mostafa/clusters` | All functional areas |
+| `gitnexus://repo/saloon-mostafa/processes` | All execution flows |
+| `gitnexus://repo/saloon-mostafa/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 
