@@ -1121,3 +1121,15 @@ BEGIN
       CHECK ("durationMode" IN ('time', 'queue'));
   END IF;
 END $$;
+
+-- Add image column to Category table for booking wizard display
+ALTER TABLE "public"."Category"
+ADD COLUMN IF NOT EXISTS "image" TEXT DEFAULT '';
+
+INSERT INTO "CmsPage" ("slug", "title", "content")
+VALUES (
+  'booking-conditions',
+  'شروط وأحكام الحجز',
+  'نص الشروط والأحكام هنا...'
+)
+ON CONFLICT ("slug") DO UPDATE SET "content" = EXCLUDED."content";
