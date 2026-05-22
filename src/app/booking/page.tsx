@@ -43,6 +43,7 @@ function BookingForm() {
 
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [staffBlocked, setStaffBlocked] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [queueNumber, setQueueNumber] = useState<number | null>(null);
   const [bookingResult, setBookingResult] = useState<any>(null);
@@ -88,12 +89,21 @@ function BookingForm() {
 
   // Fetch availability
   useEffect(() => {
-    if (!selectedStaff || !selectedDate || !selectedService || isQueueMode) return;
-    setSlotsLoading(true); setSelectedTime("");
+    if (!selectedStaff || !selectedDate || !selectedService) return;
+    setSlotsLoading(true); setSelectedTime(""); setStaffBlocked(false);
     fetch(`/api/availability?staffId=${selectedStaff}&serviceId=${selectedService}&date=${selectedDate}`)
-      .then(r => r.json()).then(d => { setAvailableSlots(d.slots || []); setSlotsLoading(false); })
+      .then(r => r.json()).then(d => {
+        if (d.blocked) {
+          setStaffBlocked(true);
+          setAvailableSlots([]);
+        } else {
+          setStaffBlocked(false);
+          setAvailableSlots(d.slots || []);
+        }
+        setSlotsLoading(false);
+      })
       .catch(() => setSlotsLoading(false));
-  }, [selectedStaff, selectedDate, selectedService, isQueueMode]);
+  }, [selectedStaff, selectedDate, selectedService]);
 
   // Fetch terms
   useEffect(() => {
@@ -105,7 +115,7 @@ function BookingForm() {
       case 0: return !!selectedBranch;
       case 1: return !!selectedCategory;
       case 2: return !!selectedService && !!selectedStaff;
-      case 3: return isQueueMode ? !!selectedDate : (!!selectedDate && !!selectedTime);
+      case 3: return staffBlocked ? false : (isQueueMode ? !!selectedDate : (!!selectedDate && !!selectedTime));
       case 4: return name.trim() && phone.trim();
       default: return true;
     }
@@ -341,10 +351,16 @@ function BookingForm() {
           )}
         </div>
       )}
-      {isQueueMode && selectedDate && (
+      {isQueueMode && selectedDate && !staffBlocked && (
         <div className="bg-sage-50 border border-sage-200 rounded-xl p-4 text-center">
           <Hash className="w-8 h-8 text-sage-600 mx-auto mb-2" />
           <p className="text-sm font-arabic text-muted-foreground">سيتم تحديد رقم دورك عند التأكيد</p>
+        </div>
+      )}
+      {staffBlocked && selectedDate && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+          <p className="text-sm font-arabic text-red-600 font-bold">⚠️ العاملة في إجازة في هذا اليوم</p>
+          <p className="text-xs font-arabic text-red-500 mt-1">يرجى اختيار تاريخ آخر</p>
         </div>
       )}
     </div>

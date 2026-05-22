@@ -44,7 +44,8 @@ async function getProducts() {
     supabase
       .from("Offer")
       .select("product_id, discountType, discountValue, isActive")
-      .eq("isActive", true),
+      .eq("isActive", true)
+      .or("channel.is.null,channel.eq.website"),
   ]);
 
   return {

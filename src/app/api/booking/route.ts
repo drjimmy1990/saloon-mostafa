@@ -90,7 +90,24 @@ export async function POST(req: NextRequest) {
     const endM = endMinutes % 60;
     const endTime = `${date}T${endH.toString().padStart(2, "0")}:${endM.toString().padStart(2, "0")}:00Z`;
 
-    // 3. For time-based bookings: double-check for overlap
+    // 3. Check if staff has a blocked date (emergency leave)
+    if (staffId && date) {
+      const { data: blockedDate } = await supabase
+        .from("StaffBlockedDate")
+        .select("id")
+        .eq("staff_id", staffId)
+        .eq("blockedDate", date)
+        .limit(1);
+
+      if (blockedDate && blockedDate.length > 0) {
+        return NextResponse.json(
+          { error: "العاملة في إجازة في هذا اليوم. يرجى اختيار يوم آخر." },
+          { status: 409 }
+        );
+      }
+    }
+
+    // 4. For time-based bookings: double-check for overlap
     if (durationMode !== "queue" && staffId && time) {
       const { data: overlaps } = await supabase
         .from("Booking")

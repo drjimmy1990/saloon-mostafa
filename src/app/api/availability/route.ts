@@ -31,6 +31,23 @@ export async function GET(req: NextRequest) {
 
     // If queue mode, just return the next queue number
     if (service.durationMode === "queue") {
+      // Check blocked dates for queue mode too
+      const { data: blocked } = await supabase
+        .from("StaffBlockedDate")
+        .select("id")
+        .eq("staff_id", staffId)
+        .eq("blockedDate", date)
+        .limit(1);
+
+      if (blocked && blocked.length > 0) {
+        return NextResponse.json({
+          mode: "queue",
+          slots: [],
+          blocked: true,
+          message: "العاملة في إجازة في هذا اليوم",
+        });
+      }
+
       const { count } = await supabase
         .from("Booking")
         .select("id", { count: "exact", head: true })
@@ -48,7 +65,26 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // 2. Get staff schedule for this day of week
+    // 2. Check if staff has a blocked date (emergency leave)
+    const { data: blockedDate } = await supabase
+      .from("StaffBlockedDate")
+      .select("id, reason")
+      .eq("staff_id", staffId)
+      .eq("blockedDate", date)
+      .limit(1);
+
+    if (blockedDate && blockedDate.length > 0) {
+      return NextResponse.json({
+        mode: "time",
+        slots: [],
+        blocked: true,
+        serviceDuration: service.durationMinutes,
+        depositAmount: service.depositAmount || 0,
+        message: "العاملة في إجازة في هذا اليوم",
+      });
+    }
+
+    // 3. Get staff schedule for this day of week
     const dateObj = new Date(date + "T00:00:00");
     const dayOfWeek = dateObj.getDay(); // 0=Sunday, 6=Saturday
 

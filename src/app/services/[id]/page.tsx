@@ -11,7 +11,7 @@ async function getService(id: string) {
   const supabase = getServiceRoleClient();
   const [{ data: service }, { data: offers }] = await Promise.all([
     supabase.from("Product").select("*").eq("id", id).single(),
-    supabase.from("Offer").select("*").eq("product_id", id).eq("isActive", true),
+    supabase.from("Offer").select("*").eq("product_id", id).eq("isActive", true).or("channel.is.null,channel.eq.website"),
   ]);
   return { service, offer: offers?.[0] };
 }

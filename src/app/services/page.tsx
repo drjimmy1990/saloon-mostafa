@@ -22,7 +22,8 @@ async function getServices() {
     supabase
       .from("Offer")
       .select("product_id, discountType, discountValue, isActive")
-      .eq("isActive", true),
+      .eq("isActive", true)
+      .or("channel.is.null,channel.eq.website"),
     supabase.from("Category").select("id, label, color").eq("type", "service").order("createdAt", { ascending: true }),
   ]);
 
