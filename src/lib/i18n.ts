@@ -56,6 +56,9 @@ export const translations = {
       blacklist: "Blacklist",
       settings: "Settings",
       branches: "Branches",
+      botOffers: "Bot Offers",
+      botSettings: "Bot Settings",
+      notifications: "Notifications",
     },
 
     // Dashboard
@@ -159,6 +162,9 @@ export const translations = {
       assignedStaff: "Assigned Staff",
       selectStaff: "Select staff members",
       noStaffAvailable: "No staff available for this branch",
+      maxSlots: "Available Spots",
+      maxSlotsHint: "Number of slots available for booking (queue mode)",
+      approximateDuration: "Approximate Duration",
     },
 
     // Products (split from catalog)
@@ -194,6 +200,22 @@ export const translations = {
       previous: "Previous",
       next: "Next",
       showPerPage: "per page",
+      addBooking: "Add Booking",
+      manualBooking: "Manual Booking",
+      manualBookingDesc: "Create a new booking manually (cash payment)",
+      selectService: "Select Service",
+      selectStaff: "Select Staff (Optional)",
+      selectBranch: "Select Branch",
+      selectLocation: "Location",
+      salon: "Salon",
+      home: "Home",
+      paymentCash: "Cash",
+      source: "Source",
+      manual: "Manual",
+      slotNumber: "Slot Number",
+      selectSlot: "Select Slot",
+      slotTaken: "Taken",
+      slotAvailable: "Available",
     },
 
     // Clients
@@ -248,6 +270,13 @@ export const translations = {
       startTime: "Start Time",
       endTime: "End Time",
       saveSchedule: "Save Schedule",
+      emergencyLeave: "Emergency Leave",
+      blockedDates: "Block specific dates for this staff member",
+      addBlockedDate: "Add Blocked Date",
+      blockedDate: "Date",
+      blockedReason: "Reason",
+      noBlockedDates: "No blocked dates",
+      deleteBlockedDate: "Remove Blocked Date",
     },
 
     // Offers
@@ -266,6 +295,41 @@ export const translations = {
       deleteOffer: "Delete Offer",
       deleteConfirm: "Are you sure you want to delete this offer?",
       totalOffers: "Total Offers",
+    },
+
+    // Bot Offers
+    botOffers: {
+      title: "Bot Offers",
+      subtitle: "Manage offers shown exclusively by the WhatsApp bot",
+      addOffer: "Add Bot Offer",
+      editOffer: "Edit Bot Offer",
+      deleteOffer: "Delete Bot Offer",
+      deleteConfirm: "Are you sure you want to delete this bot offer?",
+    },
+
+    // Bot Settings
+    botSettings: {
+      title: "Bot Settings",
+      subtitle: "Configure WhatsApp bot behavior and reminders",
+      reminderSettings: "Reminder Settings",
+      staffReminderHours: "Staff Reminder (hours before booking)",
+      clientReminderHours: "Client Reminder (hours before booking)",
+      reminderDescription: "Control when reminders are sent to staff and clients before their bookings. These values are used by the n8n automation workflow.",
+      saved: "Settings saved successfully",
+    },
+
+    // Notifications
+    notifications: {
+      title: "Notifications",
+      subtitle: "Customer service requests and system alerts",
+      markAsRead: "Mark as Read",
+      markAllRead: "Mark All as Read",
+      viewChat: "View Chat",
+      noNotifications: "No notifications",
+      unread: "Unread",
+      all: "All",
+      customerService: "Customer Service Request",
+      timeAgo: "{time} ago",
     },
 
     // Gallery
@@ -398,6 +462,9 @@ export const translations = {
       blacklist: "القائمة السوداء",
       settings: "الإعدادات",
       branches: "الفروع",
+      botOffers: "عروض البوت",
+      botSettings: "إعدادات البوت",
+      notifications: "الإشعارات",
     },
 
     // Dashboard
@@ -501,6 +568,9 @@ export const translations = {
       assignedStaff: "العاملات المخصصات",
       selectStaff: "اختر العاملات",
       noStaffAvailable: "لا توجد عاملات متاحات لهذا الفرع",
+      maxSlots: "الأماكن المتاحة",
+      maxSlotsHint: "عدد الأماكن المتاحة للحجز (نظام الدور)",
+      approximateDuration: "المدة التقريبية",
     },
 
     // Products (split from catalog)
@@ -536,6 +606,22 @@ export const translations = {
       previous: "السابق",
       next: "التالي",
       showPerPage: "لكل صفحة",
+      addBooking: "إضافة حجز",
+      manualBooking: "حجز يدوي",
+      manualBookingDesc: "إنشاء حجز يدوي جديد (الدفع كاش)",
+      selectService: "اختر الخدمة",
+      selectStaff: "اختر العاملة (اختياري)",
+      selectBranch: "اختر الفرع",
+      selectLocation: "الموقع",
+      salon: "الصالون",
+      home: "المنزل",
+      paymentCash: "كاش",
+      source: "المصدر",
+      manual: "يدوي",
+      slotNumber: "رقم الدور",
+      selectSlot: "اختر الدور",
+      slotTaken: "محجوز",
+      slotAvailable: "متاح",
     },
 
     // Clients
@@ -590,6 +676,13 @@ export const translations = {
       startTime: "وقت البداية",
       endTime: "وقت النهاية",
       saveSchedule: "حفظ الجدول",
+      emergencyLeave: "إجازة طارئة",
+      blockedDates: "حظر تواريخ محددة لهذه الموظفة",
+      addBlockedDate: "إضافة تاريخ محظور",
+      blockedDate: "التاريخ",
+      blockedReason: "السبب",
+      noBlockedDates: "لا توجد تواريخ محظورة",
+      deleteBlockedDate: "إزالة التاريخ المحظور",
     },
 
     // Offers
@@ -608,6 +701,41 @@ export const translations = {
       deleteOffer: "حذف العرض",
       deleteConfirm: "هل أنت متأكد من حذف هذا العرض؟",
       totalOffers: "إجمالي العروض",
+    },
+
+    // Bot Offers
+    botOffers: {
+      title: "عروض البوت",
+      subtitle: "إدارة العروض المعروضة حصريًا عبر بوت الواتساب",
+      addOffer: "إضافة عرض بوت",
+      editOffer: "تعديل عرض البوت",
+      deleteOffer: "حذف عرض البوت",
+      deleteConfirm: "هل أنت متأكد من حذف عرض البوت هذا؟",
+    },
+
+    // Bot Settings
+    botSettings: {
+      title: "إعدادات البوت",
+      subtitle: "إعداد سلوك البوت والتذكيرات",
+      reminderSettings: "إعدادات التذكير",
+      staffReminderHours: "تذكير العاملة (ساعات قبل الحجز)",
+      clientReminderHours: "تذكير العميلة (ساعات قبل الحجز)",
+      reminderDescription: "التحكم في وقت إرسال التذكيرات للعاملات والعميلات قبل مواعيدهن. يتم استخدام هذه القيم في سير عمل n8n.",
+      saved: "تم حفظ الإعدادات بنجاح",
+    },
+
+    // Notifications
+    notifications: {
+      title: "الإشعارات",
+      subtitle: "طلبات خدمة العملاء وتنبيهات النظام",
+      markAsRead: "تعليم كمقروء",
+      markAllRead: "تعليم الكل كمقروء",
+      viewChat: "عرض المحادثة",
+      noNotifications: "لا توجد إشعارات",
+      unread: "غير مقروء",
+      all: "الكل",
+      customerService: "طلب خدمة عملاء",
+      timeAgo: "منذ {time}",
     },
 
     // Gallery

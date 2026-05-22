@@ -60,6 +60,11 @@ interface Branch {
   phone: string;
   isActive: boolean;
   createdAt: string;
+  whatsapp?: string;
+  email?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
+  googleMapsUrl?: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -86,6 +91,11 @@ export function BranchSection() {
   const [formAddress, setFormAddress] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formActive, setFormActive] = useState(true);
+  const [formWhatsapp, setFormWhatsapp] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formInstagram, setFormInstagram] = useState("");
+  const [formFacebook, setFormFacebook] = useState("");
+  const [formGoogleMaps, setFormGoogleMaps] = useState("");
 
   // ─── Fetch Data ──────────────────────────────────────────────────────────────
 
@@ -128,6 +138,8 @@ export function BranchSection() {
     setFormAddress("");
     setFormPhone("");
     setFormActive(true);
+    setFormWhatsapp(""); setFormEmail(""); setFormInstagram("");
+    setFormFacebook(""); setFormGoogleMaps("");
     setDialogOpen(true);
   };
 
@@ -138,6 +150,11 @@ export function BranchSection() {
     setFormAddress(branch.address || "");
     setFormPhone(branch.phone || "");
     setFormActive(branch.isActive);
+    setFormWhatsapp(branch.whatsapp || "");
+    setFormEmail(branch.email || "");
+    setFormInstagram(branch.instagramUrl || "");
+    setFormFacebook(branch.facebookUrl || "");
+    setFormGoogleMaps(branch.googleMapsUrl || "");
     setDialogOpen(true);
   };
 
@@ -153,6 +170,11 @@ export function BranchSection() {
         address: formAddress,
         phone: formPhone,
         isActive: formActive,
+        whatsapp: formWhatsapp,
+        email: formEmail,
+        instagramUrl: formInstagram,
+        facebookUrl: formFacebook,
+        googleMapsUrl: formGoogleMaps,
       };
 
       const method = editingBranch ? "PUT" : "POST";
@@ -326,6 +348,35 @@ export function BranchSection() {
             <div className="space-y-2">
               <Label className={cn(rtl && "font-arabic")}>{rtl ? "رقم الهاتف" : "Phone Number"}</Label>
               <Input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} dir="ltr" />
+            </div>
+
+            {/* ─── Contact Info ─── */}
+            <div className="pt-2 border-t">
+              <p className={cn("text-sm font-medium text-muted-foreground mb-3", rtl && "font-arabic")}>
+                {rtl ? "معلومات التواصل" : "Contact Information"}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className={cn("text-xs", rtl && "font-arabic")}>WhatsApp</Label>
+                  <Input value={formWhatsapp} onChange={(e) => setFormWhatsapp(e.target.value)} dir="ltr" placeholder="+962..." />
+                </div>
+                <div className="space-y-1">
+                  <Label className={cn("text-xs", rtl && "font-arabic")}>{rtl ? "البريد الإلكتروني" : "Email"}</Label>
+                  <Input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} dir="ltr" placeholder="branch@salon.com" />
+                </div>
+                <div className="space-y-1">
+                  <Label className={cn("text-xs", rtl && "font-arabic")}>Instagram</Label>
+                  <Input value={formInstagram} onChange={(e) => setFormInstagram(e.target.value)} dir="ltr" placeholder="https://instagram.com/..." />
+                </div>
+                <div className="space-y-1">
+                  <Label className={cn("text-xs", rtl && "font-arabic")}>Facebook</Label>
+                  <Input value={formFacebook} onChange={(e) => setFormFacebook(e.target.value)} dir="ltr" placeholder="https://facebook.com/..." />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label className={cn("text-xs", rtl && "font-arabic")}>Google Maps</Label>
+                  <Input value={formGoogleMaps} onChange={(e) => setFormGoogleMaps(e.target.value)} dir="ltr" placeholder="https://maps.google.com/..." />
+                </div>
+              </div>
             </div>
 
             <div className="flex items-center justify-between">

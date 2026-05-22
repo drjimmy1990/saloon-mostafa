@@ -95,15 +95,50 @@ export async function POST(request: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const body = await request.json();
     const supabase = getServiceRoleClient();
+
+    // Auto-create client if clientName + clientPhone provided but no client_id
+    let clientId = body.client_id;
+    if (!clientId && body.clientName && body.clientPhone) {
+      // Try to find existing client by phone
+      const { data: existing } = await supabase
+        .from('Client')
+        .select('id')
+        .eq('phone', body.clientPhone)
+        .maybeSingle();
+
+      if (existing) {
+        clientId = existing.id;
+      } else {
+        const { data: newClient, error: clientErr } = await supabase
+          .from('Client')
+          .insert({ name: body.clientName, phone: body.clientPhone, address: '', notes: '' })
+          .select('id')
+          .single();
+        if (clientErr) throw clientErr;
+        clientId = newClient.id;
+      }
+    }
+
+    const insertData: Record<string, unknown> = {
+      client_id: clientId,
+      serviceSummary: body.serviceSummary,
+      channelType: body.channelType || 'manual',
+      status: body.status ?? 'confirmed',
+    };
+
+    if (body.bookingDate) insertData.bookingDate = new Date(body.bookingDate).toISOString();
+    if (body.bookingTime) insertData.bookingTime = body.bookingTime;
+    if (body.staff_id) insertData.staff_id = body.staff_id;
+    if (body.branchId) insertData.branchId = body.branchId;
+    if (body.location) insertData.location = body.location;
+    if (body.notes) insertData.notes = body.notes;
+    if (body.slotNumber) insertData.slotNumber = body.slotNumber;
+    insertData.paymentMethod = body.paymentMethod || 'cash';
+    insertData.source = body.source || 'bot';
+
     const { data: booking, error } = await supabase
       .from('Booking')
-      .insert({
-        client_id: body.client_id,
-        serviceSummary: body.serviceSummary,
-        channelType: body.channelType,
-        status: body.status ?? 'pending',
-        ...(body.bookingDate && { bookingDate: new Date(body.bookingDate).toISOString() }),
-      })
+      .insert(insertData)
       .select()
       .single();
 

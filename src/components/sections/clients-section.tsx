@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { t, isRTL } from "@/lib/i18n";
@@ -107,6 +107,10 @@ export function ClientsSection() {
   const [aiFilter, setAiFilter] = useState<"all" | "active" | "inactive">("all");
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [clientTypeFilter, setClientTypeFilter] = useState<string>("all");
+  const [staffFilter, setStaffFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [staffList, setStaffList] = useState<{ id: string; name: string }[]>([]);
 
   const uniqueChannels = useMemo(() => {
     const channelMap = new Map<string, { value: string, label: string }>();
@@ -146,6 +150,7 @@ export function ClientsSection() {
 
   React.useEffect(() => {
     fetchClients();
+    fetch('/api/staff').then(r => r.json()).then(data => setStaffList(Array.isArray(data) ? data : [])).catch(console.error);
   }, []);
 
   // ─── Filtering ────────────────────────────────────────────────────────────
@@ -181,7 +186,7 @@ export function ClientsSection() {
     }
 
     return result;
-  }, [clients, searchQuery, aiFilter, channelFilter, clientTypeFilter]);
+  }, [clients, searchQuery, aiFilter, channelFilter, clientTypeFilter, staffFilter, dateFrom, dateTo]);
 
   // ─── Handlers ─────────────────────────────────────────────────────────────
 
@@ -363,6 +368,40 @@ export function ClientsSection() {
             </SelectItem>
           </SelectContent>
         </Select>
+
+        <Select
+          value={staffFilter}
+          onValueChange={(val: string) => setStaffFilter(val)}
+        >
+          <SelectTrigger className={cn("w-[160px] shrink-0", rtl && "font-arabic")}>
+            <SelectValue placeholder={rtl ? "العاملة" : "Staff"} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all" className={cn(rtl && "font-arabic")}>
+              {rtl ? "كل العاملات" : "All Staff"}
+            </SelectItem>
+            {staffList.map(s => (
+              <SelectItem key={s.id} value={s.id} className={cn(rtl && "font-arabic")}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="w-[140px] shrink-0"
+          dir="ltr"
+          placeholder={rtl ? "من" : "From"}
+        />
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="w-[140px] shrink-0"
+          dir="ltr"
+          placeholder={rtl ? "إلى" : "To"}
+        />
       </div>
 
       {/* Stats Card */}

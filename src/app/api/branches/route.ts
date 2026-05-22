@@ -44,6 +44,11 @@ export async function POST(req: NextRequest) {
       address: body.address || "",
       phone: body.phone || "",
       isActive: body.isActive ?? true,
+      whatsapp: body.whatsapp || "",
+      email: body.email || "",
+      instagramUrl: body.instagramUrl || "",
+      facebookUrl: body.facebookUrl || "",
+      googleMapsUrl: body.googleMapsUrl || "",
     })
     .select()
     .single();
@@ -75,6 +80,11 @@ export async function PUT(req: NextRequest) {
       address: body.address,
       phone: body.phone,
       isActive: body.isActive,
+      whatsapp: body.whatsapp,
+      email: body.email,
+      instagramUrl: body.instagramUrl,
+      facebookUrl: body.facebookUrl,
+      googleMapsUrl: body.googleMapsUrl,
     })
     .eq("id", body.id)
     .select()

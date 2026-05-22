@@ -64,11 +64,20 @@ export function SettingsSection() {
 
   const AVAILABLE_PERMISSIONS = [
     { id: "channels", labelAr: "القنوات", labelEn: "Channels" },
-    { id: "catalog", labelAr: "الكتالوج", labelEn: "Catalog" },
+    { id: "branches", labelAr: "الفروع", labelEn: "Branches" },
+    { id: "services", labelAr: "الخدمات", labelEn: "Services" },
+    { id: "products", labelAr: "المنتجات", labelEn: "Products" },
+    { id: "offers", labelAr: "العروض", labelEn: "Offers" },
     { id: "bookings", labelAr: "الحجوزات", labelEn: "Bookings" },
+    { id: "orders", labelAr: "الطلبات", labelEn: "Orders" },
     { id: "clients", labelAr: "العملاء", labelEn: "Clients" },
+    { id: "staff", labelAr: "العاملات", labelEn: "Staff" },
     { id: "chat", labelAr: "المحادثات", labelEn: "Chat" },
+    { id: "gallery", labelAr: "المعرض", labelEn: "Gallery" },
     { id: "blacklist", labelAr: "القائمة السوداء", labelEn: "Blacklist" },
+    { id: "bot-offers", labelAr: "عروض البوت", labelEn: "Bot Offers" },
+    { id: "bot-settings", labelAr: "إعدادات البوت", labelEn: "Bot Settings" },
+    { id: "notifications", labelAr: "الإشعارات", labelEn: "Notifications" },
   ];
 
   useEffect(() => {

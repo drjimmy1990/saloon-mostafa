@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { t, isRTL } from "@/lib/i18n";
 import {
@@ -26,6 +26,9 @@ import {
   Image,
   ClipboardList,
   FileText,
+  Megaphone,
+  Sliders,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -51,6 +54,9 @@ const navItems: { id: string; path: string; icon: React.ElementType; labelKey: s
   { id: "gallery", path: "/gallery", icon: Image, labelKey: "nav.gallery" },
   { id: "pages", path: "/pages", icon: FileText, labelKey: "nav.pages", adminOnly: true },
   { id: "blacklist", path: "/blacklist", icon: ShieldBan, labelKey: "nav.blacklist" },
+  { id: "bot-offers", path: "/bot-offers", icon: Megaphone, labelKey: "nav.botOffers" },
+  { id: "bot-settings", path: "/bot-settings", icon: Sliders, labelKey: "nav.botSettings" },
+  { id: "notifications", path: "/notifications", icon: Bell, labelKey: "nav.notifications" },
   { id: "settings", path: "/settings", icon: Settings, labelKey: "nav.settings", adminOnly: true },
 ];
 
@@ -59,6 +65,20 @@ export function AppSidebar() {
   const rtl = isRTL(locale);
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
+
+  // Notification badge count
+  const [unreadCount, setUnreadCount] = useState(0);
+  useEffect(() => {
+    const fetchUnread = () => {
+      fetch('/api/notifications?unread=true')
+        .then(r => r.json())
+        .then(data => setUnreadCount(Array.isArray(data) ? data.length : 0))
+        .catch(() => {});
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const themeLabel =
     theme === "dark"
@@ -117,9 +137,14 @@ export function AppSidebar() {
                 )}
               >
                 <Icon className="w-4 h-4 shrink-0" />
-                <span className={cn("truncate", rtl && "font-arabic")}>
+                <span className={cn("truncate flex-1", rtl && "font-arabic")}>
                   {t(locale, item.labelKey)}
                 </span>
+                {item.id === "notifications" && unreadCount > 0 && (
+                  <span className="flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-destructive text-destructive-foreground rounded-full shrink-0">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
               </Link>
             );
           })}

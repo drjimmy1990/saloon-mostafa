@@ -24,6 +24,8 @@ import {
   Globe,
   UserCheck,
   UserX,
+  Plus,
+  Loader2,
 } from "lucide-react";
 import {
   Card,
@@ -64,6 +66,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -263,6 +266,21 @@ export function BookingsSection() {
 
   const [channels, setChannels] = useState<{ id: string; name: string; type: string }[]>([]);
   const [staffList, setStaffList] = useState<{ id: string; name: string }[]>([]);
+  const [branchList, setBranchList] = useState<{ id: string; name: string }[]>([]);
+  const [serviceList, setServiceList] = useState<{ id: string; name: string }[]>([]);
+
+  // ─── Manual Booking Dialog State ──────────────────────────────────────
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [manualSaving, setManualSaving] = useState(false);
+  const [mbClientName, setMbClientName] = useState("");
+  const [mbClientPhone, setMbClientPhone] = useState("");
+  const [mbServiceId, setMbServiceId] = useState("");
+  const [mbStaffId, setMbStaffId] = useState("");
+  const [mbBranchId, setMbBranchId] = useState("");
+  const [mbDate, setMbDate] = useState("");
+  const [mbTime, setMbTime] = useState("");
+  const [mbLocation, setMbLocation] = useState("salon");
+  const [mbNotes, setMbNotes] = useState("");
 
   useEffect(() => {
     fetch('/api/channels')
@@ -272,6 +290,14 @@ export function BookingsSection() {
     fetch('/api/staff')
       .then(r => r.json())
       .then(data => setStaffList(Array.isArray(data) ? data : []))
+      .catch(console.error);
+    fetch('/api/branches')
+      .then(r => r.json())
+      .then(data => setBranchList(Array.isArray(data) ? data : []))
+      .catch(console.error);
+    fetch('/api/products?type=service')
+      .then(r => r.json())
+      .then(data => setServiceList(Array.isArray(data) ? data.filter((p: { type?: string }) => p.type === 'service') : []))
       .catch(console.error);
   }, []);
 
@@ -355,6 +381,42 @@ export function BookingsSection() {
   const handleViewChat = (booking: Booking) => {
     setActiveChatId(booking.client_id);
     router.push('/chat');
+  };
+
+  // ─── Manual Booking Handler ───────────────────────────────────────────
+  const handleManualBookingSave = async () => {
+    if (!mbClientName || !mbClientPhone || !mbServiceId || !mbDate) return;
+    setManualSaving(true);
+    try {
+      const selectedService = serviceList.find(s => s.id === mbServiceId);
+      await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: mbClientName,
+          clientPhone: mbClientPhone,
+          serviceSummary: selectedService?.name || '',
+          bookingDate: mbDate,
+          bookingTime: mbTime,
+          staff_id: mbStaffId || undefined,
+          branchId: mbBranchId || undefined,
+          location: mbLocation,
+          notes: mbNotes,
+          paymentMethod: 'cash',
+          source: 'manual',
+          channelType: 'manual',
+          status: 'confirmed',
+        }),
+      });
+      setManualDialogOpen(false);
+      setMbClientName(''); setMbClientPhone(''); setMbServiceId('');
+      setMbStaffId(''); setMbBranchId(''); setMbDate(''); setMbTime('');
+      setMbLocation('salon'); setMbNotes('');
+      fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
+    } catch (err) {
+      console.error('Failed to create manual booking', err);
+    }
+    setManualSaving(false);
   };
 
   const confirmStatusUpdate = async () => {
@@ -442,23 +504,29 @@ export function BookingsSection() {
   return (
     <div className="space-y-6" dir={rtl ? "rtl" : "ltr"}>
       {/* Header */}
-      <div className="space-y-1">
-        <h2
-          className={cn(
-            "text-2xl font-bold tracking-tight",
-            rtl && "font-arabic text-right"
-          )}
-        >
-          {t(locale, "bookings.title")}
-        </h2>
-        <p
-          className={cn(
-            "text-muted-foreground text-sm",
-            rtl && "font-arabic text-right"
-          )}
-        >
-          {t(locale, "bookings.subtitle")}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="space-y-1">
+          <h2
+            className={cn(
+              "text-2xl font-bold tracking-tight",
+              rtl && "font-arabic text-right"
+            )}
+          >
+            {t(locale, "bookings.title")}
+          </h2>
+          <p
+            className={cn(
+              "text-muted-foreground text-sm",
+              rtl && "font-arabic text-right"
+            )}
+          >
+            {t(locale, "bookings.subtitle")}
+          </p>
+        </div>
+        <Button onClick={() => setManualDialogOpen(true)} className="gap-2">
+          <Plus className="w-4 h-4" />
+          <span className={cn(rtl && "font-arabic")}>{t(locale, "bookings.addBooking")}</span>
+        </Button>
       </div>
 
       {/* Filter Bar */}
@@ -1192,6 +1260,95 @@ export function BookingsSection() {
             </Button>
             <Button onClick={confirmStatusUpdate} className={rtl ? "font-arabic" : ""}>
               {t(locale, "confirm")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Booking Dialog */}
+      <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]" dir={rtl ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle className={cn(rtl && "font-arabic text-right")}>
+              {t(locale, "bookings.manualBooking")}
+            </DialogTitle>
+            <DialogDescription className={cn(rtl && "font-arabic text-right")}>
+              {t(locale, "bookings.manualBookingDesc")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "name")}</Label>
+                <Input value={mbClientName} onChange={(e) => setMbClientName(e.target.value)} className={cn(rtl && "text-right font-arabic")} />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "phone")}</Label>
+                <Input value={mbClientPhone} onChange={(e) => setMbClientPhone(e.target.value)} dir="ltr" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.selectService")}</Label>
+              <Select value={mbServiceId} onValueChange={setMbServiceId}>
+                <SelectTrigger className={cn(rtl && "font-arabic")}><SelectValue placeholder={t(locale, "bookings.selectService")} /></SelectTrigger>
+                <SelectContent>{serviceList.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.selectStaff")}</Label>
+                <Select value={mbStaffId} onValueChange={setMbStaffId}>
+                  <SelectTrigger className={cn(rtl && "font-arabic")}><SelectValue placeholder={t(locale, "bookings.selectStaff")} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{rtl ? "بدون عاملة" : "No staff"}</SelectItem>
+                    {staffList.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.selectBranch")}</Label>
+                <Select value={mbBranchId} onValueChange={setMbBranchId}>
+                  <SelectTrigger className={cn(rtl && "font-arabic")}><SelectValue placeholder={t(locale, "bookings.selectBranch")} /></SelectTrigger>
+                  <SelectContent>{branchList.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "date")}</Label>
+                <Input type="date" value={mbDate} onChange={(e) => setMbDate(e.target.value)} dir="ltr" />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.bookingTime")}</Label>
+                <Input type="time" value={mbTime} onChange={(e) => setMbTime(e.target.value)} dir="ltr" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.selectLocation")}</Label>
+                <Select value={mbLocation} onValueChange={setMbLocation}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="salon">{t(locale, "bookings.salon")}</SelectItem>
+                    <SelectItem value="home">{t(locale, "bookings.home")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.paymentCash")}</Label>
+                <Input value={rtl ? "كاش" : "Cash"} disabled className="bg-muted" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className={cn(rtl && "font-arabic")}>{t(locale, "notes")}</Label>
+              <Input value={mbNotes} onChange={(e) => setMbNotes(e.target.value)} className={cn(rtl && "text-right font-arabic")} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManualDialogOpen(false)} className={cn(rtl && "font-arabic")}>{t(locale, "cancel")}</Button>
+            <Button onClick={handleManualBookingSave} disabled={manualSaving || !mbClientName || !mbClientPhone || !mbServiceId || !mbDate}>
+              {manualSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              <span className={cn(rtl && "font-arabic")}>{t(locale, "save")}</span>
             </Button>
           </DialogFooter>
         </DialogContent>

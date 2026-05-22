@@ -18,6 +18,7 @@ import {
   Calendar,
   X,
   PlusCircle,
+  ShieldBan,
 } from "lucide-react";
 import {
   Card,
@@ -165,6 +166,15 @@ export function StaffSection() {
   const [formBranchId, setFormBranchId] = useState<string>("none");
   // Real service count per staff (from StaffService junction table)
   const [staffServiceCount, setStaffServiceCount] = useState<Record<string, number>>({});
+
+  // Blocked dates state
+  const [blockedDialogOpen, setBlockedDialogOpen] = useState(false);
+  const [blockedStaffId, setBlockedStaffId] = useState<string | null>(null);
+  const [blockedStaffName, setBlockedStaffName] = useState("");
+  const [blockedDates, setBlockedDates] = useState<{ id: string; blockedDate: string; reason: string }[]>([]);
+  const [blockedDateInput, setBlockedDateInput] = useState("");
+  const [blockedReasonInput, setBlockedReasonInput] = useState("");
+  const [blockedLoading, setBlockedLoading] = useState(false);
 
   // ─── Fetch Data ──────────────────────────────────────────────────────────────
 
@@ -415,6 +425,49 @@ export function StaffSection() {
     );
   };
 
+  // ─── Blocked Dates Handlers ──────────────────────────────────────────────────
+
+  const openBlockedDialog = async (staff: Staff) => {
+    setBlockedStaffId(staff.id);
+    setBlockedStaffName(staff.name);
+    setBlockedDateInput("");
+    setBlockedReasonInput("");
+    setBlockedDialogOpen(true);
+    setBlockedLoading(true);
+    try {
+      const res = await fetch(`/api/staff/blocked-dates?staff_id=${staff.id}`);
+      const data = await res.json();
+      setBlockedDates(Array.isArray(data) ? data : []);
+    } catch { setBlockedDates([]); }
+    setBlockedLoading(false);
+  };
+
+  const handleAddBlockedDate = async () => {
+    if (!blockedStaffId || !blockedDateInput) return;
+    setBlockedLoading(true);
+    try {
+      await fetch('/api/staff/blocked-dates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staff_id: blockedStaffId, blockedDate: blockedDateInput, reason: blockedReasonInput }),
+      });
+      // Refresh list
+      const res = await fetch(`/api/staff/blocked-dates?staff_id=${blockedStaffId}`);
+      const data = await res.json();
+      setBlockedDates(Array.isArray(data) ? data : []);
+      setBlockedDateInput("");
+      setBlockedReasonInput("");
+    } catch { /* noop */ }
+    setBlockedLoading(false);
+  };
+
+  const handleDeleteBlockedDate = async (id: string) => {
+    try {
+      await fetch(`/api/staff/blocked-dates?id=${id}`, { method: 'DELETE' });
+      setBlockedDates((prev) => prev.filter((bd) => bd.id !== id));
+    } catch { /* noop */ }
+  };
+
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   const dayNames = rtl ? DAY_NAMES_AR : DAY_NAMES_EN;
@@ -514,6 +567,9 @@ export function StaffSection() {
                         <div className="flex items-center gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openScheduleDialog(staff)}>
                             <Calendar className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openBlockedDialog(staff)}>
+                            <ShieldBan className="w-4 h-4" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditDialog(staff)}>
                             <Pencil className="w-4 h-4" />
@@ -771,6 +827,52 @@ export function StaffSection() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ─── Blocked Dates Dialog ──────────────────────────────────── */}
+      <Dialog open={blockedDialogOpen} onOpenChange={setBlockedDialogOpen}>
+        <DialogContent className="sm:max-w-[450px]" dir={rtl ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle className={cn(rtl && "font-arabic text-right")}>
+              {t(locale, "staff.emergencyLeave")} — {blockedStaffName}
+            </DialogTitle>
+            <DialogDescription className={cn(rtl && "font-arabic text-right")}>
+              {t(locale, "staff.blockedDates")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex gap-2 items-end">
+              <div className="flex-1 space-y-1">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "date")}</Label>
+                <Input type="date" value={blockedDateInput} onChange={(e) => setBlockedDateInput(e.target.value)} dir="ltr" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "reason")}</Label>
+                <Input value={blockedReasonInput} onChange={(e) => setBlockedReasonInput(e.target.value)} className={cn(rtl && "text-right font-arabic")} placeholder={rtl ? "مثال: إجازة طارئة" : "e.g. Emergency"} />
+              </div>
+              <Button onClick={handleAddBlockedDate} disabled={!blockedDateInput || blockedLoading} size="sm">
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            {blockedDates.length === 0 ? (
+              <p className={cn("text-sm text-muted-foreground text-center py-4", rtl && "font-arabic")}>{t(locale, "staff.noBlockedDates")}</p>
+            ) : (
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {blockedDates.map((bd) => (
+                  <div key={bd.id} className="flex items-center justify-between rounded-lg border p-2">
+                    <div>
+                      <span className="text-sm font-medium">{bd.blockedDate}</span>
+                      {bd.reason && <span className={cn("text-xs text-muted-foreground ml-2", rtl && "mr-2 ml-0 font-arabic")}>{bd.reason}</span>}
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDeleteBlockedDate(bd.id)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

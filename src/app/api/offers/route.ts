@@ -2,16 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
 import { getAuthUser } from "@/lib/auth";
 
-// GET — List all offers with product name
-export async function GET() {
+// GET — List all offers with product name, optionally filtered by channel
+export async function GET(req: NextRequest) {
   const user = await getAuthUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const channel = req.nextUrl.searchParams.get('channel');
   const supabase = getServiceRoleClient();
-  const { data, error } = await supabase
+
+  let query = supabase
     .from("Offer")
     .select(`*, product:Product(id, name, price)`)
     .order("createdAt", { ascending: false });
+
+  if (channel === 'bot') {
+    query = query.in('channel', ['bot', 'both']);
+  } else if (channel === 'website') {
+    query = query.in('channel', ['website', 'both']);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -37,6 +47,7 @@ export async function POST(req: NextRequest) {
       startDate: body.startDate || null,
       endDate: body.endDate || null,
       isActive: body.isActive ?? true,
+      channel: body.channel || 'website',
     })
     .select(`*, product:Product(id, name, price)`)
     .single();
@@ -69,6 +80,7 @@ export async function PUT(req: NextRequest) {
       startDate: body.startDate || null,
       endDate: body.endDate || null,
       isActive: body.isActive,
+      channel: body.channel,
     })
     .eq("id", body.id)
     .select(`*, product:Product(id, name, price)`)
