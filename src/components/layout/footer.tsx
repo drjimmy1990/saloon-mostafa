@@ -6,6 +6,7 @@ const footerLinks = [
   { label: "الخدمات", href: "/services" },
   { label: "المنتجات", href: "/products" },
   { label: "المعرض", href: "/gallery" },
+  { label: "فروعنا", href: "/branches" },
   { label: "احجزي الآن", href: "/booking" },
   { label: "من نحن", href: "/about" },
   { label: "تواصلي معنا", href: "/contact" },
