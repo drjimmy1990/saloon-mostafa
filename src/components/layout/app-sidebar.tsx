@@ -30,6 +30,7 @@ import {
   Megaphone,
   Sliders,
   Bell,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -54,6 +55,7 @@ const navItems: { id: string; path: string; icon: React.ElementType; labelKey: s
   { id: "staff", path: "/staff", icon: UserCog, labelKey: "nav.staff" },
   { id: "chat", path: "/chat", icon: MessageSquare, labelKey: "nav.chat" },
   { id: "gallery", path: "/gallery", icon: Image, labelKey: "nav.gallery" },
+  { id: "contact-messages", path: "/contact-messages", icon: Mail, labelKey: "nav.contactMessages" },
   { id: "pages", path: "/pages", icon: FileText, labelKey: "nav.pages", adminOnly: true },
   { id: "blacklist", path: "/blacklist", icon: ShieldBan, labelKey: "nav.blacklist" },
   { id: "bot-offers", path: "/bot-offers", icon: Megaphone, labelKey: "nav.botOffers" },
