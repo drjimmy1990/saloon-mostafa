@@ -23,6 +23,46 @@ interface Branch {
   isActive: boolean;
 }
 
+/** Convert a regular Google Maps URL to an embeddable one */
+function toEmbedUrl(url: string): string {
+  if (!url || !url.trim()) return "";
+  const trimmed = url.trim();
+  
+  // Already an embed URL
+  if (trimmed.includes("/embed") || trimmed.includes("output=embed")) {
+    return trimmed;
+  }
+
+  // Regular Google Maps URL — extract the query and build embed URL
+  try {
+    const parsed = new URL(trimmed);
+    const query = parsed.searchParams.get("q") || parsed.searchParams.get("query") || "";
+    
+    if (query) {
+      return `https://www.google.com/maps?q=${encodeURIComponent(query)}&output=embed`;
+    }
+
+    // Place URL like /maps/place/...
+    if (trimmed.includes("/place/")) {
+      const placeMatch = trimmed.match(/\/place\/([^/]+)/);
+      if (placeMatch) {
+        return `https://www.google.com/maps?q=${encodeURIComponent(decodeURIComponent(placeMatch[1]))}&output=embed`;
+      }
+    }
+
+    // Fallback — just append output=embed
+    const separator = trimmed.includes("?") ? "&" : "?";
+    return `${trimmed}${separator}output=embed`;
+  } catch {
+    return "";
+  }
+}
+
+/** Check if a string has actual content (not empty/whitespace) */
+function hasValue(val?: string | null): val is string {
+  return !!val && val.trim().length > 0;
+}
+
 async function getActiveBranches(): Promise<Branch[]> {
   const supabase = getServiceRoleClient();
   const { data, error } = await supabase
@@ -64,138 +104,146 @@ export default async function BranchesPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {branches.map((branch) => (
-                <div
-                  key={branch.id}
-                  className="bg-white rounded-3xl overflow-hidden shadow-lg shadow-black/5 border border-border/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
-                >
-                  {/* Map embed */}
-                  {branch.googleMapsUrl && (
-                    <div className="relative h-[220px] overflow-hidden">
-                      <iframe
-                        src={branch.googleMapsUrl}
-                        width="100%"
-                        height="100%"
-                        style={{ border: 0 }}
-                        allowFullScreen
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        title={`موقع ${branch.nameAr || branch.name}`}
-                        className="grayscale-[30%] group-hover:grayscale-0 transition-all duration-500"
-                      />
-                      {/* Gradient overlay at bottom */}
-                      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent" />
-                    </div>
-                  )}
+              {branches.map((branch) => {
+                const embedUrl = toEmbedUrl(branch.googleMapsUrl || "");
+                const hasWhatsapp = hasValue(branch.whatsapp);
+                const hasEmail = hasValue(branch.email);
+                const hasInstagram = hasValue(branch.instagramUrl);
+                const hasFacebook = hasValue(branch.facebookUrl);
+                const hasSocial = hasInstagram || hasFacebook;
 
-                  {/* Branch info */}
-                  <div className="p-6 space-y-4">
-                    {/* Branch name */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-terracotta/10 flex items-center justify-center shrink-0">
-                        <MapPin className="w-5 h-5 text-terracotta" />
-                      </div>
-                      <div>
-                        <h3
-                          className="text-lg font-black text-dark leading-tight"
-                          style={{ fontFamily: "'Tajawal', sans-serif" }}
-                        >
-                          {branch.nameAr || branch.name}
-                        </h3>
-                        {branch.address && (
-                          <p className="text-xs text-muted-foreground mt-0.5">{branch.address}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Contact details */}
-                    <div className="grid grid-cols-1 gap-2.5">
-                      {/* Phone */}
-                      {branch.phone && (
-                        <a
-                          href={`tel:+${branch.phone}`}
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-cream/60 hover:bg-terracotta/8 transition-colors group/link"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-terracotta/10 flex items-center justify-center shrink-0 group-hover/link:bg-terracotta/20 transition-colors">
-                            <Phone className="w-4 h-4 text-terracotta" />
-                          </div>
-                          <span className="text-sm text-foreground/70 group-hover/link:text-terracotta transition-colors" dir="ltr">
-                            +{branch.phone}
-                          </span>
-                        </a>
-                      )}
-
-                      {/* WhatsApp */}
-                      {branch.whatsapp && (
-                        <a
-                          href={`https://wa.me/${branch.whatsapp}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-cream/60 hover:bg-green-50 transition-colors group/link"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center shrink-0 group-hover/link:bg-green-200 transition-colors">
-                            <MessageCircle className="w-4 h-4 text-green-600" />
-                          </div>
-                          <span className="text-sm text-foreground/70 group-hover/link:text-green-600 transition-colors">
-                            واتساب
-                          </span>
-                          <ExternalLink className="w-3 h-3 text-muted-foreground/30 mr-auto" />
-                        </a>
-                      )}
-
-                      {/* Email */}
-                      {branch.email && (
-                        <a
-                          href={`mailto:${branch.email}`}
-                          className="flex items-center gap-3 px-4 py-3 rounded-xl bg-cream/60 hover:bg-blue-50 transition-colors group/link"
-                        >
-                          <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 group-hover/link:bg-blue-200 transition-colors">
-                            <Mail className="w-4 h-4 text-blue-600" />
-                          </div>
-                          <span className="text-sm text-foreground/70 group-hover/link:text-blue-600 transition-colors truncate">
-                            {branch.email}
-                          </span>
-                        </a>
-                      )}
-                    </div>
-
-                    {/* Social media */}
-                    {(branch.instagramUrl || branch.facebookUrl) && (
-                      <div className="flex items-center gap-2 pt-2 border-t border-border/30">
-                        <span className="text-xs text-muted-foreground/60">تابعينا:</span>
-                        {branch.instagramUrl && (
-                          <a
-                            href={branch.instagramUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white hover:scale-110 transition-transform shadow-sm"
-                            aria-label="Instagram"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
-                              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                              <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
-                            </svg>
-                          </a>
-                        )}
-                        {branch.facebookUrl && (
-                          <a
-                            href={branch.facebookUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white hover:scale-110 transition-transform shadow-sm"
-                            aria-label="Facebook"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-                            </svg>
-                          </a>
-                        )}
+                return (
+                  <div
+                    key={branch.id}
+                    className="bg-white rounded-3xl overflow-hidden shadow-lg shadow-black/5 border border-border/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+                  >
+                    {/* Map embed */}
+                    {embedUrl && (
+                      <div className="relative h-[220px] overflow-hidden">
+                        <iframe
+                          src={embedUrl}
+                          width="100%"
+                          height="100%"
+                          style={{ border: 0 }}
+                          allowFullScreen
+                          loading="lazy"
+                          referrerPolicy="no-referrer-when-downgrade"
+                          title={`موقع ${branch.nameAr || branch.name}`}
+                          className="grayscale-[30%] group-hover:grayscale-0 transition-all duration-500"
+                        />
+                        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent" />
                       </div>
                     )}
+
+                    {/* Branch info */}
+                    <div className="p-6 space-y-4">
+                      {/* Branch name */}
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-terracotta/10 flex items-center justify-center shrink-0">
+                          <MapPin className="w-5 h-5 text-terracotta" />
+                        </div>
+                        <div>
+                          <h3
+                            className="text-lg font-black text-dark leading-tight"
+                            style={{ fontFamily: "'Tajawal', sans-serif" }}
+                          >
+                            {branch.nameAr || branch.name}
+                          </h3>
+                          {hasValue(branch.address) && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{branch.address}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Contact details */}
+                      <div className="grid grid-cols-1 gap-2.5">
+                        {/* Phone */}
+                        {hasValue(branch.phone) && (
+                          <a
+                            href={`tel:+${branch.phone}`}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-cream/60 hover:bg-terracotta/8 transition-colors group/link"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-terracotta/10 flex items-center justify-center shrink-0 group-hover/link:bg-terracotta/20 transition-colors">
+                              <Phone className="w-4 h-4 text-terracotta" />
+                            </div>
+                            <span className="text-sm text-foreground/70 group-hover/link:text-terracotta transition-colors" dir="ltr">
+                              +{branch.phone}
+                            </span>
+                          </a>
+                        )}
+
+                        {/* WhatsApp */}
+                        {hasWhatsapp && (
+                          <a
+                            href={`https://wa.me/${branch.whatsapp}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-cream/60 hover:bg-green-50 transition-colors group/link"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center shrink-0 group-hover/link:bg-green-200 transition-colors">
+                              <MessageCircle className="w-4 h-4 text-green-600" />
+                            </div>
+                            <span className="text-sm text-foreground/70 group-hover/link:text-green-600 transition-colors">
+                              واتساب
+                            </span>
+                            <ExternalLink className="w-3 h-3 text-muted-foreground/30 mr-auto" />
+                          </a>
+                        )}
+
+                        {/* Email */}
+                        {hasEmail && (
+                          <a
+                            href={`mailto:${branch.email}`}
+                            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-cream/60 hover:bg-blue-50 transition-colors group/link"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 group-hover/link:bg-blue-200 transition-colors">
+                              <Mail className="w-4 h-4 text-blue-600" />
+                            </div>
+                            <span className="text-sm text-foreground/70 group-hover/link:text-blue-600 transition-colors truncate">
+                              {branch.email}
+                            </span>
+                          </a>
+                        )}
+                      </div>
+
+                      {/* Social media */}
+                      {hasSocial && (
+                        <div className="flex items-center gap-2 pt-2 border-t border-border/30">
+                          <span className="text-xs text-muted-foreground/60">تابعينا:</span>
+                          {hasInstagram && (
+                            <a
+                              href={branch.instagramUrl!}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white hover:scale-110 transition-transform shadow-sm"
+                              aria-label="Instagram"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                                <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+                              </svg>
+                            </a>
+                          )}
+                          {hasFacebook && (
+                            <a
+                              href={branch.facebookUrl!}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white hover:scale-110 transition-transform shadow-sm"
+                              aria-label="Facebook"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
+                              </svg>
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
