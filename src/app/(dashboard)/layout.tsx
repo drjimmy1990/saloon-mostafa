@@ -29,14 +29,14 @@ export default function DashboardLayout({
           setUserPermissions(perms);
           
           if (data.role === 'team') {
-            const section = pathname === '/' ? 'dashboard' : pathname.replace('/', '');
+            const section = pathname === '/' ? 'schedule' : pathname.replace('/', '').split('/')[0];
             // Redirect away from settings explicitly
             if (section === 'settings') {
-              router.replace(perms.length > 0 ? `/${perms[0] === 'dashboard' ? '' : perms[0]}` : '/');
+              router.replace(perms.length > 0 ? `/${perms[0] === 'schedule' ? '' : perms[0]}` : '/');
             } 
-            // Redirect away if section not in permissions
-            else if (perms.length > 0 && !perms.includes(section) && section !== 'dashboard') {
-              router.replace(`/${perms[0] === 'dashboard' ? '' : perms[0]}`);
+            // schedule and dashboard are accessible by all roles
+            else if (perms.length > 0 && !perms.includes(section) && section !== 'schedule' && section !== 'dashboard') {
+              router.replace(`/${perms[0] === 'schedule' ? '' : perms[0]}`);
             }
           }
         }
@@ -46,8 +46,8 @@ export default function DashboardLayout({
 
   // Protect restricted pages during render to prevent flash of unauthorized content
   if (userRole === 'team') {
-    const section = pathname === '/' ? 'dashboard' : pathname.replace('/', '');
-    if (section === 'settings' || (userPermissions.length > 0 && !userPermissions.includes(section) && section !== 'dashboard')) {
+    const section = pathname === '/' ? 'schedule' : pathname.replace('/', '').split('/')[0];
+    if (section === 'settings' || (userPermissions.length > 0 && !userPermissions.includes(section) && section !== 'schedule' && section !== 'dashboard')) {
       return <div className="min-h-screen flex items-center justify-center bg-background"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>; 
     }
   }

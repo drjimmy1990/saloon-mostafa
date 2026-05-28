@@ -40,6 +40,7 @@ export const translations = {
 
     // Navigation
     nav: {
+      schedule: "Schedule",
       dashboard: "Dashboard",
       channels: "Channels",
       services: "Services",
@@ -59,6 +60,24 @@ export const translations = {
       botOffers: "Bot Offers",
       botSettings: "Bot Settings",
       notifications: "Notifications",
+    },
+
+    // Schedule
+    schedule: {
+      title: "Today's Schedule",
+      subtitle: "View confirmed bookings for the day",
+      refresh: "Refresh",
+      allStaff: "All Staff",
+      today: "Today",
+      selectedDay: "Selected Day",
+      totalConfirmed: "Confirmed Bookings",
+      staffWorking: "Staff Working",
+      unassigned: "Unassigned",
+      unassignedStaff: "Unassigned Staff",
+      noBookings: "No confirmed bookings",
+      noBookingsHint: "There are no confirmed bookings for the selected date",
+      booking: "booking",
+      bookings: "bookings",
     },
 
     // Dashboard
@@ -446,6 +465,7 @@ export const translations = {
 
     // Navigation
     nav: {
+      schedule: "جدول المواعيد",
       dashboard: "لوحة القيادة",
       channels: "القنوات",
       services: "الخدمات",
@@ -465,6 +485,24 @@ export const translations = {
       botOffers: "عروض البوت",
       botSettings: "إعدادات البوت",
       notifications: "الإشعارات",
+    },
+
+    // Schedule
+    schedule: {
+      title: "جدول المواعيد اليوم",
+      subtitle: "عرض الحجوزات المؤكدة لليوم",
+      refresh: "تحديث",
+      allStaff: "كل العاملات",
+      today: "اليوم",
+      selectedDay: "اليوم المختار",
+      totalConfirmed: "الحجوزات المؤكدة",
+      staffWorking: "العاملات",
+      unassigned: "بدون تعيين",
+      unassignedStaff: "بدون عاملة",
+      noBookings: "لا توجد حجوزات مؤكدة",
+      noBookingsHint: "لا توجد حجوزات مؤكدة للتاريخ المحدد",
+      booking: "حجز",
+      bookings: "حجوزات",
     },
 
     // Dashboard

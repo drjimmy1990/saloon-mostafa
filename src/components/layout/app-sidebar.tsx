@@ -10,6 +10,7 @@ import {
   Scissors,
   Package,
   CalendarCheck,
+  CalendarDays,
   Users,
   MessageSquare,
   ShieldBan,
@@ -40,7 +41,8 @@ import Link from "next/link";
 import { logout } from "@/app/login/actions";
 
 const navItems: { id: string; path: string; icon: React.ElementType; labelKey: string; adminOnly?: boolean }[] = [
-  { id: "dashboard", path: "/", icon: LayoutDashboard, labelKey: "nav.dashboard" },
+  { id: "schedule", path: "/", icon: CalendarDays, labelKey: "nav.schedule" },
+  { id: "dashboard", path: "/dashboard", icon: LayoutDashboard, labelKey: "nav.dashboard" },
   { id: "channels", path: "/channels", icon: Radio, labelKey: "nav.channels" },
   { id: "branches", path: "/branches", icon: MapPin, labelKey: "nav.branches" },
   { id: "services", path: "/services", icon: Scissors, labelKey: "nav.services" },
@@ -118,7 +120,7 @@ export function AppSidebar() {
         <nav className="px-3 space-y-1" dir={rtl ? "rtl" : "ltr"}>
           {navItems.filter(item => {
             if (item.adminOnly && userRole === 'team') return false;
-            if (userRole === 'team' && item.id !== 'dashboard' && userPermissions.length > 0) {
+            if (userRole === 'team' && item.id !== 'schedule' && item.id !== 'dashboard' && userPermissions.length > 0) {
               return userPermissions.includes(item.id);
             }
             return true;
@@ -248,7 +250,7 @@ export function MobileSidebar() {
           <nav className="px-3 space-y-1">
             {navItems.filter(item => {
               if (item.adminOnly && userRole === 'team') return false;
-              if (userRole === 'team' && item.id !== 'dashboard' && userPermissions.length > 0) {
+              if (userRole === 'team' && item.id !== 'schedule' && item.id !== 'dashboard' && userPermissions.length > 0) {
                 return userPermissions.includes(item.id);
               }
               return true;

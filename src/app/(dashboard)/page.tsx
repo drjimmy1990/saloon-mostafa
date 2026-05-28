@@ -1,6 +1,6 @@
 "use client";
-import { DashboardSection } from "@/components/sections/dashboard-section";
+import { ScheduleSection } from "@/components/sections/schedule-section";
 
-export default function DashboardPage() {
-  return <DashboardSection />;
+export default function SchedulePage() {
+  return <ScheduleSection />;
 }

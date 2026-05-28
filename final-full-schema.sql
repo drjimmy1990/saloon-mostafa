@@ -1133,3 +1133,111 @@ VALUES (
   'نص الشروط والأحكام هنا...'
 )
 ON CONFLICT ("slug") DO UPDATE SET "content" = EXCLUDED."content";
+
+-- ============================================================
+-- Salon CRM — Feature Migration 001
+-- Run this in Supabase Dashboard → SQL Editor
+-- ============================================================
+
+-- ─── Feature 1: Manual Booking Fields ─────────────────────────
+ALTER TABLE "Booking"
+ADD COLUMN IF NOT EXISTS "bookingTime" TEXT,
+ADD COLUMN IF NOT EXISTS "location" TEXT DEFAULT 'salon',
+ADD COLUMN IF NOT EXISTS "paymentMethod" TEXT DEFAULT 'cash',
+ADD COLUMN IF NOT EXISTS "source" TEXT DEFAULT 'bot',
+ADD COLUMN IF NOT EXISTS "notes" TEXT DEFAULT '',
+ADD COLUMN IF NOT EXISTS "branchId" UUID REFERENCES "Branch" (id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS "slotNumber" INTEGER;
+
+-- ─── Feature 2: Staff Blocked Dates ──────────────────────────
+CREATE TABLE IF NOT EXISTS "StaffBlockedDate" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    "staff_id" UUID NOT NULL REFERENCES "Staff" (id) ON DELETE CASCADE,
+    "blockedDate" DATE NOT NULL,
+    "reason" TEXT DEFAULT '',
+    "createdAt" TIMESTAMPTZ DEFAULT now(),
+    UNIQUE ("staff_id", "blockedDate")
+);
+
+ALTER TABLE "StaffBlockedDate" ENABLE ROW LEVEL SECURITY;
+
+-- ─── Feature 4: Branch Contact Info ──────────────────────────
+ALTER TABLE "Branch"
+ADD COLUMN IF NOT EXISTS "whatsapp" TEXT DEFAULT '',
+ADD COLUMN IF NOT EXISTS "email" TEXT DEFAULT '',
+ADD COLUMN IF NOT EXISTS "instagramUrl" TEXT DEFAULT '',
+ADD COLUMN IF NOT EXISTS "facebookUrl" TEXT DEFAULT '',
+ADD COLUMN IF NOT EXISTS "googleMapsUrl" TEXT DEFAULT '';
+
+-- ─── Feature 6: Offer Channel ────────────────────────────────
+ALTER TABLE "Offer"
+ADD COLUMN IF NOT EXISTS "channel" TEXT DEFAULT 'website';
+
+-- ─── Feature 8: Notifications ────────────────────────────────
+CREATE TABLE IF NOT EXISTS "Notification" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    "type" TEXT NOT NULL DEFAULT 'customer_service',
+    "title" TEXT NOT NULL,
+    "body" TEXT DEFAULT '',
+    "client_id" UUID REFERENCES "Client" (id) ON DELETE SET NULL,
+    "isRead" BOOLEAN DEFAULT false,
+    "createdAt" TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE "Notification" ENABLE ROW LEVEL SECURITY;
+
+-- ─── Feature 9: Queue Slots ─────────────────────────────────
+ALTER TABLE "Product"
+ADD COLUMN IF NOT EXISTS "maxSlots" INTEGER DEFAULT NULL;
+
+-- 1. Create the 'gallery' bucket and make it public
+INSERT INTO
+    storage.buckets (id, name, public)
+VALUES ('gallery', 'gallery', true) ON CONFLICT (id) DO NOTHING;
+
+-- 2. Allow everyone to view the images
+CREATE POLICY "Public Read Access" ON storage.objects FOR
+SELECT USING (bucket_id = 'gallery');
+
+-- 3. Allow only authenticated admin users to upload images
+CREATE POLICY "Auth Insert Access" ON storage.objects FOR
+INSERT
+WITH
+    CHECK (
+        bucket_id = 'gallery'
+        AND auth.role () = 'authenticated'
+    );
+
+-- 4. Allow only authenticated admin users to delete images
+CREATE POLICY "Auth Delete Access" ON storage.objects FOR DELETE USING (
+    bucket_id = 'gallery'
+    AND auth.role () = 'authenticated'
+);
+
+
+
+
+
+
+
+
+-- Drop any existing restrictive policies on storage.objects for gallery bucket
+DROP POLICY IF EXISTS "Public Read Access" ON storage.objects;
+DROP POLICY IF EXISTS "Auth Insert Access" ON storage.objects;
+DROP POLICY IF EXISTS "Auth Delete Access" ON storage.objects;
+
+-- Allow anyone to READ gallery images (public website needs this)
+CREATE POLICY "gallery_public_read" ON storage.objects
+FOR SELECT USING (bucket_id = 'gallery');
+
+-- Allow anyone to UPLOAD to gallery (dashboard uses anon key client-side)
+CREATE POLICY "gallery_allow_insert" ON storage.objects
+FOR INSERT WITH CHECK (bucket_id = 'gallery');
+
+-- Allow anyone to UPDATE gallery images
+CREATE POLICY "gallery_allow_update" ON storage.objects
+FOR UPDATE USING (bucket_id = 'gallery');
+
+-- Allow anyone to DELETE gallery images
+CREATE POLICY "gallery_allow_delete" ON storage.objects
+FOR DELETE USING (bucket_id = 'gallery');
