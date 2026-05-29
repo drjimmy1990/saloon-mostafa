@@ -198,8 +198,14 @@ export function ChatSection() {
       if (search) params.set("search", search);
 
       const res = await fetch(`/api/clients?${params}`);
+      if (!res.ok) {
+        console.error("Clients API returned", res.status);
+        return;
+      }
       const json = await res.json();
-      const newClients: Client[] = json.data || [];
+      const allClients: Client[] = json.data || [];
+      // Only show clients that have at least one message
+      const newClients = allClients.filter(c => c.messages && c.messages.length > 0);
       const total: number = json.total ?? 0;
 
       setClients(prev => {
@@ -224,10 +230,16 @@ export function ChatSection() {
       if (debouncedSearch) params.set("search", debouncedSearch);
 
       const res = await fetch(`/api/clients?${params}`);
+      if (!res.ok) {
+        console.error("Clients API returned", res.status);
+        return;
+      }
       const json = await res.json();
       const allClients: Client[] = json.data || [];
+      // Only show clients that have at least one message
+      const withMessages = allClients.filter(c => c.messages && c.messages.length > 0);
       const total: number = json.total ?? 0;
-      setClients(allClients);
+      setClients(withMessages);
       setHasMore(clientPage * PAGE_SIZE < total);
     } catch (err) {
       console.error("Failed to refetch conversations", err);
