@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
         serviceSummary: serviceSummary || "",
         bookingDate,
         endTime: durationMode !== "queue" ? endTime : null,
-        channelType: "website",
+        channelType: body.channelType || "website",
         status: "pending",
         branchId: branchId || null,
         staff_id: staffId || null,
