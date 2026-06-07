@@ -139,6 +139,35 @@ function BookingForm() {
       });
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || "حدث خطأ أثناء الحجز"); return; }
+
+      // If card deposit selected, redirect to Paymob for payment
+      if (paymentMethod === "card" && depositAmount > 0 && data.bookingId) {
+        try {
+          const payRes = await fetch("/api/payment/intent", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "booking",
+              id: data.bookingId,
+              amount: Math.round(depositAmount * 100), // Convert to cents
+              billingData: {
+                first_name: name.split(" ")[0] || "NA",
+                last_name: name.split(" ").slice(1).join(" ") || ".",
+                email: "na@na.com",
+                phone_number: phone,
+              },
+            }),
+          });
+          const payData = await payRes.json();
+          if (payData.checkoutUrl) {
+            window.location.href = payData.checkoutUrl;
+            return;
+          }
+        } catch {
+          toast.error("حدث خطأ في إنشاء رابط الدفع. تم حفظ حجزك وسنتواصل معك.");
+        }
+      }
+
       setBookingResult(data); setQueueNumber(data.queueNumber || null); setSubmitted(true);
       toast.success("تم تأكيد الحجز بنجاح! 🌸");
     } catch { toast.error("حدث خطأ أثناء الحجز. يرجى المحاولة مرة أخرى."); }

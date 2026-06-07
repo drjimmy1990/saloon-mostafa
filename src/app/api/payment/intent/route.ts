@@ -1,39 +1,82 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+import {
+  createPaymentIntention,
+  isPaymobConfigured,
+  type PaymobBillingData,
+} from "@/lib/paymob";
 
+/**
+ * POST /api/payment/intent
+ * 
+ * Creates a Paymob Payment Intention and returns the Unified Checkout URL.
+ * Supports both Order payments and Booking deposit payments.
+ * 
+ * Request body:
+ * {
+ *   type: "order" | "booking"
+ *   id: string (Order ID or Booking ID)
+ *   amount: number (amount in cents, e.g. 5000 = 50.00 SAR)
+ *   billingData: { first_name, last_name, email, phone_number }
+ * }
+ */
 export async function POST(req: NextRequest) {
   try {
-    const { orderId } = await req.json();
-    const apiKey = process.env.PAYMOB_API_KEY;
-    const integrationId = process.env.PAYMOB_INTEGRATION_ID;
-    const iframeId = process.env.PAYMOB_IFRAME_ID;
-    if (!apiKey || !integrationId || !iframeId) {
-      return NextResponse.json({ error: "Paymob not configured" }, { status: 503 });
+    if (!isPaymobConfigured()) {
+      return NextResponse.json(
+        { error: "Paymob is not configured" },
+        { status: 503 }
+      );
     }
-    // Step 1: Auth
-    const authRes = await fetch("https://jordan.paymob.com/api/auth/tokens", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ api_key: apiKey }),
+
+    const body = await req.json();
+    const { type, id, amount, billingData } = body as {
+      type: "order" | "booking";
+      id: string;
+      amount: number;
+      billingData?: PaymobBillingData;
+    };
+
+    if (!type || !id || !amount || amount <= 0) {
+      return NextResponse.json(
+        { error: "Missing required fields: type, id, amount" },
+        { status: 400 }
+      );
+    }
+
+    // Build reference prefix for webhook routing
+    const reference = type === "booking" ? `BOOKING-${id}` : `ORDER-${id}`;
+
+    // Build redirect URLs based on payment type
+    const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, "") || "";
+    const redirectionUrl =
+      type === "booking"
+        ? `${origin}/booking/success`
+        : `${origin}/checkout/success`;
+    const notificationUrl = `${origin}/api/payment/webhook`;
+
+    const result = await createPaymentIntention({
+      amount,
+      reference,
+      billingData: billingData || {
+        first_name: "NA",
+        last_name: "NA",
+        email: "na@na.com",
+        phone_number: "NA",
+      },
+      notificationUrl,
+      redirectionUrl,
     });
-    const { token } = await authRes.json();
-    // Step 2: Register order
-    const orderRes = await fetch("https://jordan.paymob.com/api/ecommerce/orders", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ auth_token: token, delivery_needed: "false", amount_cents: "0", merchant_order_id: orderId, items: [] }),
+
+    return NextResponse.json({
+      checkoutUrl: result.checkoutUrl,
+      intentionId: result.intentionId,
+      paymobOrderId: result.orderId,
     });
-    const orderData = await orderRes.json();
-    // Step 3: Payment key
-    const keyRes = await fetch("https://jordan.paymob.com/api/acceptance/payment_keys", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        auth_token: token, amount_cents: "0", expiration: 3600, order_id: orderData.id,
-        billing_data: { first_name: "NA", last_name: "NA", email: "NA", phone_number: "NA", apartment: "NA", floor: "NA", street: "NA", building: "NA", shipping_method: "NA", postal_code: "NA", city: "NA", country: "JO", state: "NA" },
-        currency: "SAR", integration_id: parseInt(integrationId),
-      }),
-    });
-    const { token: paymentKey } = await keyRes.json();
-    return NextResponse.json({ iframeUrl: `https://jordan.paymob.com/api/acceptance/iframes/${iframeId}?payment_token=${paymentKey}` });
   } catch (err) {
     console.error("Paymob intent error:", err);
-    return NextResponse.json({ error: "Payment failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create payment intent" },
+      { status: 500 }
+    );
   }
 }

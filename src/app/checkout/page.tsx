@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useEffect } from "react";
 import { useCartStore } from "@/lib/cart-store";
 import { Input } from "@/components/ui/input";
@@ -74,9 +74,23 @@ export default function CheckoutPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       if (payment === "card" && data.orderId) {
-        const payRes = await fetch("/api/payment/intent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: data.orderId }) });
+        const payRes = await fetch("/api/payment/intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "order",
+            id: data.orderId,
+            amount: Math.round(total * 100), // Convert to cents
+            billingData: {
+              first_name: name.split(" ")[0] || "NA",
+              last_name: name.split(" ").slice(1).join(" ") || ".",
+              email: "na@na.com",
+              phone_number: phone,
+            },
+          }),
+        });
         const payData = await payRes.json();
-        if (payData.iframeUrl) { window.location.href = payData.iframeUrl; return; }
+        if (payData.checkoutUrl) { window.location.href = payData.checkoutUrl; return; }
       }
       clearCart();
       router.push(`/checkout/success?code=${data.orderCode || ""}`);
