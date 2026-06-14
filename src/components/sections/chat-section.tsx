@@ -642,7 +642,11 @@ export function ChatSection() {
       {/* Conversation List */}
       <ScrollArea className="flex-1 min-h-0 overflow-hidden" dir={rtl ? "rtl" : "ltr"}>
         <div className="p-1.5 space-y-0.5">
-          {clients.filter(c => channelFilter === "all" || c.platform === channelFilter).length === 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            </div>
+          ) : clients.filter(c => channelFilter === "all" || c.platform === channelFilter).length === 0 ? (
             <div className={cn("p-6 text-center text-muted-foreground", rtl && "font-arabic")}>
               <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">{t(locale, "chat.noConversations")}</p>
@@ -843,7 +847,7 @@ export function ChatSection() {
       )}
 
       {/* Messages Area */}
-      <ScrollArea className="flex-1 min-h-0 p-3" dir={rtl ? "rtl" : "ltr"}>
+      <ScrollArea className="flex-1 min-h-0 overflow-hidden p-3" dir={rtl ? "rtl" : "ltr"}>
         <div className="space-y-3">
           {[...activeClient.messages].sort((a, b) => {
             const timeA = new Date(a.platform_timestamp || a.sent_at || a.createdAt || 0).getTime();
@@ -978,8 +982,8 @@ export function ChatSection() {
       </div>
 
       {/* Chat Layout */}
-      <Card className="py-0 overflow-hidden flex-1 min-h-0">
-        <CardContent className="p-0 h-full">
+      <Card className="py-0 overflow-hidden flex-1 min-h-0 flex flex-col">
+        <CardContent className="p-0 h-full flex-1 min-h-0">
           <div className="flex h-full">
             {/* Conversation List — Hidden on mobile when chat is shown */}
             <div
