@@ -200,13 +200,13 @@ export function ChatSection() {
       const res = await fetch(`/api/clients?${params}`);
       if (!res.ok) {
         console.error("Clients API returned", res.status);
+        setHasMore(false);
         return;
       }
       const json = await res.json();
       const allClients: Client[] = json.data || [];
       // Only show clients that have at least one message
       const newClients = allClients.filter(c => c.messages && c.messages.length > 0);
-      const total: number = json.total ?? 0;
 
       setClients(prev => {
         if (!append) return newClients;
@@ -214,9 +214,11 @@ export function ChatSection() {
         const unique = newClients.filter(c => !existingIds.has(c.id));
         return [...prev, ...unique];
       });
-      setHasMore(page * PAGE_SIZE < total);
+      // Use raw result count: if we got fewer than PAGE_SIZE, there are no more pages
+      setHasMore(allClients.length >= PAGE_SIZE);
     } catch (err) {
       console.error("Failed to fetch conversations", err);
+      setHasMore(false);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
@@ -238,9 +240,9 @@ export function ChatSection() {
       const allClients: Client[] = json.data || [];
       // Only show clients that have at least one message
       const withMessages = allClients.filter(c => c.messages && c.messages.length > 0);
-      const total: number = json.total ?? 0;
       setClients(withMessages);
-      setHasMore(clientPage * PAGE_SIZE < total);
+      // Use raw result count instead of unfiltered total
+      setHasMore(allClients.length >= clientPage * PAGE_SIZE);
     } catch (err) {
       console.error("Failed to refetch conversations", err);
     }
