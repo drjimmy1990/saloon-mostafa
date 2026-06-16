@@ -60,6 +60,7 @@ const navItems: { id: string; path: string; icon: React.ElementType; labelKey: s
   { id: "blacklist", path: "/blacklist", icon: ShieldBan, labelKey: "nav.blacklist" },
   { id: "bot-offers", path: "/bot-offers", icon: Megaphone, labelKey: "nav.botOffers" },
   { id: "bot-settings", path: "/bot-settings", icon: Sliders, labelKey: "nav.botSettings" },
+  { id: "bot-services", path: "/bot-services", icon: ClipboardList, labelKey: "nav.botServices" },
   { id: "notifications", path: "/notifications", icon: Bell, labelKey: "nav.notifications" },
   { id: "settings", path: "/settings", icon: Settings, labelKey: "nav.settings", adminOnly: true },
 ];

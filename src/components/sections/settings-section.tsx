@@ -77,6 +77,7 @@ export function SettingsSection() {
     { id: "blacklist", labelAr: "القائمة السوداء", labelEn: "Blacklist" },
     { id: "bot-offers", labelAr: "عروض البوت", labelEn: "Bot Offers" },
     { id: "bot-settings", labelAr: "إعدادات البوت", labelEn: "Bot Settings" },
+    { id: "bot-services", labelAr: "خدمات البوت", labelEn: "Bot Services" },
     { id: "notifications", labelAr: "الإشعارات", labelEn: "Notifications" },
   ];
 

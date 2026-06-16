@@ -59,6 +59,7 @@ export const translations = {
       branches: "Branches",
       botOffers: "Bot Offers",
       botSettings: "Bot Settings",
+      botServices: "Bot Services",
       notifications: "Notifications",
       contactMessages: "Messages",
     },
@@ -364,6 +365,12 @@ export const translations = {
       reminderDescription: "Control when reminders are sent to staff and clients before their bookings. These values are used by the n8n automation workflow.",
       saved: "Settings saved successfully",
     },
+    botServices: {
+      title: "Bot Services",
+      subtitle: "Configure services text for the AI agent",
+      placeholder: "Paste bot services configuration text here...",
+      saved: "Services saved successfully",
+    },
 
     // Notifications
     notifications: {
@@ -512,6 +519,7 @@ export const translations = {
       branches: "الفروع",
       botOffers: "عروض البوت",
       botSettings: "إعدادات البوت",
+      botServices: "خدمات البوت",
       notifications: "الإشعارات",
       contactMessages: "رسائل التواصل",
     },
@@ -816,6 +824,12 @@ export const translations = {
       clientReminderHours: "تذكير العميلة (ساعات قبل الحجز)",
       reminderDescription: "التحكم في وقت إرسال التذكيرات للعاملات والعميلات قبل مواعيدهن. يتم استخدام هذه القيم في سير عمل n8n.",
       saved: "تم حفظ الإعدادات بنجاح",
+    },
+    botServices: {
+      title: "خدمات البوت",
+      subtitle: "تهيئة نص الخدمات الخاص بالبوت الذكي",
+      placeholder: "أدخل نص خدمات البوت هنا...",
+      saved: "تم حفظ الخدمات بنجاح",
     },
 
     // Notifications
