@@ -85,7 +85,7 @@ export async function createPaymentIntention(
   if (!res.ok) {
     const errorText = await res.text();
     console.error("Paymob intention creation failed:", res.status, errorText);
-    throw new Error(`Paymob API error: ${res.status}`);
+    throw new Error(`Paymob API error ${res.status}: ${errorText}`);
   }
 
   const data = await res.json();

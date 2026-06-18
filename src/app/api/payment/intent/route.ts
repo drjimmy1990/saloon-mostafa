@@ -73,9 +73,10 @@ export async function POST(req: NextRequest) {
       paymobOrderId: result.orderId,
     });
   } catch (err) {
-    console.error("Paymob intent error:", err);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("Paymob intent error:", errMsg, err);
     return NextResponse.json(
-      { error: "Failed to create payment intent" },
+      { error: `Failed to create payment intent: ${errMsg}` },
       { status: 500 }
     );
   }
