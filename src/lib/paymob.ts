@@ -63,10 +63,10 @@ export async function createPaymentIntention(
     currency: PAYMOB_CURRENCY,
     payment_methods: PAYMOB_INTEGRATION_IDS.map(id => parseInt(id, 10)),
     billing_data: {
-      first_name: billingData.first_name || "NA",
-      last_name: billingData.last_name || "NA",
+      first_name: (billingData.first_name || "NA").slice(0, 50),
+      last_name: (billingData.last_name || "NA").slice(0, 50),
       email: billingData.email || "na@na.com",
-      phone_number: billingData.phone_number || "NA",
+      phone_number: (billingData.phone_number || "NA").replace(/[\s\-()]/g, "").slice(0, 15),
     },
     special_reference: reference,
     notification_url: notificationUrl || "",
