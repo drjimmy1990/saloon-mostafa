@@ -241,7 +241,7 @@ const emptyProductFormData: ProductFormData = {
   publishAt: "",
 };
 
-const DURATION_OPTIONS = [15, 30, 45, 60, 90, 120, 180];
+const DURATION_OPTIONS = [15, 30, 45, 50, 60, 90, 120, 180];
 
 const PUBLISH_OPTIONS = [
   { value: "", labelAr: "حالاً", labelEn: "Immediately" },
