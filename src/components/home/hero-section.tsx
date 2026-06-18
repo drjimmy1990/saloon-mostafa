@@ -48,10 +48,10 @@ export function HeroSection() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full glass border border-terracotta/15 text-terracotta text-sm font-medium mb-8"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full glass border border-terracotta/15 text-dark text-sm font-medium mb-8"
             >
-              <Sparkles className="w-4 h-4" />
-              <span>خدمات تجميل احترافية في السعودية</span>
+              <Sparkles className="w-4 h-4 text-terracotta" />
+              <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontSize: "1.1rem", letterSpacing: "0.05em" }}>salon noon</span>
             </motion.div>
 
             {/* Heading */}
@@ -98,7 +98,7 @@ export function HeroSection() {
             >
               <Link
                 href="/booking"
-                className="group inline-flex items-center gap-3 px-8 py-4 text-lg font-bold text-white rounded-2xl gradient-terracotta shadow-xl shadow-terracotta/20 hover:shadow-terracotta/40 transition-all hover:scale-105 active:scale-100"
+                className="group inline-flex items-center gap-3 px-8 py-4 text-lg font-bold text-black rounded-2xl gradient-terracotta shadow-xl shadow-black/10 hover:shadow-black/20 transition-all hover:scale-105 active:scale-100"
               >
                 احجزي الآن
                 <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-1" />

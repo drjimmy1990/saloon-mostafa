@@ -1,8 +1,10 @@
-﻿import { getSiteSettings } from "@/lib/settings";
+import { getSiteSettings } from "@/lib/settings";
 import { getServiceRoleClient } from "@/lib/supabase";
 import { Metadata } from "next";
 import { SectionHeader } from "@/components/shared/section-header";
 import { Phone, MapPin, MessageCircle, Clock } from "lucide-react";
+
+export const revalidate = 60; // Revalidate every 60 seconds to pick up settings changes
 
 export const metadata: Metadata = {
   title: "تواصلي معنا | صالون نون",

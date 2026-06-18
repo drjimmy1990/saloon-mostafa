@@ -337,8 +337,8 @@ html {
 }
 
 .gradient-terracotta {
-  background: linear-gradient(135deg, #d9703e 0%, #e8884d 50%, #d9703e 100%);
-  background-size: 200% 200%;
+  background: #D3D3D3 !important;
+  color: #000000 !important;
 }
 
 .gradient-sage {

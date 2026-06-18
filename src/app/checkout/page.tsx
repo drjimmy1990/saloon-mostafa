@@ -20,7 +20,7 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
-  const [payment, setPayment] = useState<"cash"|"cliq"|"card">("cash");
+  const [payment, setPayment] = useState<"cliq"|"card">("card");
   const [loading, setLoading] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(2);
 
@@ -99,7 +99,6 @@ export default function CheckoutPage() {
   };
 
   const methods = [
-    { id: "cash" as const, label: "نقداً عند التوصيل", icon: Banknote, desc: "ادفعي عند الاستلام" },
     { id: "cliq" as const, label: "كليك CliQ", icon: Smartphone, desc: "تحويل بنكي" },
     { id: "card" as const, label: "بطاقة ائتمان", icon: CreditCard, desc: "عبر Paymob" },
   ];

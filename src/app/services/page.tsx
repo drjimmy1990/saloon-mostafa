@@ -9,33 +9,34 @@ export const metadata: Metadata = {
   description: "تصفحي جميع خدمات التجميل المتاحة في صالون نون — تصفيف الشعر، المكياج، الأظافر، والعناية بالبشرة.",
 };
 
-async function getServices() {
+async function getServiceData() {
   const supabase = getServiceRoleClient();
 
-  const [{ data: products }, { data: offers }, { data: categories }] = await Promise.all([
+  const [{ data: categories }, { data: products }] = await Promise.all([
+    supabase.from("Category").select("id, label, color, image").eq("type", "service").order("createdAt", { ascending: true }),
     supabase
       .from("Product")
-      .select("*")
+      .select("id, category")
       .eq("isAvailable", true)
-      .eq("type", "service")
-      .order("sortOrder", { ascending: true }),
-    supabase
-      .from("Offer")
-      .select("product_id, discountType, discountValue, isActive")
-      .eq("isActive", true)
-      .or("channel.is.null,channel.eq.website"),
-    supabase.from("Category").select("id, label, color").eq("type", "service").order("createdAt", { ascending: true }),
+      .eq("type", "service"),
   ]);
 
+  // Count services per category
+  const serviceCounts: Record<string, number> = {};
+  for (const p of products || []) {
+    if (p.category) {
+      serviceCounts[p.category] = (serviceCounts[p.category] || 0) + 1;
+    }
+  }
+
   return {
-    services: (products || []),
-    offers: (offers || []),
     categories: (categories || []),
+    serviceCounts,
   };
 }
 
 export default async function ServicesPage() {
-  const { services, offers, categories } = await getServices();
+  const { categories, serviceCounts } = await getServiceData();
 
-  return <ServicesClient services={services} offers={offers} categories={categories} />;
+  return <ServicesClient categories={categories} serviceCounts={serviceCounts} />;
 }

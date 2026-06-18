@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Tajawal, Cairo } from "next/font/google";
+import { Tajawal, Cairo, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -21,6 +21,14 @@ const cairo = Cairo({
   display: "swap",
 });
 
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "صالون نون | خدمات تجميل احترافية في السعودية",
   description:
@@ -34,7 +42,7 @@ export const metadata: Metadata = {
   },
 };
 
-// JSON-LD structured data for SEO
+export const revalidate = 60; // Revalidate layout (footer settings) every 60 seconds
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "BeautySalon",
@@ -62,7 +70,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" className={`${tajawal.variable} ${cairo.variable}`}>
+    <html lang="ar" dir="rtl" className={`${tajawal.variable} ${cairo.variable} ${playfair.variable}`}>
       <head>
         <script
           type="application/ld+json"

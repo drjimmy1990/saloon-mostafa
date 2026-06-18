@@ -39,7 +39,7 @@ function BookingForm() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentMethod, setPaymentMethod] = useState("card");
 
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -276,23 +276,6 @@ function BookingForm() {
               )}
               dir="rtl"
             >
-              {/* Top Image Section */}
-              <div className="w-full aspect-[4/3] bg-sage-50 overflow-hidden relative">
-                {svc.images && svc.images.length > 0 ? (
-                  <img src={svc.images[0]} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt={svc.name} />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Grid3X3 className="w-12 h-12 text-sage-300" />
-                  </div>
-                )}
-                
-                {/* Selected Overlay Indicator */}
-                {isSelected && (
-                  <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-terracotta flex items-center justify-center shadow-md animate-in zoom-in duration-200">
-                    <Check className="w-5 h-5 text-white" />
-                  </div>
-                )}
-              </div>
 
               {/* Bottom Info Section */}
               <div className="p-4 flex flex-col flex-1 w-full justify-between gap-3">
@@ -416,7 +399,7 @@ function BookingForm() {
         <div className="space-y-2">
           <Label className="text-right block font-arabic">طريقة دفع العربون ({depositAmount} SAR)</Label>
           <div className="grid grid-cols-2 gap-2">
-            {[{ v: "cash", l: "كاش" }, { v: "card", l: "بطاقة" }].map(({ v, l }) => (
+            {[{ v: "card", l: "بطاقة" }].map(({ v, l }) => (
               <button key={v} onClick={() => setPaymentMethod(v)}
                 className={cn("p-3 rounded-lg border-2 text-sm font-arabic font-medium transition-all", paymentMethod === v ? "border-sage-500 bg-sage-50" : "border-gray-200 bg-white hover:border-sage-300")}>
                 {l}
