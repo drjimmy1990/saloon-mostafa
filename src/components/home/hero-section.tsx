@@ -70,7 +70,7 @@ export function HeroSection() {
               className="inline-flex items-center gap-2 px-5 py-2 rounded-full glass border border-terracotta/15 text-dark text-sm font-medium mb-8"
             >
               <Sparkles className="w-4 h-4 text-terracotta" />
-              <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: "italic", fontSize: "1.1rem", letterSpacing: "0.05em" }}>salon noon</span>
+              <span style={{ fontFamily: "var(--font-alex-brush), cursive", fontSize: "1.6rem", fontWeight: "normal", letterSpacing: "0.02em" }}>salonnoon</span>
             </motion.div>
 
             {/* Heading */}

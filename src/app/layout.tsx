@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Tajawal, Cairo, Playfair_Display } from "next/font/google";
+import { Tajawal, Cairo, Playfair_Display, Alex_Brush, Monsieur_La_Doulaise } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -26,6 +26,20 @@ const playfair = Playfair_Display({
   weight: ["400", "700"],
   style: ["normal", "italic"],
   variable: "--font-playfair",
+  display: "swap",
+});
+
+const alexBrush = Alex_Brush({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-alex-brush",
+  display: "swap",
+});
+
+const monsieur = Monsieur_La_Doulaise({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-monsieur",
   display: "swap",
 });
 
@@ -70,7 +84,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" className={`${tajawal.variable} ${cairo.variable} ${playfair.variable}`}>
+    <html lang="ar" dir="rtl" className={`${tajawal.variable} ${cairo.variable} ${playfair.variable} ${alexBrush.variable} ${monsieur.variable}`}>
       <head>
         <script
           type="application/ld+json"
