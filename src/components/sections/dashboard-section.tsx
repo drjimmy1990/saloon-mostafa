@@ -177,6 +177,7 @@ const statusConfig: Record<
   pending: { label: "Pending", labelAr: "قيد الانتظار", variant: "secondary" },
   completed: { label: "Completed", labelAr: "مكتمل", variant: "outline" },
   cancelled: { label: "Cancelled", labelAr: "ملغي", variant: "destructive" },
+  waiting_payment: { label: "Waiting Payment", labelAr: "بانتظار الدفع", variant: "secondary" },
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -534,7 +535,11 @@ export function DashboardSection() {
               </TableHeader>
               <TableBody>
                 {recentBookings.map((booking) => {
-                  const status = statusConfig[booking.status];
+                  const status = statusConfig[booking.status] || {
+                    label: booking.status || "Unknown",
+                    labelAr: booking.status || "غير معروف",
+                    variant: "outline" as const
+                  };
                   return (
                     <TableRow key={booking.id} className="hover:bg-muted/50">
                       <TableCell
