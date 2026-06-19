@@ -38,8 +38,31 @@ function BookingForm() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("card");
+
+  // Phone validation: Saudi format 05XXXXXXXX (10 digits) or +9665XXXXXXXX or 9665XXXXXXXX
+  const validatePhone = (value: string): string => {
+    const cleaned = value.replace(/[\s\-()]/g, "");
+    if (!cleaned) return "رقم الهاتف مطلوب";
+    // Saudi mobile: starts with 05 and 10 digits total
+    if (/^05\d{8}$/.test(cleaned)) return "";
+    // With country code: +966 or 966 followed by 5XXXXXXXX
+    if (/^\+?9665\d{8}$/.test(cleaned)) return "";
+    return "رقم هاتف غير صحيح — مثال: 0512345678";
+  };
+
+  const handlePhoneChange = (value: string) => {
+    // Only allow digits, + and spaces
+    const filtered = value.replace(/[^\d+\s]/g, "");
+    setPhone(filtered);
+    if (filtered.trim()) {
+      setPhoneError(validatePhone(filtered));
+    } else {
+      setPhoneError("");
+    }
+  };
 
   const [loading, setLoading] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -116,12 +139,14 @@ function BookingForm() {
       case 1: return !!selectedCategory;
       case 2: return !!selectedService && !!selectedStaff;
       case 3: return staffBlocked ? false : (isQueueMode ? !!selectedDate : (!!selectedDate && !!selectedTime));
-      case 4: return name.trim() && phone.trim();
+      case 4: return name.trim() && phone.trim() && !validatePhone(phone);
       default: return true;
     }
   };
 
   const handleSubmit = async () => {
+    const phoneErr = validatePhone(phone);
+    if (phoneErr) { toast.error(phoneErr); setPhoneError(phoneErr); return; }
     if (!agreedToTerms) { toast.error("يرجى الموافقة على الشروط والأحكام"); return; }
     setLoading(true);
     try {
@@ -388,7 +413,9 @@ function BookingForm() {
       </div>
       <div className="space-y-2">
         <Label className="text-right block font-arabic">رقم الهاتف</Label>
-        <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+966 5X XXX XXXX" dir="ltr" type="tel" />
+        <Input value={phone} onChange={(e) => handlePhoneChange(e.target.value)} placeholder="0512345678" dir="ltr" type="tel" maxLength={15}
+          className={phoneError ? "border-red-400 focus:ring-red-300" : ""} />
+        {phoneError && <p className="text-xs text-red-500 text-right font-arabic mt-1">{phoneError}</p>}
       </div>
       <div className="space-y-2">
         <Label className="text-right block font-arabic">ملاحظات (اختياري)</Label>

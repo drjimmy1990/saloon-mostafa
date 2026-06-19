@@ -18,11 +18,27 @@ export default function CheckoutPage() {
   const [mounted, setMounted] = useState(false);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [payment, setPayment] = useState<"cliq"|"card">("card");
   const [loading, setLoading] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(2);
+
+  const validatePhone = (value: string): string => {
+    const cleaned = value.replace(/[\s\-()]/g, "");
+    if (!cleaned) return "رقم الهاتف مطلوب";
+    if (/^05\d{8}$/.test(cleaned)) return "";
+    if (/^\+?9665\d{8}$/.test(cleaned)) return "";
+    return "رقم هاتف غير صحيح — مثال: 0512345678";
+  };
+
+  const handlePhoneChange = (value: string) => {
+    const filtered = value.replace(/[^\d+\s]/g, "");
+    setPhone(filtered);
+    if (filtered.trim()) setPhoneError(validatePhone(filtered));
+    else setPhoneError("");
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -59,6 +75,8 @@ export default function CheckoutPage() {
 
   const handleSubmit = async () => {
     if (!name.trim() || !phone.trim()) { toast.error("يرجى تعبئة جميع الحقول المطلوبة"); return; }
+    const phoneErr = validatePhone(phone);
+    if (phoneErr) { toast.error(phoneErr); setPhoneError(phoneErr); return; }
     setLoading(true);
     try {
       const res = await fetch("/api/order", {
@@ -111,7 +129,7 @@ export default function CheckoutPage() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-border/50 space-y-4">
             <h2 className="font-bold text-lg">بياناتك</h2>
             <div><Label className="text-sm mb-1 block">الاسم الكامل *</Label><Input value={name} onChange={e => setName(e.target.value)} placeholder="سارة أحمد"/></div>
-            <div><Label className="text-sm mb-1 block">رقم الهاتف *</Label><Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="0790000000" dir="ltr"/></div>
+            <div><Label className="text-sm mb-1 block">رقم الهاتف *</Label><Input value={phone} onChange={e => handlePhoneChange(e.target.value)} placeholder="0512345678" dir="ltr" type="tel" maxLength={15} className={phoneError ? "border-red-400 focus:ring-red-300" : ""}/>{phoneError && <p className="text-xs text-red-500 text-right mt-1">{phoneError}</p>}</div>
             <div><Label className="text-sm mb-1 block">عنوان التوصيل</Label><Input value={address} onChange={e => setAddress(e.target.value)} placeholder="شارع مكة، الرياض..."/></div>
             <div><Label className="text-sm mb-1 block">ملاحظات</Label><Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="ملاحظات إضافية..."/></div>
           </div>
