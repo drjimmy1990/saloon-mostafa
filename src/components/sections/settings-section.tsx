@@ -4,13 +4,14 @@ import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { t, isRTL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Settings, Save, Users, Trash2, Plus, Globe, Clock } from "lucide-react";
+import { Settings, Save, Users, Trash2, Plus, Globe, Clock, Image as ImageIcon } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,9 @@ export function SettingsSection() {
   const [googleMapsUrl, setGoogleMapsUrl] = useState("");
   const [bookingStartTime, setBookingStartTime] = useState("09:00");
   const [bookingEndTime, setBookingEndTime] = useState("20:00");
+  const [heroImage1, setHeroImage1] = useState("");
+  const [heroImage2, setHeroImage2] = useState("");
+  const [heroImage3, setHeroImage3] = useState("");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [password, setPassword] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
@@ -104,6 +108,9 @@ export function SettingsSection() {
         setGoogleMapsUrl(data.google_maps_url || "");
         setBookingStartTime(data.booking_start_time || "09:00");
         setBookingEndTime(data.booking_end_time || "20:00");
+        setHeroImage1(data.hero_image_1 || "");
+        setHeroImage2(data.hero_image_2 || "");
+        setHeroImage3(data.hero_image_3 || "");
       }
     } catch (err) {
       console.error("Failed to fetch settings", err);
@@ -141,15 +148,23 @@ export function SettingsSection() {
         google_maps_url: googleMapsUrl,
         booking_start_time: bookingStartTime,
         booking_end_time: bookingEndTime,
+        hero_image_1: heroImage1,
+        hero_image_2: heroImage2,
+        hero_image_3: heroImage3,
       };
-      await fetch("/api/settings", {
+      const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      // Optionally show a toast here
+      if (res.ok) {
+        toast.success(rtl ? "تم حفظ الإعدادات بنجاح" : "Settings saved successfully");
+      } else {
+        toast.error(rtl ? "فشل في حفظ الإعدادات" : "Failed to save settings");
+      }
     } catch (err) {
       console.error("Failed to save settings", err);
+      toast.error(rtl ? "حدث خطأ أثناء حفظ الإعدادات" : "An error occurred while saving settings");
     } finally {
       setIsSavingSettings(false);
     }
@@ -475,6 +490,64 @@ export function SettingsSection() {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* Hero Section Images */}
+        <Card>
+          <CardHeader>
+            <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
+              <ImageIcon className="w-5 h-5 text-primary" />
+              {rtl ? "صور قسم الواجهة الرئيسي" : "Hero Section Images"}
+            </CardTitle>
+            <CardDescription className={cn(rtl && "font-arabic")}>
+              {rtl
+                ? "تعديل الروابط الخاصة بالـ 3 صور المعروضة في واجهة الموقع الرئيسي"
+                : "Manage the URLs of the 3 images displayed in the website Hero section"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className={cn(rtl && "font-arabic")}>
+                {rtl ? "رابط الصورة الأولى (يسار علوي)" : "Image 1 URL (Top Left)"}
+              </Label>
+              <Input
+                value={heroImage1}
+                onChange={(e) => setHeroImage1(e.target.value)}
+                placeholder="/images/hero/hero_salon_1.png"
+                dir="ltr"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className={cn(rtl && "font-arabic")}>
+                {rtl ? "رابط الصورة الثانية (عمود أيمن / الموبايل)" : "Image 2 URL (Right / Mobile)"}
+              </Label>
+              <Input
+                value={heroImage2}
+                onChange={(e) => setHeroImage2(e.target.value)}
+                placeholder="/images/hero/hero_salon_2.png"
+                dir="ltr"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className={cn(rtl && "font-arabic")}>
+                {rtl ? "رابط الصورة الثالثة (يسار سفلي)" : "Image 3 URL (Bottom Left)"}
+              </Label>
+              <Input
+                value={heroImage3}
+                onChange={(e) => setHeroImage3(e.target.value)}
+                placeholder="/images/hero/hero_salon_3.png"
+                dir="ltr"
+              />
+            </div>
+            <Button
+              onClick={handleSaveSettings}
+              disabled={isSavingSettings}
+              className={cn("w-full gap-2", rtl && "font-arabic")}
+            >
+              <Save className="w-4 h-4" />
+              {rtl ? "حفظ الصور" : "Save Images"}
+            </Button>
           </CardContent>
         </Card>
       </div>
