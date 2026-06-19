@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   CalendarCheck,
   Clock,
+  CreditCard,
   CheckCircle2,
   XCircle,
   Search,
@@ -72,7 +73,7 @@ import { Label } from "@/components/ui/label";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed";
+type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed" | "waiting_payment";
 type ChannelSource = "whatsapp" | "facebook" | "instagram" | "website";
 
 export interface Booking {
@@ -94,6 +95,9 @@ export interface Booking {
   channelType: ChannelSource;
   bookingDate: string;
   status: BookingStatus;
+  bookingCode?: string;
+  depositStatus?: string;
+  depositAmount?: number;
   createdAt?: string;
 }
 
@@ -141,6 +145,14 @@ const statusConfig: Record<
     textColor: "text-blue-700 dark:text-blue-400",
     borderColor: "border-blue-200 dark:border-blue-800/40",
     icon: CheckCircle2,
+  },
+  waiting_payment: {
+    label: "Waiting Payment",
+    labelAr: "بانتظار الدفع",
+    bgColor: "bg-orange-50 dark:bg-orange-900/20",
+    textColor: "text-orange-700 dark:text-orange-400",
+    borderColor: "border-orange-200 dark:border-orange-800/40",
+    icon: CreditCard,
   },
 };
 
@@ -213,6 +225,13 @@ const statCardConfig = [
     icon: XCircle,
     colorClass: "red" as const,
   },
+  {
+    key: "waiting_payment",
+    labelKey: "waiting_payment",
+    labelKeyAr: "waiting_payment",
+    icon: CreditCard,
+    colorClass: "orange" as const,
+  },
 ];
 
 const statColorMap = {
@@ -239,6 +258,12 @@ const statColorMap = {
     iconBg: "bg-red-100 dark:bg-red-800/30",
     iconText: "text-red-600 dark:text-red-400",
     border: "border-red-200 dark:border-red-800/40",
+  },
+  orange: {
+    bg: "bg-orange-50 dark:bg-orange-900/20",
+    iconBg: "bg-orange-100 dark:bg-orange-800/30",
+    iconText: "text-orange-600 dark:text-orange-400",
+    border: "border-orange-200 dark:border-orange-800/40",
   },
 };
 
@@ -305,7 +330,7 @@ export function BookingsSection() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalCount, setTotalCount] = useState(0);
-  const [stats, setStats] = useState({ total: 0, pending: 0, confirmed: 0, cancelled: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, confirmed: 0, cancelled: 0, waiting_payment: 0 });
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -586,6 +611,9 @@ export function BookingsSection() {
               </SelectItem>
               <SelectItem value="completed" className={rtl ? "font-arabic" : ""}>
                 {t(locale, "completed")}
+              </SelectItem>
+              <SelectItem value="waiting_payment" className={rtl ? "font-arabic" : ""}>
+                {rtl ? "بانتظار الدفع" : "Waiting Payment"}
               </SelectItem>
             </SelectContent>
           </Select>

@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
       pending: allBookings?.filter((b) => b.status === 'pending').length || 0,
       confirmed: allBookings?.filter((b) => b.status === 'confirmed').length || 0,
       cancelled: allBookings?.filter((b) => b.status === 'cancelled').length || 0,
+      waiting_payment: allBookings?.filter((b) => b.status === 'waiting_payment').length || 0,
     };
 
     return NextResponse.json({
