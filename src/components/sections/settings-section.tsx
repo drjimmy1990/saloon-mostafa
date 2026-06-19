@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { t, isRTL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Settings, Save, Users, Trash2, Plus, Globe, Clock, Image as ImageIcon } from "lucide-react";
+import { Settings, Save, Users, Trash2, Plus, Globe, Clock, Image as ImageIcon, Upload, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { uploadImage } from "@/lib/storage";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,9 @@ export function SettingsSection() {
   const [heroImage2, setHeroImage2] = useState("");
   const [heroImage3, setHeroImage3] = useState("");
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isUploading1, setIsUploading1] = useState(false);
+  const [isUploading2, setIsUploading2] = useState(false);
+  const [isUploading3, setIsUploading3] = useState(false);
   const [password, setPassword] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
@@ -167,6 +171,30 @@ export function SettingsSection() {
       toast.error(rtl ? "حدث خطأ أثناء حفظ الإعدادات" : "An error occurred while saving settings");
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, imageNum: 1 | 2 | 3) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (imageNum === 1) setIsUploading1(true);
+    if (imageNum === 2) setIsUploading2(true);
+    if (imageNum === 3) setIsUploading3(true);
+
+    try {
+      const publicUrl = await uploadImage(file, "saloon_uploads", "hero");
+      if (imageNum === 1) setHeroImage1(publicUrl);
+      if (imageNum === 2) setHeroImage2(publicUrl);
+      if (imageNum === 3) setHeroImage3(publicUrl);
+      toast.success(rtl ? "تم رفع الصورة بنجاح" : "Image uploaded successfully");
+    } catch (err) {
+      console.error("Image upload failed:", err);
+      toast.error(rtl ? "فشل في رفع الصورة" : "Failed to upload image");
+    } finally {
+      if (imageNum === 1) setIsUploading1(false);
+      if (imageNum === 2) setIsUploading2(false);
+      if (imageNum === 3) setIsUploading3(false);
     }
   };
 
@@ -511,34 +539,162 @@ export function SettingsSection() {
               <Label className={cn(rtl && "font-arabic")}>
                 {rtl ? "رابط الصورة الأولى (يسار علوي)" : "Image 1 URL (Top Left)"}
               </Label>
-              <Input
-                value={heroImage1}
-                onChange={(e) => setHeroImage1(e.target.value)}
-                placeholder="/images/hero/hero_salon_1.png"
-                dir="ltr"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={heroImage1}
+                  onChange={(e) => setHeroImage1(e.target.value)}
+                  placeholder="/images/hero/hero_salon_1.png"
+                  dir="ltr"
+                  className="flex-1"
+                />
+                <input
+                  type="file"
+                  id="hero-upload-1"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e, 1)}
+                  className="hidden"
+                  disabled={isUploading1}
+                />
+                <Button
+                  asChild
+                  variant="outline"
+                  className={cn("gap-2 shrink-0 cursor-pointer", isUploading1 && "opacity-50 pointer-events-none")}
+                >
+                  <label htmlFor="hero-upload-1" className="flex items-center gap-2 cursor-pointer">
+                    {isUploading1 ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    {rtl ? "رفع" : "Upload"}
+                  </label>
+                </Button>
+              </div>
+              {heroImage1 && (
+                <div className="mt-2 relative w-24 h-24 rounded-lg overflow-hidden border bg-muted group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={heroImage1}
+                    alt="Preview 1"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setHeroImage1("")}
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  >
+                    <Trash2 className="w-5 h-5 text-white" />
+                  </button>
+                </div>
+              )}
             </div>
+
             <div className="space-y-2">
               <Label className={cn(rtl && "font-arabic")}>
                 {rtl ? "رابط الصورة الثانية (عمود أيمن / الموبايل)" : "Image 2 URL (Right / Mobile)"}
               </Label>
-              <Input
-                value={heroImage2}
-                onChange={(e) => setHeroImage2(e.target.value)}
-                placeholder="/images/hero/hero_salon_2.png"
-                dir="ltr"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={heroImage2}
+                  onChange={(e) => setHeroImage2(e.target.value)}
+                  placeholder="/images/hero/hero_salon_2.png"
+                  dir="ltr"
+                  className="flex-1"
+                />
+                <input
+                  type="file"
+                  id="hero-upload-2"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e, 2)}
+                  className="hidden"
+                  disabled={isUploading2}
+                />
+                <Button
+                  asChild
+                  variant="outline"
+                  className={cn("gap-2 shrink-0 cursor-pointer", isUploading2 && "opacity-50 pointer-events-none")}
+                >
+                  <label htmlFor="hero-upload-2" className="flex items-center gap-2 cursor-pointer">
+                    {isUploading2 ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    {rtl ? "رفع" : "Upload"}
+                  </label>
+                </Button>
+              </div>
+              {heroImage2 && (
+                <div className="mt-2 relative w-24 h-24 rounded-lg overflow-hidden border bg-muted group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={heroImage2}
+                    alt="Preview 2"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setHeroImage2("")}
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  >
+                    <Trash2 className="w-5 h-5 text-white" />
+                  </button>
+                </div>
+              )}
             </div>
+
             <div className="space-y-2">
               <Label className={cn(rtl && "font-arabic")}>
                 {rtl ? "رابط الصورة الثالثة (يسار سفلي)" : "Image 3 URL (Bottom Left)"}
               </Label>
-              <Input
-                value={heroImage3}
-                onChange={(e) => setHeroImage3(e.target.value)}
-                placeholder="/images/hero/hero_salon_3.png"
-                dir="ltr"
-              />
+              <div className="flex gap-2">
+                <Input
+                  value={heroImage3}
+                  onChange={(e) => setHeroImage3(e.target.value)}
+                  placeholder="/images/hero/hero_salon_3.png"
+                  dir="ltr"
+                  className="flex-1"
+                />
+                <input
+                  type="file"
+                  id="hero-upload-3"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload(e, 3)}
+                  className="hidden"
+                  disabled={isUploading3}
+                />
+                <Button
+                  asChild
+                  variant="outline"
+                  className={cn("gap-2 shrink-0 cursor-pointer", isUploading3 && "opacity-50 pointer-events-none")}
+                >
+                  <label htmlFor="hero-upload-3" className="flex items-center gap-2 cursor-pointer">
+                    {isUploading3 ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    ) : (
+                      <Upload className="w-4 h-4" />
+                    )}
+                    {rtl ? "رفع" : "Upload"}
+                  </label>
+                </Button>
+              </div>
+              {heroImage3 && (
+                <div className="mt-2 relative w-24 h-24 rounded-lg overflow-hidden border bg-muted group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={heroImage3}
+                    alt="Preview 3"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setHeroImage3("")}
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  >
+                    <Trash2 className="w-5 h-5 text-white" />
+                  </button>
+                </div>
+              )}
             </div>
             <Button
               onClick={handleSaveSettings}
