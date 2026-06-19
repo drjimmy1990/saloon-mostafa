@@ -27,6 +27,25 @@ function CountUp({ target, suffix = "" }: { target: number; suffix: string }) {
 }
 
 export function HeroSection() {
+  const [images, setImages] = useState({
+    hero_image_1: "/images/hero/hero_salon_1.png",
+    hero_image_2: "/images/hero/hero_salon_2.png",
+    hero_image_3: "/images/hero/hero_salon_3.png",
+  });
+
+  useEffect(() => {
+    fetch("/api/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        setImages({
+          hero_image_1: data.hero_image_1 || "/images/hero/hero_salon_1.png",
+          hero_image_2: data.hero_image_2 || "/images/hero/hero_salon_2.png",
+          hero_image_3: data.hero_image_3 || "/images/hero/hero_salon_3.png",
+        });
+      })
+      .catch((err) => console.error("Failed to load settings in HeroSection:", err));
+  }, []);
+
   return (
     <section className="relative overflow-hidden min-h-[90vh] md:min-h-[85vh] flex items-center gradient-mesh">
       {/* Animated decorative blobs */}
@@ -112,7 +131,7 @@ export function HeroSection() {
             </motion.div>
           </motion.div>
 
-          {/* Mobile Hero Image */}
+           {/* Mobile Hero Image */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -120,7 +139,7 @@ export function HeroSection() {
             className="lg:hidden relative mx-auto max-w-sm w-full"
           >
             <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-white/60">
-              <Image src="/images/hero/hero_salon_2.png" alt="صالون نون — خدمات تجميل احترافية" fill sizes="(max-width: 1024px) 90vw, 0" priority className="object-cover" />
+              <Image src={images.hero_image_2} alt="صالون نون — خدمات تجميل احترافية" fill sizes="(max-width: 1024px) 90vw, 0" priority className="object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
               <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
                 <div className="flex items-center gap-1">
@@ -144,15 +163,15 @@ export function HeroSection() {
           >
             <div className="space-y-4">
               <div className="relative h-64 rounded-2xl overflow-hidden shadow-xl card-hover border border-white/60">
-                <Image src="/images/hero/hero_salon_1.png" alt="صالون نون" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />
+                <Image src={images.hero_image_1} alt="صالون نون" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />
               </div>
               <div className="relative h-48 rounded-2xl overflow-hidden shadow-xl card-hover border border-white/60 animate-float" style={{ animationDelay: "0.5s" }}>
-                <Image src="/images/hero/hero_salon_3.png" alt="مكياج احترافي" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />
+                <Image src={images.hero_image_3} alt="مكياج احترافي" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />
               </div>
             </div>
             <div className="space-y-4 pt-12">
               <div className="relative h-80 rounded-2xl overflow-hidden shadow-xl card-hover border border-white/60 animate-float" style={{ animationDelay: "1s" }}>
-                <Image src="/images/hero/hero_salon_2.png" alt="تصفيف شعر" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />
+                <Image src={images.hero_image_2} alt="تصفيف شعر" fill sizes="(max-width: 1024px) 100vw, 50vw" priority className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                    <div className="flex items-center gap-1">
