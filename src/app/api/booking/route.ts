@@ -4,23 +4,33 @@ import { getServiceRoleClient } from "@/lib/supabase";
 // POST — Create a new booking
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const {
-      serviceId,
-      serviceSummary,
-      date,
-      time, // HH:mm (24h format) or null for queue mode
-      branchId,
-      staffId,
-      name,
-      phone,
-      notes,
-      depositAmount,
-      paymentMethod,
-      authUserId,
-      durationMode,
-      durationMinutes,
-    } = body;
+    // Support both JSON body (website) and query params (n8n bot)
+    let body: Record<string, unknown> = {};
+    try {
+      body = await req.json();
+    } catch {
+      // If no JSON body, fall back to query params (n8n sends data this way)
+    }
+    
+    // Merge query params as fallback
+    const url = new URL(req.url);
+    const params = Object.fromEntries(url.searchParams.entries());
+    const merged = { ...params, ...body };
+    
+    const serviceId = merged.serviceId as string;
+    const serviceSummary = merged.serviceSummary as string || "";
+    const date = merged.date as string;
+    const time = merged.time as string | null;
+    const branchId = merged.branchId as string;
+    const staffId = merged.staffId as string;
+    const name = merged.name as string;
+    const phone = merged.phone as string;
+    const notes = merged.notes as string || "";
+    const depositAmount = Number(merged.depositAmount) || 0;
+    const paymentMethod = (merged.paymentMethod as string) || "cash";
+    const authUserId = merged.authUserId as string | null;
+    const durationMode = (merged.durationMode as string) || "time";
+    const durationMinutes = Number(merged.durationMinutes) || 30;
 
     if (!name || !phone || !serviceId || !date) {
       return NextResponse.json(
@@ -162,7 +172,7 @@ export async function POST(req: NextRequest) {
         serviceSummary: serviceSummary || "",
         bookingDate,
         endTime: durationMode !== "queue" ? endTime : null,
-        channelType: body.channelType || "website",
+        source: "website",
         status: "pending",
         branchId: branchId || null,
         staff_id: staffId || null,
@@ -170,14 +180,19 @@ export async function POST(req: NextRequest) {
         depositStatus: depositAmount > 0 ? "unpaid" : "unpaid",
         paymentMethod: paymentMethod || "cash",
         queueNumber,
+        notes: notes || "",
       })
       .select("id, queueNumber")
       .single();
 
     if (error) {
-      console.error("Booking creation error:", error);
+      console.error("Booking creation error:", JSON.stringify(error, null, 2));
+      console.error("Booking insert payload:", JSON.stringify({
+        client_id: clientId, serviceId, serviceSummary, bookingDate, endTime,
+        branchId, staff_id: staffId, depositAmount, paymentMethod, queueNumber,
+      }, null, 2));
       return NextResponse.json(
-        { error: "Failed to create booking" },
+        { error: "Failed to create booking", details: error.message || error.code },
         { status: 500 }
       );
     }
