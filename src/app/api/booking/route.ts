@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
+import {
+  createPaymentIntention,
+  isPaymobConfigured,
+} from "@/lib/paymob";
+
+// Generate a unique booking code like NOON-4821
+function generateBookingCode(): string {
+  const num = Math.floor(1000 + Math.random() * 9000); // 4-digit random
+  return `NOON-${num}`;
+}
 
 // POST — Create a new booking
 export async function POST(req: NextRequest) {
@@ -26,7 +36,6 @@ export async function POST(req: NextRequest) {
     const name = merged.name as string;
     const phone = merged.phone as string;
     const notes = merged.notes as string || "";
-    const depositAmount = Number(merged.depositAmount) || 0;
     const paymentMethod = (merged.paymentMethod as string) || "cash";
     const authUserId = merged.authUserId as string | null;
     const durationMode = (merged.durationMode as string) || "time";
@@ -40,6 +49,15 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getServiceRoleClient();
+
+    // 0. Get service details (for deposit amount)
+    const { data: service } = await supabase
+      .from("Product")
+      .select("id, name, depositAmount")
+      .eq("id", serviceId)
+      .single();
+
+    const depositAmount = service?.depositAmount ? Number(service.depositAmount) : 0;
 
     // 1. Find or create client
     let clientId: string | null = null;
@@ -148,7 +166,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. For queue mode: calculate queue number
+    // 5. For queue mode: calculate queue number
     let queueNumber: number | null = null;
     if (durationMode === "queue") {
       const { count } = await supabase
@@ -163,7 +181,27 @@ export async function POST(req: NextRequest) {
       queueNumber = (count || 0) + 1;
     }
 
-    // 5. Create booking
+    // 6. Generate unique booking code
+    let bookingCode = generateBookingCode();
+    // Ensure uniqueness (retry up to 5 times)
+    for (let i = 0; i < 5; i++) {
+      const { data: existing } = await supabase
+        .from("Booking")
+        .select("id")
+        .eq("bookingCode", bookingCode)
+        .single();
+      if (!existing) break;
+      bookingCode = generateBookingCode();
+    }
+
+    // 7. Determine status and payment expiry
+    const hasDeposit = depositAmount > 0 && isPaymobConfigured();
+    const initialStatus = hasDeposit ? "waiting_payment" : "pending";
+    const paymentExpiresAt = hasDeposit
+      ? new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes from now
+      : null;
+
+    // 8. Create booking
     const { data: booking, error } = await supabase
       .from("Booking")
       .insert({
@@ -173,7 +211,7 @@ export async function POST(req: NextRequest) {
         bookingDate,
         endTime: durationMode !== "queue" ? endTime : null,
         channelType: (merged.channelType as string) || "website",
-        status: "pending",
+        status: initialStatus,
         branchId: branchId || null,
         staff_id: staffId || null,
         depositAmount: depositAmount || 0,
@@ -181,26 +219,65 @@ export async function POST(req: NextRequest) {
         paymentMethod: paymentMethod || "cash",
         queueNumber,
         notes: notes || "",
+        bookingCode,
+        paymentExpiresAt,
       })
-      .select("id, queueNumber")
+      .select("id, queueNumber, bookingCode")
       .single();
 
     if (error) {
       console.error("Booking creation error:", JSON.stringify(error, null, 2));
-      console.error("Booking insert payload:", JSON.stringify({
-        client_id: clientId, serviceId, serviceSummary, bookingDate, endTime,
-        branchId, staff_id: staffId, depositAmount, paymentMethod, queueNumber,
-      }, null, 2));
       return NextResponse.json(
         { error: "Failed to create booking", details: error.message || error.code },
         { status: 500 }
       );
     }
 
+    // 9. If deposit required, create Paymob payment intention
+    let paymentUrl: string | null = null;
+    if (hasDeposit && booking?.id) {
+      try {
+        const origin = req.headers.get("origin") || "https://salonnoon.net";
+        // Payment webhook goes to n8n (handles slot check + WhatsApp notifications)
+        const n8nPaymentWebhook = process.env.N8N_PAYMENT_WEBHOOK_URL || `${origin}/api/payment/webhook`;
+        const result = await createPaymentIntention({
+          amount: Math.round(depositAmount * 100), // Convert to cents (halalas)
+          reference: `BOOKING-${booking.id}`,
+          billingData: {
+            first_name: name.split(" ")[0] || "NA",
+            last_name: name.split(" ").slice(1).join(" ") || "NA",
+            email: "booking@salonnoon.net",
+            phone_number: phone,
+          },
+          notificationUrl: n8nPaymentWebhook,
+          redirectionUrl: `${origin}/booking/success?code=${bookingCode}`,
+        });
+
+        paymentUrl = result.checkoutUrl;
+
+        // Store the intention ID
+        await supabase
+          .from("Booking")
+          .update({ paymobIntentionId: result.intentionId })
+          .eq("id", booking.id);
+      } catch (payErr) {
+        console.error("Paymob intent error for booking:", payErr);
+        // Don't fail the booking — just skip payment link
+        // Revert to pending status so admin can handle manually
+        await supabase
+          .from("Booking")
+          .update({ status: "pending", paymentExpiresAt: null })
+          .eq("id", booking.id);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       bookingId: booking?.id,
+      bookingCode: booking?.bookingCode || bookingCode,
       queueNumber: booking?.queueNumber || queueNumber,
+      paymentUrl,
+      depositAmount: depositAmount || 0,
     });
   } catch (err) {
     console.error("Booking API error:", err);

@@ -6,17 +6,8 @@ import { verifyHmac, parsePaymentReference } from "@/lib/paymob";
  * POST /api/payment/webhook
  * 
  * Handles Paymob's Transaction Processed Callback (POST webhook).
- * 
- * Webhook POST body structure:
- * {
- *   type: "TRANSACTION",
- *   obj: { ...transaction fields... },
- *   hmac: "hex_string"
- * }
- * 
- * Routes successful payments to either:
- * - Order table (paymentStatus → 'paid') for ORDER-{id} references
- * - Booking table (depositStatus → 'paid') for BOOKING-{id} references
+ * This handles WEBSITE payments only (orders + direct website bookings).
+ * Bot booking payments are handled by the n8n payment webhook workflow.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -64,7 +55,6 @@ export async function POST(req: NextRequest) {
 
       if (parsed.type === "order") {
         // ── Order Payment ───────────────────────────────────────
-        // Idempotency: skip if already paid
         const { data: existing } = await supabase
           .from("Order")
           .select("paymentStatus")
@@ -91,8 +81,9 @@ export async function POST(req: NextRequest) {
 
         console.log(`✅ Order ${parsed.id} marked as PAID (Paymob txn: ${paymobTxnId})`);
       } else if (parsed.type === "booking") {
-        // ── Booking Deposit ─────────────────────────────────────
-        // Idempotency: skip if already paid
+        // ── Booking Deposit (website flow) ───────────────────────
+        // Simple: just mark deposit as paid + confirm
+        // Bot booking payments are handled by n8n workflow with slot checking
         const { data: existing } = await supabase
           .from("Booking")
           .select("depositStatus")
@@ -106,7 +97,11 @@ export async function POST(req: NextRequest) {
 
         const { error } = await supabase
           .from("Booking")
-          .update({ depositStatus: "paid" })
+          .update({
+            depositStatus: "paid",
+            status: "confirmed",
+            paymobTxnId: String(paymobTxnId),
+          })
           .eq("id", parsed.id);
 
         if (error) {
