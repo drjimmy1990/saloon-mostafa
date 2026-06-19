@@ -118,54 +118,54 @@
   --sand-700: #7d6d54;
   --sand-800: #615440;
   --sand-900: #453b2d;
-  --terracotta: #d9703e;
-  --terracotta-light: #fbe8dc;
-  --terracotta-50: #fef5ee;
-  --terracotta-100: #fbe8dc;
-  --terracotta-200: #f7ccb2;
-  --terracotta-300: #f0a97e;
-  --terracotta-400: #e88c5e;
-  --terracotta-500: #d9703e;
-  --terracotta-600: #c45a2a;
-  --terracotta-700: #a34723;
-  --terracotta-800: #833921;
-  --terracotta-900: #6b2e1e;
-  --cream: #faf8f5;
-  --dark: #2a2a2a;
+  --terracotta: #3f3f46;
+  --terracotta-light: #f4f4f5;
+  --terracotta-50: #fafafa;
+  --terracotta-100: #f4f4f5;
+  --terracotta-200: #e4e4e7;
+  --terracotta-300: #d4d4d8;
+  --terracotta-400: #a1a1aa;
+  --terracotta-500: #71717a;
+  --terracotta-600: #52525b;
+  --terracotta-700: #3f3f46;
+  --terracotta-800: #27272a;
+  --terracotta-900: #18181b;
+  --cream: #f4f4f5;
+  --dark: #000000;
 
   /* ── Shadcn mapped to brand ── */
-  --background: #faf8f5;
-  --foreground: #2a2a2a;
+  --background: #f4f5f7;
+  --foreground: #000000;
   --card: #ffffff;
-  --card-foreground: #2a2a2a;
+  --card-foreground: #000000;
   --popover: #ffffff;
-  --popover-foreground: #2a2a2a;
-  --primary: #d9703e;
+  --popover-foreground: #000000;
+  --primary: #3f3f46;
   --primary-foreground: #ffffff;
   --secondary: #778a7e;
   --secondary-foreground: #ffffff;
-  --muted: #f3efe8;
-  --muted-foreground: #6b6b6b;
-  --accent: #e8ede9;
-  --accent-foreground: #2a2a2a;
+  --muted: #f3f4f6;
+  --muted-foreground: #52525b;
+  --accent: #f4f4f5;
+  --accent-foreground: #000000;
   --destructive: #e53e3e;
-  --border: #e8e4de;
-  --input: #e8e4de;
-  --ring: #d9703e;
-  --chart-1: #d9703e;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #3f3f46;
+  --chart-1: #3f3f46;
   --chart-2: #778a7e;
   --chart-3: #b09e7c;
-  --chart-4: #e8ede9;
-  --chart-5: #fbe8dc;
+  --chart-4: #f4f4f5;
+  --chart-5: #e4e4e7;
   --radius: 0.75rem;
-  --sidebar: #faf8f5;
-  --sidebar-foreground: #2a2a2a;
-  --sidebar-primary: #d9703e;
+  --sidebar: #f4f5f7;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #3f3f46;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e8ede9;
-  --sidebar-accent-foreground: #2a2a2a;
-  --sidebar-border: #e8e4de;
-  --sidebar-ring: #d9703e;
+  --sidebar-accent: #f4f4f5;
+  --sidebar-accent-foreground: #000000;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #3f3f46;
 }
 
 /* ── Smooth scroll ── */
@@ -309,21 +309,21 @@ html {
 .card-hover:hover {
   transform: translateY(-6px);
   box-shadow:
-    0 20px 60px -12px rgba(217, 112, 62, 0.12),
+    0 20px 60px -12px rgba(63, 63, 70, 0.12),
     0 8px 24px -8px rgba(0, 0, 0, 0.08);
 }
 
 .card-premium {
   background: white;
-  border: 1px solid rgba(232, 228, 222, 0.6);
+  border: 1px solid rgba(228, 228, 231, 0.6);
   border-radius: 1.25rem;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .card-premium:hover {
-  border-color: rgba(217, 112, 62, 0.2);
+  border-color: rgba(63, 63, 70, 0.2);
   box-shadow:
-    0 24px 48px -12px rgba(217, 112, 62, 0.1),
+    0 24px 48px -12px rgba(63, 63, 70, 0.1),
     0 12px 24px -8px rgba(0, 0, 0, 0.06);
   transform: translateY(-4px);
 }
@@ -333,12 +333,12 @@ html {
    ══════════════════════════════════════ */
 
 .gradient-hero {
-  background: linear-gradient(135deg, #faf8f5 0%, #e8ede9 50%, #f3efe8 100%);
+  background: linear-gradient(135deg, #f4f5f7 0%, #e4e4e7 50%, #f1f5f9 100%);
 }
 
 .gradient-terracotta {
-  background: #D3D3D3 !important;
-  color: #000000 !important;
+  background: linear-gradient(135deg, #3f3f46 0%, #18181b 100%) !important;
+  color: #ffffff !important;
 }
 
 .gradient-sage {
@@ -347,14 +347,14 @@ html {
 
 .gradient-mesh {
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(217, 112, 62, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(119, 138, 126, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 80%, rgba(176, 158, 124, 0.1) 0%, transparent 50%),
-    linear-gradient(135deg, #faf8f5 0%, #f3efe8 100%);
+    radial-gradient(ellipse at 20% 50%, rgba(63, 63, 70, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(100, 116, 139, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(71, 85, 105, 0.08) 0%, transparent 50%),
+    linear-gradient(135deg, #f4f5f7 0%, #f1f5f9 100%);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #d9703e 0%, #b85a2e 50%, #d9703e 100%);
+  background: linear-gradient(135deg, #3f3f46 0%, #09090b 50%, #3f3f46 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
