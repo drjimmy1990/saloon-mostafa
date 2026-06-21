@@ -65,7 +65,7 @@ export function HeroSection() {
             {/* Heading */}
             <h1 className="mb-6">
               <span
-                className="text-dark block mb-0.5 text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-none tracking-wide"
+                className="text-dark block mb-[-15px] text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-none tracking-wide"
                 style={{ fontFamily: "var(--font-alex-brush), cursive", direction: "ltr" }}
               >
                 Salon Noon
