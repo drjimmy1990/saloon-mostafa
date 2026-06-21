@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Tajawal, Cairo, Playfair_Display, Alex_Brush, Monsieur_La_Doulaise, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Tajawal, Cairo, Playfair_Display, Alex_Brush, Monsieur_La_Doulaise, IBM_Plex_Sans_Arabic, Allura } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -50,6 +50,13 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   display: "swap",
 });
 
+const allura = Allura({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-allura",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "صالون نون | خدمات تجميل احترافية في السعودية",
   description:
@@ -91,7 +98,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" className={`${tajawal.variable} ${cairo.variable} ${playfair.variable} ${alexBrush.variable} ${monsieur.variable} ${ibmPlexSansArabic.variable}`}>
+    <html lang="ar" dir="rtl" className={`${tajawal.variable} ${cairo.variable} ${playfair.variable} ${alexBrush.variable} ${monsieur.variable} ${ibmPlexSansArabic.variable} ${allura.variable}`}>
       <head>
         <script
           type="application/ld+json"

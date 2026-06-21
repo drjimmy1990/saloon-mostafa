@@ -130,11 +130,11 @@
   --terracotta-700: #3f3f46;
   --terracotta-800: #27272a;
   --terracotta-900: #18181b;
-  --cream: #f4f4f5;
+  --cream: #faf8f5;
   --dark: #000000;
 
   /* ── Shadcn mapped to brand ── */
-  --background: #f4f5f7;
+  --background: #faf8f5;
   --foreground: #000000;
   --card: #ffffff;
   --card-foreground: #000000;
@@ -144,9 +144,9 @@
   --primary-foreground: #ffffff;
   --secondary: #778a7e;
   --secondary-foreground: #ffffff;
-  --muted: #f3f4f6;
+  --muted: #f5f2eb;
   --muted-foreground: #52525b;
-  --accent: #f4f4f5;
+  --accent: #faf8f5;
   --accent-foreground: #000000;
   --destructive: #e53e3e;
   --border: #e4e4e7;
@@ -155,14 +155,14 @@
   --chart-1: #3f3f46;
   --chart-2: #778a7e;
   --chart-3: #b09e7c;
-  --chart-4: #f4f4f5;
+  --chart-4: #faf8f5;
   --chart-5: #e4e4e7;
   --radius: 0.75rem;
-  --sidebar: #f4f5f7;
+  --sidebar: #faf8f5;
   --sidebar-foreground: #000000;
   --sidebar-primary: #3f3f46;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f4f4f5;
+  --sidebar-accent: #faf8f5;
   --sidebar-accent-foreground: #000000;
   --sidebar-border: #e4e4e7;
   --sidebar-ring: #3f3f46;
@@ -333,7 +333,7 @@ html {
    ══════════════════════════════════════ */
 
 .gradient-hero {
-  background: linear-gradient(135deg, #f4f5f7 0%, #e4e4e7 50%, #f1f5f9 100%);
+  background: linear-gradient(135deg, #faf8f5 0%, #eae5db 50%, #faf8f5 100%);
 }
 
 .gradient-terracotta {
@@ -347,10 +347,10 @@ html {
 
 .gradient-mesh {
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(63, 63, 70, 0.1) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(100, 116, 139, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 80%, rgba(71, 85, 105, 0.08) 0%, transparent 50%),
-    linear-gradient(135deg, #f4f5f7 0%, #f1f5f9 100%);
+    radial-gradient(ellipse at 20% 50%, rgba(176, 158, 124, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(125, 109, 84, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, rgba(154, 135, 104, 0.08) 0%, transparent 50%),
+    linear-gradient(135deg, #faf8f5 0%, #f4f0e6 100%);
 }
 
 .gradient-text {
