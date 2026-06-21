@@ -27,6 +27,7 @@ import {
   UserX,
   Plus,
   Loader2,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   Card,
@@ -65,6 +66,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
@@ -273,6 +275,36 @@ export function BookingsSection() {
   const router = useRouter();
   const { locale, setActiveChatId } = useAppStore();
   const rtl = isRTL(locale);
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("bookings_visible_columns");
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    }
+    return {
+      clientName: true,
+      clientPhone: true,
+      serviceSummary: true,
+      staff: true,
+      channelSource: true,
+      bookingDate: true,
+      createdAt: false,
+      depositAmount: false,
+      bookingCode: false,
+      bookingStatus: true,
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem("bookings_visible_columns", JSON.stringify(visibleColumns));
+  }, [visibleColumns]);
+
+  const activeColumnsCount = Object.values(visibleColumns).filter(Boolean).length + 1;
 
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -548,10 +580,99 @@ export function BookingsSection() {
             {t(locale, "bookings.subtitle")}
           </p>
         </div>
-        <Button onClick={() => setManualDialogOpen(true)} className="gap-2">
-          <Plus className="w-4 h-4" />
-          <span className={cn(rtl && "font-arabic")}>{t(locale, "bookings.addBooking")}</span>
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <DropdownMenu dir={rtl ? "rtl" : "ltr"}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2 shrink-0">
+                <SlidersHorizontal className="w-4 h-4" />
+                <span className={cn(rtl && "font-arabic")}>
+                  {rtl ? "الأعمدة" : "Columns"}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align={rtl ? "start" : "end"} className="w-56">
+              <DropdownMenuLabel className={cn(rtl && "font-arabic", rtl && "text-right")}>
+                {rtl ? "تخصيص الأعمدة" : "Customize Columns"}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                checked={visibleColumns.clientName}
+                onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, clientName: !!checked }))}
+                className={cn(rtl && "font-arabic justify-start text-right")}
+              >
+                {t(locale, "bookings.clientName")}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={visibleColumns.clientPhone}
+                onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, clientPhone: !!checked }))}
+                className={cn(rtl && "font-arabic justify-start text-right")}
+              >
+                {t(locale, "bookings.clientPhone")}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={visibleColumns.serviceSummary}
+                onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, serviceSummary: !!checked }))}
+                className={cn(rtl && "font-arabic justify-start text-right")}
+              >
+                {t(locale, "bookings.serviceSummary")}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={visibleColumns.staff}
+                onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, staff: !!checked }))}
+                className={cn(rtl && "font-arabic justify-start text-right")}
+              >
+                {rtl ? "العاملة" : "Staff"}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={visibleColumns.channelSource}
+                onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, channelSource: !!checked }))}
+                className={cn(rtl && "font-arabic justify-start text-right")}
+              >
+                {t(locale, "bookings.channelSource")}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={visibleColumns.bookingDate}
+                onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, bookingDate: !!checked }))}
+                className={cn(rtl && "font-arabic justify-start text-right")}
+              >
+                {t(locale, "bookings.bookingDate")}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={visibleColumns.createdAt}
+                onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, createdAt: !!checked }))}
+                className={cn(rtl && "font-arabic justify-start text-right")}
+              >
+                {t(locale, "bookings.createdAt")}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={visibleColumns.depositAmount}
+                onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, depositAmount: !!checked }))}
+                className={cn(rtl && "font-arabic justify-start text-right")}
+              >
+                {rtl ? "العربون" : "Deposit"}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={visibleColumns.bookingCode}
+                onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, bookingCode: !!checked }))}
+                className={cn(rtl && "font-arabic justify-start text-right")}
+              >
+                {rtl ? "رمز الحجز" : "Booking Code"}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={visibleColumns.bookingStatus}
+                onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, bookingStatus: !!checked }))}
+                className={cn(rtl && "font-arabic justify-start text-right")}
+              >
+                {t(locale, "bookings.bookingStatus")}
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button onClick={() => setManualDialogOpen(true)} className="gap-2 shrink-0">
+            <Plus className="w-4 h-4" />
+            <span className={cn(rtl && "font-arabic")}>{t(locale, "bookings.addBooking")}</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filter Bar */}
@@ -743,60 +864,57 @@ export function BookingsSection() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead
-                    className={cn(
-                      rtl && "text-right font-arabic"
-                    )}
-                  >
-                    {t(locale, "bookings.clientName")}
-                  </TableHead>
-                  <TableHead
-                    className={cn(
-                      rtl && "text-right font-arabic"
-                    )}
-                  >
-                    {t(locale, "bookings.clientPhone")}
-                  </TableHead>
-                  <TableHead
-                    className={cn(
-                      rtl && "text-right font-arabic"
-                    )}
-                  >
-                    {t(locale, "bookings.serviceSummary")}
-                  </TableHead>
-                  <TableHead
-                    className={cn(
-                      rtl && "text-right font-arabic"
-                    )}
-                  >
-                    {rtl ? "العاملة" : "Staff"}
-                  </TableHead>
-                  <TableHead
-                    className={cn(
-                      rtl && "text-right font-arabic"
-                    )}
-                  >
-                    {t(locale, "bookings.channelSource")}
-                  </TableHead>
-                  <TableHead
-                    className={cn(
-                      rtl && "text-right font-arabic"
-                    )}
-                  >
-                    {t(locale, "bookings.bookingDate")}
-                  </TableHead>
-                  <TableHead
-                    className={cn(
-                      rtl && "text-right font-arabic"
-                    )}
-                  >
-                    {t(locale, "bookings.bookingStatus")}
-                  </TableHead>
-                  <TableHead
-                    className={cn(
-                      rtl && "text-right font-arabic"
-                    )}
-                  >
+                  {visibleColumns.clientName && (
+                    <TableHead className={cn(rtl && "text-right font-arabic")}>
+                      {t(locale, "bookings.clientName")}
+                    </TableHead>
+                  )}
+                  {visibleColumns.clientPhone && (
+                    <TableHead className={cn(rtl && "text-right font-arabic")}>
+                      {t(locale, "bookings.clientPhone")}
+                    </TableHead>
+                  )}
+                  {visibleColumns.serviceSummary && (
+                    <TableHead className={cn(rtl && "text-right font-arabic")}>
+                      {t(locale, "bookings.serviceSummary")}
+                    </TableHead>
+                  )}
+                  {visibleColumns.staff && (
+                    <TableHead className={cn(rtl && "text-right font-arabic")}>
+                      {rtl ? "العاملة" : "Staff"}
+                    </TableHead>
+                  )}
+                  {visibleColumns.channelSource && (
+                    <TableHead className={cn(rtl && "text-right font-arabic")}>
+                      {t(locale, "bookings.channelSource")}
+                    </TableHead>
+                  )}
+                  {visibleColumns.bookingDate && (
+                    <TableHead className={cn(rtl && "text-right font-arabic")}>
+                      {t(locale, "bookings.bookingDate")}
+                    </TableHead>
+                  )}
+                  {visibleColumns.createdAt && (
+                    <TableHead className={cn(rtl && "text-right font-arabic")}>
+                      {t(locale, "bookings.createdAt")}
+                    </TableHead>
+                  )}
+                  {visibleColumns.depositAmount && (
+                    <TableHead className={cn(rtl && "text-right font-arabic")}>
+                      {rtl ? "العربون" : "Deposit"}
+                    </TableHead>
+                  )}
+                  {visibleColumns.bookingCode && (
+                    <TableHead className={cn(rtl && "text-right font-arabic")}>
+                      {rtl ? "رمز الحجز" : "Booking Code"}
+                    </TableHead>
+                  )}
+                  {visibleColumns.bookingStatus && (
+                    <TableHead className={cn(rtl && "text-right font-arabic")}>
+                      {t(locale, "bookings.bookingStatus")}
+                    </TableHead>
+                  )}
+                  <TableHead className={cn(rtl && "text-right font-arabic")}>
                     {t(locale, "actions")}
                   </TableHead>
                 </TableRow>
@@ -805,7 +923,7 @@ export function BookingsSection() {
                 {isLoading ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={activeColumnsCount}
                       className={cn(
                         "h-24 text-center text-muted-foreground",
                         rtl && "font-arabic"
@@ -817,7 +935,7 @@ export function BookingsSection() {
                 ) : filteredBookings.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={activeColumnsCount}
                       className={cn(
                         "h-24 text-center text-muted-foreground",
                         rtl && "font-arabic"
@@ -829,80 +947,136 @@ export function BookingsSection() {
                 ) : (
                   filteredBookings.map((booking) => (
                     <TableRow key={booking.id} className="hover:bg-muted/50">
-                      <TableCell
-                        className={cn(
-                          "font-medium",
-                          rtl && "text-right font-arabic"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span>{booking.client?.name || 'Unknown'}</span>
-                          {booking.client?.auth_user_id ? (
-                            <Badge variant="outline" className="gap-1 text-[10px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40">
-                              <UserCheck className="w-3 h-3" />
-                              {rtl ? "مسجّل" : "Reg"}
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="gap-1 text-[10px] font-medium bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800/40">
-                              <UserX className="w-3 h-3" />
-                              {rtl ? "ضيف" : "Guest"}
-                            </Badge>
+                      {visibleColumns.clientName && (
+                        <TableCell
+                          className={cn(
+                            "font-medium",
+                            rtl && "text-right font-arabic"
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell
-                        className={cn(
-                          "tabular-nums text-muted-foreground",
-                          rtl && "text-right"
-                        )}
-                      >
-                        {booking.client?.phone || 'N/A'}
-                      </TableCell>
-                      <TableCell
-                        className={cn(
-                          "max-w-[200px] truncate",
-                          rtl && "text-right font-arabic"
-                        )}
-                      >
-                        {booking.serviceSummary}
-                      </TableCell>
-                      <TableCell
-                        className={cn(
-                          rtl && "text-right font-arabic"
-                        )}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <Users className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-sm">{booking.staff?.name || (rtl ? 'غير محدد' : 'Unassigned')}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className={rtl ? "text-right" : ""}>
-                        {renderChannelBadge(booking.channelType)}
-                      </TableCell>
-                      <TableCell
-                        className={cn(
-                          "tabular-nums",
-                          rtl && "text-right font-arabic"
-                        )}
-                      >
-                        {(() => {
-                          const fmt = formatBookingDate(booking.bookingDate);
-                          if (!fmt.date) return "";
-                          return (
-                            <div className="space-y-0.5">
-                              <div className="text-sm font-medium">{fmt.dayName}</div>
-                              <div className="text-xs text-muted-foreground">{fmt.date}</div>
-                              <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {fmt.time}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span>{booking.client?.name || 'Unknown'}</span>
+                            {booking.client?.auth_user_id ? (
+                              <Badge variant="outline" className="gap-1 text-[10px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40">
+                                <UserCheck className="w-3 h-3" />
+                                {rtl ? "مسجّل" : "Reg"}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="gap-1 text-[10px] font-medium bg-gray-50 text-gray-500 border-gray-200 dark:bg-gray-900/20 dark:text-gray-400 dark:border-gray-800/40">
+                                <UserX className="w-3 h-3" />
+                                {rtl ? "ضيف" : "Guest"}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                      )}
+                      {visibleColumns.clientPhone && (
+                        <TableCell
+                          className={cn(
+                            "tabular-nums text-muted-foreground",
+                            rtl && "text-right"
+                          )}
+                        >
+                          {booking.client?.phone || 'N/A'}
+                        </TableCell>
+                      )}
+                      {visibleColumns.serviceSummary && (
+                        <TableCell
+                          className={cn(
+                            "max-w-[200px] truncate",
+                            rtl && "text-right font-arabic"
+                          )}
+                        >
+                          {booking.serviceSummary}
+                        </TableCell>
+                      )}
+                      {visibleColumns.staff && (
+                        <TableCell
+                          className={cn(
+                            rtl && "text-right font-arabic"
+                          )}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <Users className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="text-sm">{booking.staff?.name || (rtl ? 'غير محدد' : 'Unassigned')}</span>
+                          </div>
+                        </TableCell>
+                      )}
+                      {visibleColumns.channelSource && (
+                        <TableCell className={rtl ? "text-right" : ""}>
+                          {renderChannelBadge(booking.channelType)}
+                        </TableCell>
+                      )}
+                      {visibleColumns.bookingDate && (
+                        <TableCell
+                          className={cn(
+                            "tabular-nums",
+                            rtl && "text-right font-arabic"
+                          )}
+                        >
+                          {(() => {
+                            const fmt = formatBookingDate(booking.bookingDate);
+                            if (!fmt.date) return "";
+                            return (
+                              <div className="space-y-0.5">
+                                <div className="text-sm font-medium">{fmt.dayName}</div>
+                                <div className="text-xs text-muted-foreground">{fmt.date}</div>
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {fmt.time}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })()}
-                      </TableCell>
-                      <TableCell className={rtl ? "text-right" : ""}>
-                        {renderStatusBadge(booking.status)}
-                      </TableCell>
+                            );
+                          })()}
+                        </TableCell>
+                      )}
+                      {visibleColumns.createdAt && (
+                        <TableCell
+                          className={cn(
+                            "tabular-nums text-muted-foreground",
+                            rtl && "text-right font-arabic"
+                          )}
+                        >
+                          {(() => {
+                            const fmt = formatBookingDate(booking.createdAt);
+                            if (!fmt.date) return "";
+                            return (
+                              <div className="space-y-0.5">
+                                <div className="text-sm font-medium">{fmt.date}</div>
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {fmt.time}
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </TableCell>
+                      )}
+                      {visibleColumns.depositAmount && (
+                        <TableCell
+                          className={cn(
+                            "tabular-nums text-muted-foreground",
+                            rtl && "text-right font-arabic"
+                          )}
+                        >
+                          {booking.depositAmount !== undefined && booking.depositAmount !== null ? `${booking.depositAmount} ${rtl ? "ر.س" : "SAR"}` : (rtl ? "لا يوجد" : "None")}
+                        </TableCell>
+                      )}
+                      {visibleColumns.bookingCode && (
+                        <TableCell
+                          className={cn(
+                            "font-mono text-xs text-muted-foreground",
+                            rtl && "text-right"
+                          )}
+                        >
+                          {booking.bookingCode || 'N/A'}
+                        </TableCell>
+                      )}
+                      {visibleColumns.bookingStatus && (
+                        <TableCell className={rtl ? "text-right" : ""}>
+                          {renderStatusBadge(booking.status)}
+                        </TableCell>
+                      )}
                       <TableCell className={rtl ? "text-right" : ""}>
                         <DropdownMenu dir={rtl ? "rtl" : "ltr"}>
                           <DropdownMenuTrigger asChild>

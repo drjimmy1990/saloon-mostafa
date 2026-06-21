@@ -243,7 +243,7 @@ export function OrdersSection() {
                         </Badge>
                       </TableCell>
                       <TableCell className={cn("tabular-nums", rtl && "text-right")}>
-                        {order.total} {rtl ? "د.أ" : "JOD"}
+                        {order.total} {rtl ? "ر.س" : "SAR"}
                       </TableCell>
                       <TableCell>
                         <Badge className={paymentColors[order.paymentStatus] || ""}>
@@ -331,7 +331,7 @@ export function OrdersSection() {
                         <span className={cn("text-sm", rtl && "font-arabic")}>{item.name}</span>
                         <div className="flex items-center gap-3 text-sm">
                           <span className="text-muted-foreground">×{item.qty}</span>
-                          <span className="font-medium tabular-nums">{item.price} {rtl ? "د.أ" : "JOD"}</span>
+                          <span className="font-medium tabular-nums">{item.price} {rtl ? "ر.س" : "SAR"}</span>
                         </div>
                       </div>
                     ))}
@@ -344,15 +344,15 @@ export function OrdersSection() {
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
                     <span className={cn("text-muted-foreground", rtl && "font-arabic")}>{t(locale, "orders.subtotal")}</span>
-                    <span className="tabular-nums">{selectedOrder.subtotal} {rtl ? "د.أ" : "JOD"}</span>
+                    <span className="tabular-nums">{selectedOrder.subtotal} {rtl ? "ر.س" : "SAR"}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className={cn("text-muted-foreground", rtl && "font-arabic")}>{t(locale, "orders.deliveryFee")}</span>
-                    <span className="tabular-nums">{selectedOrder.deliveryFee} {rtl ? "د.أ" : "JOD"}</span>
+                    <span className="tabular-nums">{selectedOrder.deliveryFee} {rtl ? "ر.س" : "SAR"}</span>
                   </div>
                   <div className="flex justify-between font-bold text-base pt-1">
                     <span className={cn(rtl && "font-arabic")}>{t(locale, "orders.total")}</span>
-                    <span className="tabular-nums">{selectedOrder.total} {rtl ? "د.أ" : "JOD"}</span>
+                    <span className="tabular-nums">{selectedOrder.total} {rtl ? "ر.س" : "SAR"}</span>
                   </div>
                 </div>
 

@@ -20,9 +20,6 @@ import {
   ArrowDown,
   ImageIcon,
   User,
-  LayoutGrid,
-  List,
-  SlidersHorizontal,
 } from "lucide-react";
 import { uploadImage, deleteImage } from "@/lib/storage";
 import {
@@ -60,22 +57,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -307,18 +288,6 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
-    name: true,
-    price: true,
-    category: true,
-    isAvailable: true,
-    availableAtHome: true,
-    availableAtSalon: true,
-    durationMinutes: true,
-    depositAmount: true,
-    createdAt: false, // Default to hidden, togglable
-  });
 
   // Product dialog states
   const [productDialogOpen, setProductDialogOpen] = useState(false);
@@ -803,145 +772,32 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
           </Button>
         </div>
 
-        {/* Toolbar: Branch Filter + View Toggle */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          {branches.length > 0 ? (
-            <div className="flex items-center gap-2">
-              <Label className={cn("text-sm whitespace-nowrap", rtl && "font-arabic")}>
-                {rtl ? "الفرع" : "Branch"}
-              </Label>
-              <Select value={filterBranch} onValueChange={setFilterBranch}>
-                <SelectTrigger className={cn("w-[200px]", rtl && "font-arabic")}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className={cn(rtl && "font-arabic")}>
-                    {rtl ? "جميع الفروع" : "All Branches"}
+        {/* Branch Filter */}
+        {branches.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Label className={cn("text-sm whitespace-nowrap", rtl && "font-arabic")}>
+              {rtl ? "الفرع" : "Branch"}
+            </Label>
+            <Select value={filterBranch} onValueChange={setFilterBranch}>
+              <SelectTrigger className={cn("w-[200px]", rtl && "font-arabic")}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className={cn(rtl && "font-arabic")}>
+                  {rtl ? "جميع الفروع" : "All Branches"}
+                </SelectItem>
+                <SelectItem value="unassigned" className={cn(rtl && "font-arabic")}>
+                  {rtl ? "بدون فرع" : "Unassigned"}
+                </SelectItem>
+                {branches.map((branch) => (
+                  <SelectItem key={branch.id} value={branch.id} className={cn(rtl && "font-arabic")}>
+                    {rtl ? branch.nameAr || branch.name : branch.name}
                   </SelectItem>
-                  <SelectItem value="unassigned" className={cn(rtl && "font-arabic")}>
-                    {rtl ? "بدون فرع" : "Unassigned"}
-                  </SelectItem>
-                  {branches.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.id} className={cn(rtl && "font-arabic")}>
-                      {rtl ? branch.nameAr || branch.name : branch.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          ) : <div />}
-
-          <div className="flex items-center gap-2 shrink-0">
-            {/* View Mode Toggle */}
-            <div className="flex items-center border rounded-lg p-0.5 bg-muted/40 shrink-0">
-              <Button
-                variant={viewMode === "grid" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8 px-2.5"
-                onClick={() => setViewMode("grid")}
-              >
-                <LayoutGrid className="w-4 h-4 mr-1.5" />
-                <span className={cn("text-xs", rtl && "font-arabic")}>{rtl ? "شبكة" : "Grid"}</span>
-              </Button>
-              <Button
-                variant={viewMode === "table" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-8 px-2.5"
-                onClick={() => setViewMode("table")}
-              >
-                <List className="w-4 h-4 mr-1.5" />
-                <span className={cn("text-xs", rtl && "font-arabic")}>{rtl ? "جدول" : "Table"}</span>
-              </Button>
-            </div>
-
-            {/* Column Selector Dropdown */}
-            {viewMode === "table" && (
-              <DropdownMenu dir={rtl ? "rtl" : "ltr"}>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 gap-1.5 shrink-0">
-                    <SlidersHorizontal className="w-3.5 h-3.5" />
-                    <span className={cn("text-xs", rtl && "font-arabic")}>
-                      {rtl ? "الأعمدة" : "Columns"}
-                    </span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align={rtl ? "start" : "end"} className="w-56">
-                  <DropdownMenuLabel className={cn(rtl && "font-arabic")}>
-                    {rtl ? "تخصيص الأعمدة" : "Toggle Columns"}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuCheckboxItem
-                    checked={visibleColumns.name}
-                    onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, name: !!checked }))}
-                    className={cn(rtl && "font-arabic")}
-                  >
-                    {rtl ? "الاسم" : "Name"}
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={visibleColumns.price}
-                    onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, price: !!checked }))}
-                    className={cn(rtl && "font-arabic")}
-                  >
-                    {rtl ? "السعر" : "Price"}
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={visibleColumns.category}
-                    onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, category: !!checked }))}
-                    className={cn(rtl && "font-arabic")}
-                  >
-                    {rtl ? "القسم" : "Category"}
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={visibleColumns.isAvailable}
-                    onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, isAvailable: !!checked }))}
-                    className={cn(rtl && "font-arabic")}
-                  >
-                    {rtl ? "التوفر" : "Availability"}
-                  </DropdownMenuCheckboxItem>
-                  {isServices && (
-                    <>
-                      <DropdownMenuCheckboxItem
-                        checked={visibleColumns.availableAtHome}
-                        onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, availableAtHome: !!checked }))}
-                        className={cn(rtl && "font-arabic")}
-                      >
-                        {rtl ? "منزلي" : "Home Service"}
-                      </DropdownMenuCheckboxItem>
-                      <DropdownMenuCheckboxItem
-                        checked={visibleColumns.availableAtSalon}
-                        onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, availableAtSalon: !!checked }))}
-                        className={cn(rtl && "font-arabic")}
-                      >
-                        {rtl ? "بالصالون" : "Salon Service"}
-                      </DropdownMenuCheckboxItem>
-                      <DropdownMenuCheckboxItem
-                        checked={visibleColumns.durationMinutes}
-                        onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, durationMinutes: !!checked }))}
-                        className={cn(rtl && "font-arabic")}
-                      >
-                        {rtl ? "المدة" : "Duration"}
-                      </DropdownMenuCheckboxItem>
-                      <DropdownMenuCheckboxItem
-                        checked={visibleColumns.depositAmount}
-                        onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, depositAmount: !!checked }))}
-                        className={cn(rtl && "font-arabic")}
-                      >
-                        {rtl ? "العربون" : "Deposit"}
-                      </DropdownMenuCheckboxItem>
-                    </>
-                  )}
-                  <DropdownMenuCheckboxItem
-                    checked={visibleColumns.createdAt}
-                    onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, createdAt: !!checked }))}
-                    className={cn(rtl && "font-arabic")}
-                  >
-                    {rtl ? "تاريخ الإنشاء" : "Created At"}
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Category Filter Pills */}
@@ -977,190 +833,11 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
         })}
       </div>
 
-      {/* Product Grid / Table */}
+      {/* Product Grid */}
       {filteredProducts.length === 0 ? (
         <div className={cn("flex flex-col items-center justify-center py-16 text-muted-foreground", rtl && "font-arabic")}>
           <Package className="w-12 h-12 mb-3 opacity-30" />
           <p className="text-sm">{t(locale, "noData")}</p>
-        </div>
-      ) : viewMode === "table" ? (
-        <div className="border rounded-xl bg-card overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {visibleColumns.name && (
-                  <TableHead className={cn(rtl && "text-right font-arabic")}>
-                    {rtl ? "الاسم" : "Name"}
-                  </TableHead>
-                )}
-                {visibleColumns.price && (
-                  <TableHead className={cn(rtl && "text-right font-arabic")}>
-                    {rtl ? "السعر" : "Price"}
-                  </TableHead>
-                )}
-                {visibleColumns.category && (
-                  <TableHead className={cn(rtl && "text-right font-arabic")}>
-                    {rtl ? "القسم" : "Category"}
-                  </TableHead>
-                )}
-                {visibleColumns.isAvailable && (
-                  <TableHead className={cn(rtl && "text-right font-arabic")}>
-                    {rtl ? "حالة التوفر" : "Availability"}
-                  </TableHead>
-                )}
-                {isServices && visibleColumns.availableAtHome && (
-                  <TableHead className={cn(rtl && "text-right font-arabic")}>
-                    {rtl ? "خدمة منزلية" : "Home"}
-                  </TableHead>
-                )}
-                {isServices && visibleColumns.availableAtSalon && (
-                  <TableHead className={cn(rtl && "text-right font-arabic")}>
-                    {rtl ? "بالصالون" : "Salon"}
-                  </TableHead>
-                )}
-                {isServices && visibleColumns.durationMinutes && (
-                  <TableHead className={cn(rtl && "text-right font-arabic")}>
-                    {rtl ? "المدة" : "Duration"}
-                  </TableHead>
-                )}
-                {isServices && visibleColumns.depositAmount && (
-                  <TableHead className={cn(rtl && "text-right font-arabic")}>
-                    {rtl ? "العربون" : "Deposit"}
-                  </TableHead>
-                )}
-                {visibleColumns.createdAt && (
-                  <TableHead className={cn(rtl && "text-right font-arabic")}>
-                    {rtl ? "تاريخ الإنشاء" : "Created At"}
-                  </TableHead>
-                )}
-                <TableHead className={cn(rtl && "text-right font-arabic", rtl ? "text-left" : "text-right")}>
-                  {rtl ? "العمليات" : "Actions"}
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProducts.map((product) => {
-                const cat = getCategoryById(product.category);
-                const isUncategorized = !product.category || !cat;
-                const formattedDate = product.createdAt 
-                  ? new Date(product.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })
-                  : 'N/A';
-
-                return (
-                  <TableRow key={product.id} className="hover:bg-muted/50">
-                    {visibleColumns.name && (
-                      <TableCell className={cn("font-medium", rtl && "text-right font-arabic")}>
-                        <div className="flex items-center gap-3">
-                          {product.images && product.images.length > 0 ? (
-                            <img src={product.images[0]} alt={product.name} className="w-8 h-8 rounded object-cover shrink-0" />
-                          ) : (
-                            <div className={cn("w-8 h-8 rounded flex items-center justify-center shrink-0", isUncategorized ? "bg-gray-100" : getCategoryStyles(cat, "iconBg"))}>
-                              <Package className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                          )}
-                          <span>{product.name}</span>
-                        </div>
-                      </TableCell>
-                    )}
-                    {visibleColumns.price && (
-                      <TableCell className={cn("tabular-nums font-semibold", rtl && "text-right font-arabic")}>
-                        {product.price} {rtl ? "ريال" : "SAR"}
-                      </TableCell>
-                    )}
-                    {visibleColumns.category && (
-                      <TableCell className={rtl && "text-right font-arabic"}>
-                        <Badge variant="outline" className={isUncategorized ? cn(neutralStyles.bg, neutralStyles.text, neutralStyles.border) : getCategoryStyles(cat, "badge")}>
-                          {isUncategorized ? t(locale, "catalog.uncategorized") : cat.label}
-                        </Badge>
-                      </TableCell>
-                    )}
-                    {visibleColumns.isAvailable && (
-                      <TableCell className={rtl && "text-right font-arabic"}>
-                        {product.isAvailable ? (
-                          <Badge variant="outline" className="bg-sage-50 text-sage-700 border-sage-200 dark:bg-sage-900/20 dark:text-sage-400 dark:border-sage-800/40">
-                            {t(locale, "available")}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800/40">
-                            {t(locale, "unavailable")}
-                          </Badge>
-                        )}
-                      </TableCell>
-                    )}
-                    {isServices && visibleColumns.availableAtHome && (
-                      <TableCell className={rtl && "text-right font-arabic"}>
-                        {product.availableAtHome ? (
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40">
-                            {rtl ? "نعم" : "Yes"}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isServices && visibleColumns.availableAtSalon && (
-                      <TableCell className={rtl && "text-right font-arabic"}>
-                        {product.availableAtSalon ? (
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40">
-                            {rtl ? "نعم" : "Yes"}
-                          </Badge>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
-                      </TableCell>
-                    )}
-                    {isServices && visibleColumns.durationMinutes && (
-                      <TableCell className={cn("tabular-nums text-muted-foreground", rtl && "text-right font-arabic")}>
-                        {product.durationMinutes ? `${product.durationMinutes} ${rtl ? "دقيقة" : "min"}` : "—"}
-                      </TableCell>
-                    )}
-                    {isServices && visibleColumns.depositAmount && (
-                      <TableCell className={cn("tabular-nums text-muted-foreground", rtl && "text-right font-arabic")}>
-                        {product.depositAmount ? `${product.depositAmount} ${rtl ? "ريال" : "SAR"}` : "—"}
-                      </TableCell>
-                    )}
-                    {visibleColumns.createdAt && (
-                      <TableCell className={cn("tabular-nums text-muted-foreground text-xs", rtl && "text-right font-arabic")}>
-                        {formattedDate}
-                      </TableCell>
-                    )}
-                    <TableCell className={cn("text-right", rtl && "text-left")}>
-                      <div className="flex items-center gap-1 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => moveProduct(product.id, "up")}
-                          className="h-8 w-8"
-                          title={rtl ? "تحريك لأعلى" : "Move up"}
-                        >
-                          <ArrowUp className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => moveProduct(product.id, "down")}
-                          className="h-8 w-8"
-                          title={rtl ? "تحريك لأسفل" : "Move down"}
-                        >
-                          <ArrowDown className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(product)} className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDelete(product)} className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -1241,45 +918,42 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                         "gap-1 text-[10px] font-medium border",
                         isUncategorized
                           ? cn(neutralStyles.bg, neutralStyles.text, neutralStyles.border)
-                          : getCategoryStyles(cat, "badge")
+                          : cn(
+                              getCategoryStyles(cat, "bg"),
+                              getCategoryStyles(cat, "text"),
+                              getCategoryStyles(cat, "border")
+                            )
                       )}
                     >
-                      <Tag className="w-3 h-3" />
-                      {isUncategorized ? t(locale, "catalog.uncategorized") : cat.label}
+                      {isUncategorized ? t(locale, "catalog.uncategorized") : getCategoryLabel(product.category)}
                     </Badge>
                   </div>
                 </div>
 
-                {/* Details */}
                 <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className={cn("font-bold text-dark text-base line-clamp-1 flex-1", rtl && "font-arabic")}>
+                  {/* Name & Price */}
+                  <div>
+                    <h3 className={cn("font-semibold text-sm leading-tight line-clamp-1", rtl && "font-arabic")}>
                       {product.name}
                     </h3>
-                    <span className="font-bold text-primary shrink-0 tabular-nums">
-                      {product.price} {rtl ? "ريال" : "SAR"}
-                    </span>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-sm font-bold text-primary tabular-nums">
+                        {product.price}
+                      </span>
+                      <span className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
+                        {rtl ? "ر.س" : "SAR"}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Service Specific Info */}
-                  {isServices && (
-                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      {product.durationMinutes && (
-                        <div className={cn("flex items-center gap-1.5", rtl && "font-arabic")}>
-                          <Clock className="w-3.5 h-3.5 shrink-0" />
-                          <span className="tabular-nums">{product.durationMinutes} {rtl ? "دقيقة" : "min"}</span>
-                        </div>
-                      )}
-                      {product.depositAmount ? (
-                        <div className={cn("flex items-center gap-1.5", rtl && "font-arabic")}>
-                          <CreditCard className="w-3.5 h-3.5 shrink-0" />
-                          <span className="tabular-nums">{rtl ? "عربون:" : "Deposit:"} {product.depositAmount} {rtl ? "ريال" : "SAR"}</span>
-                        </div>
-                      ) : null}
-                    </div>
+                  {/* Branch Badge */}
+                  {product.Branch && (
+                    <Badge variant="secondary" className={cn("text-[10px]", rtl && "font-arabic")}>
+                      {rtl ? product.Branch.nameAr || product.Branch.name : product.Branch.name}
+                    </Badge>
                   )}
 
-                  {/* Staff Assignment List */}
+                  {/* Assigned Staff Names (services only) */}
                   {isServices && productStaffMap[product.id]?.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {productStaffMap[product.id].map(st => (
@@ -1323,7 +997,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                       onClick={() => handleOpenEdit(product)}
                       className={cn("gap-1.5 text-xs h-8", rtl && "font-arabic")}
                     >
-                      <Pencil className="w-3.5 h-3.5" />
+                      <Pencil className="w-3 h-3" />
                       {t(locale, "edit")}
                     </Button>
                     <Button

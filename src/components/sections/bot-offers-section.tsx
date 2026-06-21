@@ -189,7 +189,7 @@ export function BotOffersSection() {
                     <TableCell className={cn(rtl && "text-right font-arabic")}>
                       <Badge variant="outline">{offer.discountType === "percentage" ? t(locale, "offers.percentage") : t(locale, "offers.fixed")}</Badge>
                     </TableCell>
-                    <TableCell className={cn(rtl && "text-right")}>{offer.discountType === "percentage" ? `${offer.discountValue}%` : `${offer.discountValue} JOD`}</TableCell>
+                    <TableCell className={cn(rtl && "text-right")}>{offer.discountType === "percentage" ? `${offer.discountValue}%` : `${offer.discountValue} ${rtl ? "ر.س" : "SAR"}`}</TableCell>
                     <TableCell className={cn(rtl && "text-right")}>
                       {offer.isActive ? (
                         <Badge variant="default" className="gap-1"><CheckCircle2 className="w-3 h-3" />{t(locale, "active")}</Badge>

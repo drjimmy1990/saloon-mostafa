@@ -355,7 +355,7 @@ export function SettingsSection() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="deliveryFee" className={cn(rtl && "font-arabic")}>
-                {rtl ? "رسوم التوصيل (د.أ)" : "Delivery Fee (JOD)"}
+                {rtl ? "رسوم التوصيل (ر.س)" : "Delivery Fee (SAR)"}
               </Label>
               <Input
                 id="deliveryFee"

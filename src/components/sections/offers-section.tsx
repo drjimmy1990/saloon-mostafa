@@ -189,7 +189,7 @@ export function OffersSection() {
     if (offer.discountType === "percentage") {
       return `${offer.discountValue}%`;
     }
-    return `${offer.discountValue} ${rtl ? "د.أ" : "JOD"}`;
+    return `${offer.discountValue} ${rtl ? "ر.س" : "SAR"}`;
   };
 
   // ─── Render ──────────────────────────────────────────────────────────────────
