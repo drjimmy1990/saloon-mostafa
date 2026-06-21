@@ -27,9 +27,11 @@ export async function GET(req: NextRequest) {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     // ─── 1. Expire waiting_payment bookings (10-min hold expired) ───
+    // Cancel them (not "pending") so the slot is fully released and
+    // the unpaid booking doesn't show up as an active booking.
     const { data: expiredPayments, error: err1 } = await supabase
       .from("Booking")
-      .update({ status: "pending", paymentExpiresAt: null })
+      .update({ status: "cancelled", paymentExpiresAt: null })
       .eq("status", "waiting_payment")
       .lt("paymentExpiresAt", now)
       .select("id, bookingCode");
@@ -41,7 +43,7 @@ export async function GET(req: NextRequest) {
     const expiredPaymentCount = expiredPayments?.length || 0;
     if (expiredPaymentCount > 0) {
       console.log(
-        `⏰ Expired ${expiredPaymentCount} waiting_payment bookings:`,
+        `⏰ Cancelled ${expiredPaymentCount} unpaid waiting_payment bookings:`,
         expiredPayments?.map((b) => b.bookingCode).join(", ")
       );
     }

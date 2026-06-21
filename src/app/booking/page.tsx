@@ -165,34 +165,25 @@ function BookingForm() {
       const data = await res.json();
       if (!res.ok) { toast.error(data.error || "حدث خطأ أثناء الحجز"); return; }
 
-      // If card deposit selected, redirect to Paymob for payment
-      if (paymentMethod === "card" && depositAmount > 0 && data.bookingId) {
-        try {
-          const payRes = await fetch("/api/payment/intent", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "booking",
-              id: data.bookingId,
-              amount: Math.round(depositAmount * 100), // Convert to cents
-              billingData: {
-                first_name: name.split(" ")[0] || "NA",
-                last_name: name.split(" ").slice(1).join(" ") || ".",
-                email: "na@na.com",
-                phone_number: phone,
-              },
-            }),
-          });
-          const payData = await payRes.json();
-          if (payData.checkoutUrl) {
-            window.location.href = payData.checkoutUrl;
-            return;
-          }
-        } catch {
-          toast.error("حدث خطأ في إنشاء رابط الدفع. تم حفظ حجزك وسنتواصل معك.");
+      // ── PAYMENT REDIRECT ────────────────────────────────────────
+      // The booking API already created the Paymob intention and returned
+      // the checkout URL. Use it directly — do NOT call /api/payment/intent
+      // again as that will fail with "reference already exists" on Paymob.
+      if (paymentMethod === "card" && depositAmount > 0) {
+        if (data.paymentUrl) {
+          // Hard redirect to Paymob checkout — success screen is shown
+          // only AFTER Paymob redirects back to /booking/success?code=...
+          window.location.href = data.paymentUrl;
+          return; // Stop here — do NOT show success screen
+        } else {
+          // Paymob URL was not generated (e.g. Paymob misconfigured on server).
+          // Do NOT let the booking appear as confirmed to the user.
+          toast.error("تعذر إنشاء رابط الدفع. يرجى التواصل معنا لإتمام الحجز.");
+          console.error("Card payment required but no paymentUrl returned:", data);
+          return; // Stop — booking stays as waiting_payment in DB
         }
       }
-
+      // ── CASH / FREE BOOKING ─────────────────────────────────────
       setBookingResult(data); setQueueNumber(data.queueNumber || null); setSubmitted(true);
       toast.success("تم تأكيد الحجز بنجاح! 🌸");
     } catch { toast.error("حدث خطأ أثناء الحجز. يرجى المحاولة مرة أخرى."); }

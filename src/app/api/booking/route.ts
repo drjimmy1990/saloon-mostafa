@@ -262,12 +262,16 @@ export async function POST(req: NextRequest) {
           .eq("id", booking.id);
       } catch (payErr) {
         console.error("Paymob intent error for booking:", payErr);
-        // Don't fail the booking — just skip payment link
-        // Revert to pending status so admin can handle manually
+        // Payment intent creation failed — cancel the booking entirely
+        // so the slot is not held by an unpayable waiting_payment booking.
         await supabase
           .from("Booking")
-          .update({ status: "pending", paymentExpiresAt: null })
+          .update({ status: "cancelled", paymentExpiresAt: null })
           .eq("id", booking.id);
+        return NextResponse.json(
+          { error: "تعذر إنشاء رابط الدفع. يرجى المحاولة مرة أخرى أو التواصل معنا." },
+          { status: 500 }
+        );
       }
     }
 
