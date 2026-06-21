@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Tajawal, Cairo, Playfair_Display, Alex_Brush, Monsieur_La_Doulaise } from "next/font/google";
+import { Tajawal, Cairo, Playfair_Display, Alex_Brush, Monsieur_La_Doulaise, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -40,6 +40,13 @@ const monsieur = Monsieur_La_Doulaise({
   subsets: ["latin"],
   weight: ["400"],
   variable: "--font-monsieur",
+  display: "swap",
+});
+
+const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic", "latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-ibm-plex-sans-arabic",
   display: "swap",
 });
 
@@ -84,7 +91,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" className={`${tajawal.variable} ${cairo.variable} ${playfair.variable} ${alexBrush.variable} ${monsieur.variable}`}>
+    <html lang="ar" dir="rtl" className={`${tajawal.variable} ${cairo.variable} ${playfair.variable} ${alexBrush.variable} ${monsieur.variable} ${ibmPlexSansArabic.variable}`}>
       <head>
         <script
           type="application/ld+json"

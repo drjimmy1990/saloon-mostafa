@@ -76,9 +76,8 @@ export function HeroSection() {
             {/* Heading */}
             <h1
               className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-dark leading-[1.15] mb-6"
-              style={{ fontFamily: "'Tajawal', sans-serif" }}
+              style={{ fontFamily: "var(--font-ibm-plex-sans-arabic), sans-serif" }}
             >
-              مرحباً بك في{" "}
               <span className="gradient-text relative inline-block">
                 صالون نون
                   <svg
