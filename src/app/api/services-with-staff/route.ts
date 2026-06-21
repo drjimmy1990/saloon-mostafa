@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (!services || services.length === 0) {
-      return NextResponse.json([]);
+      return NextResponse.json({ error: "no available services" });
     }
 
     // 2. Get all staff assignments — separate query to avoid join issues
@@ -129,6 +129,10 @@ export async function GET(req: NextRequest) {
       image: image || svcs[0]?.images?.[0] || null,
       services: svcs,
     }));
+
+    if (result.length === 0) {
+      return NextResponse.json({ error: "no available services" });
+    }
 
     return NextResponse.json(result);
   } catch (err) {

@@ -25,6 +25,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // If active=true, only return branches that have at least one active/available service
+  if (active === "true" && data && data.length > 0) {
+    const { data: activeProducts, error: prodErr } = await supabase
+      .from("Product")
+      .select("branchId")
+      .eq("isAvailable", true)
+      .eq("type", "service")
+      .or("publishAt.is.null,publishAt.lte." + new Date().toISOString());
+
+    if (!prodErr && activeProducts) {
+      const activeBranchIds = new Set(
+        activeProducts.map((p) => p.branchId).filter(Boolean)
+      );
+      const filteredBranches = data.filter((b) => activeBranchIds.has(b.id));
+      return NextResponse.json(filteredBranches);
+    }
+  }
+
   return NextResponse.json(data);
 }
 
