@@ -63,13 +63,16 @@ export function HeroSection() {
             className="text-center lg:text-right"
           >
             {/* Heading */}
-            <h1 className="mb-6">
-              <span
-                className="text-dark block mb-3 text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold py-1 leading-none tracking-wide"
-                style={{ fontFamily: "var(--font-alex-brush), cursive", direction: "ltr" }}
-              >
-                Salon Noon
-              </span>
+            <h1 className="mb-6 flex flex-col items-center lg:items-end">
+              <div className="relative w-64 md:w-80 lg:w-[350px] aspect-[774/300] mb-3">
+                <Image
+                  src="/english.jpeg"
+                  alt="Salon Noon"
+                  fill
+                  priority
+                  className="object-contain"
+                />
+              </div>
               <span
                 className="gradient-text relative inline-block text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black leading-[1.15]"
                 style={{ fontFamily: "var(--font-ibm-plex-sans-arabic), sans-serif" }}
