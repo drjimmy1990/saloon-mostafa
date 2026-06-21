@@ -150,7 +150,7 @@ export function NotificationsSection() {
                         )}
                         {notif.client && (
                           <Button variant="ghost" size="sm" asChild className={cn("gap-1", rtl && "font-arabic")}>
-                            <a href="/chat">
+                            <a href={`/chat?clientId=${notif.client_id || notif.client.id}`}>
                               <MessageSquare className="w-3 h-3" />
                               {t(locale, "notifications.viewChat")}
                             </a>

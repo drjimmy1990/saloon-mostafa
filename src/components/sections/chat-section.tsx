@@ -5,6 +5,7 @@ import { useAppStore } from "@/lib/store";
 import { t, isRTL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { useSearchParams } from "next/navigation";
 import {
   MessageCircle,
   Bot,
@@ -157,6 +158,8 @@ const senderConfig: Record<
 export function ChatSection() {
   const { locale, activeChatId, setActiveChatId } = useAppStore();
   const rtl = isRTL(locale);
+  const searchParams = useSearchParams();
+  const clientIdParam = searchParams.get("clientId");
 
   const [clients, setClients] = useState<Client[]>([]);
   
@@ -253,6 +256,44 @@ export function ChatSection() {
     setClientPage(1);
     fetchClients(1, false, debouncedSearch);
   }, [debouncedSearch, fetchClients]);
+
+  // ─── Handle Direct Client Link from URL ───────────────────────────────────
+  useEffect(() => {
+    if (!clientIdParam) return;
+
+    // Check if client is already in the loaded list
+    const existing = clients.find(c => c.id === clientIdParam);
+    if (existing) {
+      if (activeChatId !== clientIdParam) {
+        setActiveChatId(clientIdParam);
+        setMobileShowChat(true);
+      }
+      return;
+    }
+
+    // Fetch the client details if not found in the loaded list
+    let active = true;
+    const fetchSingleClient = async () => {
+      try {
+        const res = await fetch(`/api/clients/${clientIdParam}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.id && active) {
+          setClients(prev => {
+            if (prev.some(c => c.id === data.id)) return prev;
+            return [data, ...prev];
+          });
+          setActiveChatId(data.id);
+          setMobileShowChat(true);
+        }
+      } catch (err) {
+        console.error("Failed to fetch client from URL parameter:", err);
+      }
+    };
+
+    fetchSingleClient();
+    return () => { active = false; };
+  }, [clientIdParam, clients, activeChatId, setActiveChatId]);
 
   // Load more when sentinel is visible
   const loadMore = useCallback(() => {
