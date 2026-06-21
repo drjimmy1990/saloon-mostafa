@@ -62,23 +62,12 @@ export function HeroSection() {
             transition={{ duration: 0.7, ease: "easeOut" }}
             className="text-center lg:text-right"
           >
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full glass border border-terracotta/15 text-dark text-sm font-medium mb-8"
-            >
-              <Sparkles className="w-4 h-4 text-terracotta" />
-              <span style={{ fontFamily: "var(--font-alex-brush), cursive", fontSize: "1.6rem", fontWeight: "normal", letterSpacing: "0.02em" }}>salonnoon</span>
-            </motion.div>
-
             {/* Heading */}
-            <h1
-              className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black text-dark leading-[1.15] mb-6"
-              style={{ fontFamily: "var(--font-ibm-plex-sans-arabic), sans-serif" }}
-            >
-              <span className="gradient-text relative inline-block">
+            <h1 className="mb-6">
+              <span
+                className="gradient-text relative inline-block text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black leading-[1.15]"
+                style={{ fontFamily: "var(--font-ibm-plex-sans-arabic), sans-serif" }}
+              >
                 صالون نون
                   <svg
                     className="absolute -bottom-1 left-0 w-full"
@@ -94,6 +83,12 @@ export function HeroSection() {
                       opacity="0.3"
                     />
                   </svg>
+              </span>
+              <span
+                className="gradient-gold block mt-2 text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-normal py-2 leading-none"
+                style={{ fontFamily: "var(--font-monsieur), var(--font-alex-brush), cursive", direction: "ltr" }}
+              >
+                Salon Noon
               </span>
             </h1>
 
