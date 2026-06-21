@@ -65,6 +65,12 @@ export function HeroSection() {
             {/* Heading */}
             <h1 className="mb-6">
               <span
+                className="gradient-gold block mb-3 text-2xl md:text-3xl lg:text-4xl font-bold py-1 leading-none tracking-wide"
+                style={{ fontFamily: "var(--font-monsieur), var(--font-alex-brush), cursive", direction: "ltr" }}
+              >
+                Salon Noon
+              </span>
+              <span
                 className="gradient-text relative inline-block text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-black leading-[1.15]"
                 style={{ fontFamily: "var(--font-ibm-plex-sans-arabic), sans-serif" }}
               >
@@ -83,12 +89,6 @@ export function HeroSection() {
                       opacity="0.3"
                     />
                   </svg>
-              </span>
-              <span
-                className="gradient-gold block mt-2 text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-normal py-2 leading-none"
-                style={{ fontFamily: "var(--font-monsieur), var(--font-alex-brush), cursive", direction: "ltr" }}
-              >
-                Salon Noon
               </span>
             </h1>
 
