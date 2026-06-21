@@ -269,6 +269,10 @@ export function ChatSection() {
       setActiveChatId(clientIdParam);
       setMobileShowChat(true);
       lastInitializedClientId.current = clientIdParam;
+      // Clear the query parameter from the URL immediately so it doesn't lock selection
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", "/chat");
+      }
       return;
     }
 
@@ -287,6 +291,10 @@ export function ChatSection() {
           setActiveChatId(data.id);
           setMobileShowChat(true);
           lastInitializedClientId.current = clientIdParam;
+          // Clear the query parameter from the URL immediately so it doesn't lock selection
+          if (typeof window !== "undefined") {
+            window.history.replaceState(null, "", "/chat");
+          }
         }
       } catch (err) {
         console.error("Failed to fetch client from URL parameter:", err);
@@ -424,6 +432,9 @@ export function ChatSection() {
   const handleSelectClient = (id: string) => {
     setActiveChatId(id);
     setMobileShowChat(true);
+    if (typeof window !== "undefined" && window.location.search.includes("clientId")) {
+      window.history.replaceState(null, "", "/chat");
+    }
   };
 
   const handleSendMessage = async () => {
