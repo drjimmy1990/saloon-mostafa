@@ -176,6 +176,7 @@ export function ChatSection() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastInitializedClientId = useRef<string | null>(null);
 
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
@@ -260,14 +261,14 @@ export function ChatSection() {
   // ─── Handle Direct Client Link from URL ───────────────────────────────────
   useEffect(() => {
     if (!clientIdParam) return;
+    if (lastInitializedClientId.current === clientIdParam) return;
 
     // Check if client is already in the loaded list
     const existing = clients.find(c => c.id === clientIdParam);
     if (existing) {
-      if (activeChatId !== clientIdParam) {
-        setActiveChatId(clientIdParam);
-        setMobileShowChat(true);
-      }
+      setActiveChatId(clientIdParam);
+      setMobileShowChat(true);
+      lastInitializedClientId.current = clientIdParam;
       return;
     }
 
@@ -285,6 +286,7 @@ export function ChatSection() {
           });
           setActiveChatId(data.id);
           setMobileShowChat(true);
+          lastInitializedClientId.current = clientIdParam;
         }
       } catch (err) {
         console.error("Failed to fetch client from URL parameter:", err);
@@ -293,7 +295,7 @@ export function ChatSection() {
 
     fetchSingleClient();
     return () => { active = false; };
-  }, [clientIdParam, clients, activeChatId, setActiveChatId]);
+  }, [clientIdParam, clients, setActiveChatId]);
 
   // Load more when sentinel is visible
   const loadMore = useCallback(() => {
