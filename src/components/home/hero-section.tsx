@@ -66,7 +66,7 @@ export function HeroSection() {
             <h1 className="mb-6">
               <span
                 className="text-dark block mb-3 text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold py-1 leading-none tracking-wide"
-                style={{ fontFamily: "var(--font-allura), var(--font-alex-brush), cursive", direction: "ltr" }}
+                style={{ fontFamily: "var(--font-alex-brush), cursive", direction: "ltr" }}
               >
                 Salon Noon
               </span>

@@ -130,11 +130,11 @@
   --terracotta-700: #3f3f46;
   --terracotta-800: #27272a;
   --terracotta-900: #18181b;
-  --cream: #faf8f5;
+  --cream: #faf2e9;
   --dark: #000000;
 
   /* ── Shadcn mapped to brand ── */
-  --background: #faf8f5;
+  --background: #faf2e9;
   --foreground: #000000;
   --card: #ffffff;
   --card-foreground: #000000;
@@ -146,7 +146,7 @@
   --secondary-foreground: #ffffff;
   --muted: #f5f2eb;
   --muted-foreground: #52525b;
-  --accent: #faf8f5;
+  --accent: #faf2e9;
   --accent-foreground: #000000;
   --destructive: #e53e3e;
   --border: #e4e4e7;
@@ -155,14 +155,14 @@
   --chart-1: #3f3f46;
   --chart-2: #778a7e;
   --chart-3: #b09e7c;
-  --chart-4: #faf8f5;
+  --chart-4: #faf2e9;
   --chart-5: #e4e4e7;
   --radius: 0.75rem;
-  --sidebar: #faf8f5;
+  --sidebar: #faf2e9;
   --sidebar-foreground: #000000;
   --sidebar-primary: #3f3f46;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #faf8f5;
+  --sidebar-accent: #faf2e9;
   --sidebar-accent-foreground: #000000;
   --sidebar-border: #e4e4e7;
   --sidebar-ring: #3f3f46;
@@ -333,7 +333,7 @@ html {
    ══════════════════════════════════════ */
 
 .gradient-hero {
-  background: linear-gradient(135deg, #faf8f5 0%, #eae5db 50%, #faf8f5 100%);
+  background: linear-gradient(135deg, #faf2e9 0%, #eae5db 50%, #faf2e9 100%);
 }
 
 .gradient-terracotta {
@@ -350,7 +350,7 @@ html {
     radial-gradient(ellipse at 20% 50%, rgba(176, 158, 124, 0.1) 0%, transparent 50%),
     radial-gradient(ellipse at 80% 20%, rgba(125, 109, 84, 0.08) 0%, transparent 50%),
     radial-gradient(ellipse at 50% 80%, rgba(154, 135, 104, 0.08) 0%, transparent 50%),
-    linear-gradient(135deg, #faf8f5 0%, #f4f0e6 100%);
+    linear-gradient(135deg, #faf2e9 0%, #f4f0e6 100%);
 }
 
 .gradient-text {
