@@ -75,20 +75,6 @@ export function HeroSection() {
                 style={{ fontFamily: "var(--font-ibm-plex-sans-arabic), sans-serif" }}
               >
                 صالون نون
-                  <svg
-                    className="absolute -bottom-1 left-0 w-full"
-                    viewBox="0 0 200 8"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M1 5.5C40 2 80 1 100 3C120 5 160 6.5 199 2"
-                      stroke="var(--terracotta)"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      opacity="0.3"
-                    />
-                  </svg>
               </span>
             </h1>
 
