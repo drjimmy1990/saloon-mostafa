@@ -11,10 +11,9 @@ export async function GET(req: NextRequest) {
     // 1. Get all available services for this branch
     let svcQuery = supabase
       .from("Product")
-      .select("id, name, price, images, category, durationMinutes, durationMode, depositAmount, branchId")
+      .select("id, name, price, images, category, durationMinutes, durationMode, depositAmount, branchId, publishAt")
       .eq("isAvailable", true)
       .eq("type", "service")
-      .or("publishAt.is.null,publishAt.lte." + new Date().toISOString())
       .order("sortOrder", { ascending: true });
 
     if (branchId) {

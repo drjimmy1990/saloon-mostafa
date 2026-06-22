@@ -14,7 +14,6 @@ export async function GET(request: Request) {
       .select('id, name, price, images, availableAtHome, availableAtSalon, branchId, category, durationMinutes, durationMode, depositAmount, publishAt')
       .eq('isAvailable', true)
       .eq('type', 'service')
-      .or('publishAt.is.null,publishAt.lte.' + new Date().toISOString())
       .order('sortOrder', { ascending: true });
 
     // Filter by branch if provided

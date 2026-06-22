@@ -31,8 +31,7 @@ export async function GET(req: NextRequest) {
       .from("Product")
       .select("branchId")
       .eq("isAvailable", true)
-      .eq("type", "service")
-      .or("publishAt.is.null,publishAt.lte." + new Date().toISOString());
+      .eq("type", "service");
 
     if (!prodErr && activeProducts) {
       const activeBranchIds = new Set(

@@ -50,14 +50,23 @@ export async function POST(req: NextRequest) {
 
     const supabase = getServiceRoleClient();
 
-    // 0. Get service details (for deposit amount)
+    // 0. Get service details (for deposit amount and booking availability)
     const { data: service } = await supabase
       .from("Product")
-      .select("id, name, depositAmount")
+      .select("id, name, depositAmount, publishAt")
       .eq("id", serviceId)
       .single();
 
     const depositAmount = service?.depositAmount ? Number(service.depositAmount) : 0;
+
+    // Check if booking is allowed (publishAt must be in the past or null)
+    if (service?.publishAt && new Date(service.publishAt) > new Date()) {
+      const openDate = new Date(service.publishAt).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+      return NextResponse.json(
+        { error: `الحجز غير متاح حالياً — يفتح بتاريخ ${openDate}` },
+        { status: 400 }
+      );
+    }
 
     // 1. Find or create client
     let clientId: string | null = null;

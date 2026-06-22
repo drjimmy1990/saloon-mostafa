@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, ChevronLeft, ChevronRight, MapPin, CalendarDays, User, Sparkles, Clock, Hash, CreditCard, Grid3X3 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, MapPin, CalendarDays, User, Sparkles, Clock, Hash, CreditCard, Grid3X3, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/lib/auth-store";
 
 interface StaffInfo { id: string; name: string; nameAr?: string; avatar?: string; role?: string; }
-interface Service { id: string; name: string; price: number; images: string[]; category?: string; durationMinutes?: number; durationMode?: "time" | "queue"; depositAmount?: number; staff: StaffInfo[]; }
+interface Service { id: string; name: string; price: number; images: string[]; category?: string; durationMinutes?: number; durationMode?: "time" | "queue"; depositAmount?: number; publishAt?: string | null; staff: StaffInfo[]; }
 interface CategoryGroup { category: string; image: string | null; services: Service[]; }
 interface BranchItem { id: string; name: string; nameAr?: string; address?: string; }
 
@@ -284,17 +284,35 @@ function BookingForm() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {staffServiceCards.map(({ service: svc, staffMember: st, key }) => {
           const isSelected = selectedService === svc.id && selectedStaff === st.id;
+          const bookingNotYetOpen = svc.publishAt ? new Date(svc.publishAt) > new Date() : false;
+          const openDate = svc.publishAt ? new Date(svc.publishAt) : null;
+          const formattedOpenDate = openDate ? openDate.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
           return (
-            <button key={key} onClick={() => { setSelectedService(svc.id); setSelectedStaff(st.id); setTimeout(() => setStep(3), 250); }}
+            <button key={key}
+              onClick={() => { if (!bookingNotYetOpen) { setSelectedService(svc.id); setSelectedStaff(st.id); setTimeout(() => setStep(3), 250); } }}
+              disabled={bookingNotYetOpen}
               className={cn(
-                "group flex flex-col text-right rounded-2xl border-2 overflow-hidden transition-all duration-300 hover:shadow-xl",
-                isSelected ? "border-terracotta-500 bg-terracotta-50/50 shadow-lg ring-1 ring-terracotta-300" : "border-gray-100 bg-white hover:border-terracotta-300"
+                "group flex flex-col text-right rounded-2xl border-2 overflow-hidden transition-all duration-300 relative",
+                bookingNotYetOpen
+                  ? "border-gray-200 bg-gray-50 opacity-75 cursor-not-allowed"
+                  : isSelected
+                    ? "border-terracotta-500 bg-terracotta-50/50 shadow-lg ring-1 ring-terracotta-300 hover:shadow-xl"
+                    : "border-gray-100 bg-white hover:border-terracotta-300 hover:shadow-xl"
               )}
               dir="rtl"
             >
+              {/* Booking not yet open overlay */}
+              {bookingNotYetOpen && (
+                <div className="absolute top-2 left-2 z-10">
+                  <Badge className="bg-amber-500 text-white text-[10px] px-2 py-1 font-bold shadow-md gap-1">
+                    <Lock className="w-3 h-3" />
+                    الحجز يفتح {formattedOpenDate}
+                  </Badge>
+                </div>
+              )}
 
               {/* Bottom Info Section */}
-              <div className="p-4 flex flex-col flex-1 w-full justify-between gap-3">
+              <div className={cn("p-4 flex flex-col flex-1 w-full justify-between gap-3", bookingNotYetOpen && "grayscale-[30%]")}>
                 <div>
                   <p className="font-bold text-base font-arabic text-dark leading-tight mb-3 line-clamp-2">{svc.name}</p>
                   
