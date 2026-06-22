@@ -226,33 +226,50 @@ export function SettingsSection() {
 
   const handleSaveUser = async () => {
     try {
-      if (editingUser) {
-        await fetch(`/api/users/${editingUser.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(userForm),
-        });
-      } else {
-        await fetch("/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(userForm),
-        });
+      const res = editingUser
+        ? await fetch(`/api/users/${editingUser.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(userForm),
+          })
+        : await fetch("/api/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(userForm),
+          });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        toast.error(errorData.error || (rtl ? "فشل في حفظ المستخدم" : "Failed to save user"));
+        return;
       }
+
+      toast.success(editingUser
+        ? (rtl ? "تم تحديث المستخدم بنجاح" : "User updated successfully")
+        : (rtl ? "تم إضافة المستخدم بنجاح" : "User added successfully")
+      );
       fetchUsers();
       setUserDialogOpen(false);
     } catch (err) {
       console.error("Failed to save user", err);
+      toast.error(rtl ? "حدث خطأ غير متوقع" : "An unexpected error occurred");
     }
   };
 
   const handleDeleteUser = async (id: string) => {
     if (!confirm(rtl ? "هل أنت متأكد من حذف هذا المستخدم؟" : "Are you sure you want to delete this user?")) return;
     try {
-      await fetch(`/api/users/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/users/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const errorData = await res.json();
+        toast.error(errorData.error || (rtl ? "فشل في حذف المستخدم" : "Failed to delete user"));
+        return;
+      }
+      toast.success(rtl ? "تم حذف المستخدم بنجاح" : "User deleted successfully");
       fetchUsers();
     } catch (err) {
       console.error("Failed to delete user", err);
+      toast.error(rtl ? "حدث خطأ أثناء حذف المستخدم" : "An error occurred while deleting user");
     }
   };
 

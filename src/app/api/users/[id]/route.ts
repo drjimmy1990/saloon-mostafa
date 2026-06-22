@@ -54,8 +54,28 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
     if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     const { id } = await params;
     const supabase = getServiceRoleClient();
+
+    // 1. Fetch the user_id from AppUserRole first
+    const { data: userRole, error: fetchError } = await supabase
+      .from('AppUserRole')
+      .select('user_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    if (userRole?.user_id) {
+      // 2. Delete the user from Supabase Auth
+      const { error: authError } = await supabase.auth.admin.deleteUser(userRole.user_id);
+      if (authError) {
+        console.error("Failed to delete auth user:", authError);
+      }
+    }
+
+    // 3. Delete from AppUserRole table
     const { error } = await supabase.from('AppUserRole').delete().eq('id', id);
     if (error) throw error;
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);
