@@ -239,6 +239,11 @@ export async function POST(req: NextRequest) {
       try {
         const origin = req.headers.get("origin") || "https://salonnoon.net";
         const n8nPaymentWebhook = process.env.N8N_PAYMENT_WEBHOOK_URL;
+        console.log("DEBUG PAYMOB ENV:", {
+          PAYMOB_INTEGRATION_ID: process.env.PAYMOB_INTEGRATION_ID,
+          PAYMOB_SECRET_KEY: process.env.PAYMOB_SECRET_KEY ? `${process.env.PAYMOB_SECRET_KEY.slice(0, 15)}...` : "undefined",
+          PAYMOB_BASE_URL: process.env.PAYMOB_BASE_URL,
+        });
         const result = await createPaymentIntention({
           amount: Math.round(depositAmount * 100), // Convert to cents (halalas)
           reference: `BOOKING-${booking.id}`,
