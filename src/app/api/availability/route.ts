@@ -18,15 +18,34 @@ export async function GET(req: NextRequest) {
 
     const supabase = getServiceRoleClient();
 
-    // 1. Get service details (duration, mode)
+    // 1. Get service details (duration, mode, booking availability)
     const { data: service, error: svcErr } = await supabase
       .from("Product")
-      .select("id, name, durationMinutes, durationMode, depositAmount")
+      .select("id, name, durationMinutes, durationMode, depositAmount, publishAt")
       .eq("id", serviceId)
       .single();
 
     if (svcErr || !service) {
       return NextResponse.json({ error: "Service not found" }, { status: 404 });
+    }
+
+    // 1b. Check if requested date is before the booking availability start date
+    if (service.publishAt) {
+      // Compare date strings (YYYY-MM-DD) in Saudi timezone
+      const availabilityStartDate = new Date(service.publishAt)
+        .toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" }); // 'sv-SE' gives YYYY-MM-DD
+      if (date < availabilityStartDate) {
+        const openDate = new Date(service.publishAt)
+          .toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh", year: "numeric", month: "long", day: "numeric" });
+        return NextResponse.json({
+          mode: service.durationMode,
+          slots: [],
+          blocked: false,
+          bookingNotYetOpen: true,
+          availabilityStartDate,
+          message: `المواعيد تبدأ من ${openDate}`,
+        });
+      }
     }
 
     // If queue mode, just return the next queue number

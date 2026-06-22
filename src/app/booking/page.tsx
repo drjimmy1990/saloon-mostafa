@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, ChevronLeft, ChevronRight, MapPin, CalendarDays, User, Sparkles, Clock, Hash, CreditCard, Grid3X3, Lock } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, MapPin, CalendarDays, User, Sparkles, Clock, Hash, CreditCard, Grid3X3, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/lib/auth-store";
@@ -191,6 +191,17 @@ function BookingForm() {
   };
 
   const today = new Date().toISOString().split("T")[0];
+
+  // Get booking availability start date for selected service (YYYY-MM-DD in Saudi timezone)
+  const getServiceAvailabilityMin = (svc?: Service): string => {
+    if (!svc?.publishAt) return today;
+    const pubDate = new Date(svc.publishAt)
+      .toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" }); // 'sv-SE' yields YYYY-MM-DD
+    return pubDate > today ? pubDate : today;
+  };
+
+  const minDate = getServiceAvailabilityMin(serviceObj);
+
   const fmt12h = (t24: string) => {
     const [h, m] = t24.split(":").map(Number);
     const ampm = h >= 12 ? "م" : "ص";
@@ -284,29 +295,39 @@ function BookingForm() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {staffServiceCards.map(({ service: svc, staffMember: st, key }) => {
           const isSelected = selectedService === svc.id && selectedStaff === st.id;
-          const bookingNotYetOpen = svc.publishAt ? new Date(svc.publishAt) > new Date() : false;
           const openDate = svc.publishAt ? new Date(svc.publishAt) : null;
-          const formattedOpenDate = openDate ? openDate.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+          const availabilityStartDate = openDate
+            ? openDate.toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" })
+            : null;
+          const bookingNotYetOpen = availabilityStartDate ? availabilityStartDate > today : false;
+          const formattedOpenDate = openDate
+            ? openDate.toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh", year: "numeric", month: "long", day: "numeric" })
+            : "";
           return (
             <button key={key}
-              onClick={() => { if (!bookingNotYetOpen) { setSelectedService(svc.id); setSelectedStaff(st.id); setTimeout(() => setStep(3), 250); } }}
-              disabled={bookingNotYetOpen}
+              onClick={() => { setSelectedService(svc.id); setSelectedStaff(st.id);
+                // Reset date if it's before this service's availability start
+                if (availabilityStartDate && selectedDate && selectedDate < availabilityStartDate) {
+                  setSelectedDate(""); setSelectedTime("");
+                }
+                setTimeout(() => setStep(3), 250);
+              }}
               className={cn(
                 "group flex flex-col text-right rounded-2xl border-2 overflow-hidden transition-all duration-300 relative",
                 bookingNotYetOpen
-                  ? "border-gray-200 bg-gray-50 opacity-75 cursor-not-allowed"
+                  ? "border-amber-200 bg-amber-50/30"
                   : isSelected
                     ? "border-terracotta-500 bg-terracotta-50/50 shadow-lg ring-1 ring-terracotta-300 hover:shadow-xl"
                     : "border-gray-100 bg-white hover:border-terracotta-300 hover:shadow-xl"
               )}
               dir="rtl"
             >
-              {/* Booking not yet open overlay */}
+              {/* Booking availability badge */}
               {bookingNotYetOpen && (
                 <div className="absolute top-2 left-2 z-10">
                   <Badge className="bg-amber-500 text-white text-[10px] px-2 py-1 font-bold shadow-md gap-1">
-                    <Lock className="w-3 h-3" />
-                    الحجز يفتح {formattedOpenDate}
+                    <Calendar className="w-3 h-3" />
+                    المواعيد تبدأ {formattedOpenDate}
                   </Badge>
                 </div>
               )}
@@ -367,7 +388,13 @@ function BookingForm() {
       <h2 className="text-lg font-bold text-right font-arabic">{isQueueMode ? "اختاري التاريخ" : "اختاري الموعد"}</h2>
       <div className="space-y-2">
         <Label className="text-right block font-arabic">التاريخ</Label>
-        <Input type="date" min={today} value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} dir="ltr" />
+        <Input type="date" min={minDate} value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} dir="ltr" />
+        {serviceObj?.publishAt && getServiceAvailabilityMin(serviceObj) > today && (
+          <p className="text-xs text-amber-600 font-arabic text-right mt-1">
+            📅 أقرب موعد متاح:{" "}
+            {new Date(serviceObj.publishAt).toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh", year: "numeric", month: "long", day: "numeric" })}
+          </p>
+        )}
       </div>
       {!isQueueMode && selectedDate && (
         <div className="space-y-2">

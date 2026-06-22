@@ -59,13 +59,19 @@ export async function POST(req: NextRequest) {
 
     const depositAmount = service?.depositAmount ? Number(service.depositAmount) : 0;
 
-    // Check if booking is allowed (publishAt must be in the past or null)
-    if (service?.publishAt && new Date(service.publishAt) > new Date()) {
-      const openDate = new Date(service.publishAt).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
-      return NextResponse.json(
-        { error: `الحجز غير متاح حالياً — يفتح بتاريخ ${openDate}` },
-        { status: 400 }
-      );
+    // Check if chosen appointment date is before booking availability start date
+    if (service?.publishAt) {
+      // Convert publishAt to YYYY-MM-DD in Saudi timezone for date-only comparison
+      const availabilityStartDate = new Date(service.publishAt)
+        .toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" }); // 'sv-SE' gives YYYY-MM-DD
+      if (date < availabilityStartDate) {
+        const openDate = new Date(service.publishAt)
+          .toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh", year: "numeric", month: "long", day: "numeric" });
+        return NextResponse.json(
+          { error: `لا يمكن حجز موعد قبل ${openDate}` },
+          { status: 400 }
+        );
+      }
     }
 
     // 1. Find or create client
