@@ -58,7 +58,8 @@ export async function createPaymentIntention(
     throw new Error("Paymob is not configured. Check environment variables.");
   }
 
-  const body = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const body: Record<string, any> = {
     amount,
     currency: PAYMOB_CURRENCY,
     payment_methods: PAYMOB_INTEGRATION_IDS.map(id => parseInt(id, 10)),
@@ -69,9 +70,12 @@ export async function createPaymentIntention(
       phone_number: (billingData.phone_number || "NA").replace(/[\s\-()]/g, "").slice(0, 15),
     },
     special_reference: reference,
-    notification_url: notificationUrl || "",
     redirection_url: redirectionUrl || "",
   };
+
+  if (notificationUrl) {
+    body.notification_url = notificationUrl;
+  }
 
   const res = await fetch(`${PAYMOB_BASE_URL}/v1/intention/`, {
     method: "POST",

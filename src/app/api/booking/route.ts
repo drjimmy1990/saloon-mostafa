@@ -238,8 +238,7 @@ export async function POST(req: NextRequest) {
     if (hasDeposit && booking?.id) {
       try {
         const origin = req.headers.get("origin") || "https://salonnoon.net";
-        // Payment webhook goes to n8n (handles slot check + WhatsApp notifications)
-        const n8nPaymentWebhook = process.env.N8N_PAYMENT_WEBHOOK_URL || `${origin}/api/payment/webhook`;
+        const n8nPaymentWebhook = process.env.N8N_PAYMENT_WEBHOOK_URL;
         const result = await createPaymentIntention({
           amount: Math.round(depositAmount * 100), // Convert to cents (halalas)
           reference: `BOOKING-${booking.id}`,
@@ -249,7 +248,7 @@ export async function POST(req: NextRequest) {
             email: "booking@salonnoon.net",
             phone_number: phone,
           },
-          notificationUrl: n8nPaymentWebhook,
+          ...(n8nPaymentWebhook ? { notificationUrl: n8nPaymentWebhook } : {}),
           redirectionUrl: `${origin}/booking/success?code=${bookingCode}`,
         });
 
