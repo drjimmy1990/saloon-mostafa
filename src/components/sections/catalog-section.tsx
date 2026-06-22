@@ -244,11 +244,11 @@ const emptyProductFormData: ProductFormData = {
 const DURATION_OPTIONS = [15, 30, 45, 50, 60, 90, 120, 180];
 
 const PUBLISH_OPTIONS = [
-  { value: "", labelAr: "حالاً", labelEn: "Immediately" },
-  { value: "1", labelAr: "بعد يوم", labelEn: "After 1 day" },
-  { value: "2", labelAr: "بعد يومين", labelEn: "After 2 days" },
-  { value: "3", labelAr: "بعد 3 أيام", labelEn: "After 3 days" },
-  { value: "7", labelAr: "بعد أسبوع", labelEn: "After 1 week" },
+  { value: "", labelAr: "متاح الآن", labelEn: "Available Now" },
+  { value: "1", labelAr: "يفتح بعد يوم", labelEn: "Opens after 1 day" },
+  { value: "2", labelAr: "يفتح بعد يومين", labelEn: "Opens after 2 days" },
+  { value: "3", labelAr: "يفتح بعد 3 أيام", labelEn: "Opens after 3 days" },
+  { value: "7", labelAr: "يفتح بعد أسبوع", labelEn: "Opens after 1 week" },
 ];
 
 const emptyCategoryFormData: CategoryFormData = {
