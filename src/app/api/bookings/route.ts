@@ -51,13 +51,16 @@ export async function GET(request: NextRequest) {
     const to = from + limit - 1;
 
     // Build filtered query
+    const isChannelUUID = channel !== 'all' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(channel);
+    const useInnerJoin = !!search || isChannelUUID;
+    const clientSelect = useInnerJoin ? 'client:Client!inner(*)' : 'client:Client(*)';
+
     let query = supabase
       .from('Booking')
-      .select('*, client:Client(*), staff:Staff!Booking_staff_id_fkey(id, name)', { count: 'exact' });
+      .select(`*, ${clientSelect}, staff:Staff!Booking_staff_id_fkey(id, name)`, { count: 'exact' });
 
     if (channel !== 'all') {
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(channel);
-      if (isUUID) {
+      if (isChannelUUID) {
         query = query.eq('client.channel_id', channel);
       } else {
         query = query.eq('channelType', channel);
