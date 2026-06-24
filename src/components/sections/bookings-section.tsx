@@ -297,6 +297,28 @@ const statColorMap = {
   },
 };
 
+const generateTimeSlots = (durationMinutes: number) => {
+  const slots: string[] = [];
+  const startMinutes = 9 * 60; // 09:00 AM
+  const endMinutes = 22 * 60;   // 10:00 PM
+  const step = durationMinutes > 0 ? durationMinutes : 30;
+  
+  for (let m = startMinutes; m + step <= endMinutes; m += step) {
+    const hrs = Math.floor(m / 60);
+    const mins = m % 60;
+    slots.push(`${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`);
+  }
+  return slots;
+};
+
+const formatTimeLabel = (time24: string) => {
+  const [hStr, mStr] = time24.split(':');
+  const h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const displayH = h % 12 === 0 ? 12 : h % 12;
+  return `${displayH.toString().padStart(2, '0')}:${mStr} ${ampm}`;
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function BookingsSection() {
@@ -352,7 +374,7 @@ export function BookingsSection() {
   const [channels, setChannels] = useState<{ id: string; name: string; type: string }[]>([]);
   const [staffList, setStaffList] = useState<{ id: string; name: string }[]>([]);
   const [branchList, setBranchList] = useState<{ id: string; name: string }[]>([]);
-  const [serviceList, setServiceList] = useState<{ id: string; name: string }[]>([]);
+  const [serviceList, setServiceList] = useState<{ id: string; name: string; durationMinutes?: number; durationMode?: string }[]>([]);
 
   // ─── Manual Booking Dialog State ──────────────────────────────────────
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
@@ -365,6 +387,7 @@ export function BookingsSection() {
   const [mbBranchId, setMbBranchId] = useState("");
   const [mbDate, setMbDate] = useState("");
   const [mbTime, setMbTime] = useState("");
+  const [mbSlotNumber, setMbSlotNumber] = useState<number | "">("");
   const [mbLocation, setMbLocation] = useState("salon");
   const [mbNotes, setMbNotes] = useState("");
 
@@ -379,6 +402,7 @@ export function BookingsSection() {
   const [ebBranchId, setEbBranchId] = useState("");
   const [ebDate, setEbDate] = useState("");
   const [ebTime, setEbTime] = useState("");
+  const [ebSlotNumber, setEbSlotNumber] = useState<number | "">("");
   const [ebLocation, setEbLocation] = useState("salon");
   const [ebNotes, setEbNotes] = useState("");
   const [ebStatus, setEbStatus] = useState<BookingStatus>("pending");
@@ -491,11 +515,15 @@ export function BookingsSection() {
   };
 
   const handleManualBookingSave = async () => {
-    if (!mbClientName || !mbClientPhone || !mbServiceId || !mbDate) return;
+    if (!mbClientName || !mbClientPhone || !mbServiceId || !mbDate || !mbStaffId || mbStaffId === "none") return;
+    const selectedService = serviceList.find(s => s.id === mbServiceId);
+    const isQueueMode = selectedService?.durationMode === "queue";
+    if (isQueueMode && mbSlotNumber === "") return;
+    if (!isQueueMode && !mbTime) return;
+
     setManualSaving(true);
     setMbError(null);
     try {
-      const selectedService = serviceList.find(s => s.id === mbServiceId);
       const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -505,8 +533,9 @@ export function BookingsSection() {
           serviceId: mbServiceId,
           serviceSummary: selectedService?.name || '',
           bookingDate: mbDate,
-          bookingTime: mbTime,
-          staff_id: (mbStaffId === "none" || !mbStaffId) ? undefined : mbStaffId,
+          bookingTime: isQueueMode ? undefined : mbTime,
+          slotNumber: isQueueMode ? Number(mbSlotNumber) : undefined,
+          staff_id: mbStaffId,
           branchId: mbBranchId || undefined,
           location: mbLocation,
           notes: mbNotes,
@@ -527,6 +556,7 @@ export function BookingsSection() {
         setManualDialogOpen(false);
         setMbClientName(''); setMbClientPhone(''); setMbServiceId('');
         setMbStaffId(''); setMbBranchId(''); setMbDate(''); setMbTime('');
+        setMbSlotNumber('');
         setMbLocation('salon'); setMbNotes('');
         setMbError(null);
         fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
@@ -573,10 +603,11 @@ export function BookingsSection() {
     setEbClientName(booking.client?.name || "");
     setEbClientPhone(booking.client?.phone || "");
     setEbServiceId(booking.serviceId || "");
-    setEbStaffId(booking.staff_id || "none");
+    setEbStaffId(booking.staff_id || "");
     setEbBranchId(booking.branchId || "");
     setEbDate(booking.bookingDate ? booking.bookingDate.split('T')[0] : "");
     setEbTime(booking.bookingTime || "");
+    setEbSlotNumber(booking.slotNumber || "");
     setEbLocation(booking.location || "salon");
     setEbNotes(booking.notes || "");
     setEbStatus(booking.status || "pending");
@@ -586,12 +617,15 @@ export function BookingsSection() {
 
   const handleEditBookingSave = async () => {
     if (!selectedBooking) return;
-    if (!ebClientName || !ebClientPhone || !ebServiceId || !ebDate) return;
+    if (!ebClientName || !ebClientPhone || !ebServiceId || !ebDate || !ebStaffId || ebStaffId === "none") return;
+    const selectedService = serviceList.find(s => s.id === ebServiceId);
+    const isQueueMode = selectedService?.durationMode === "queue";
+    if (isQueueMode && ebSlotNumber === "") return;
+    if (!isQueueMode && !ebTime) return;
 
     setEditSaving(true);
     setEbError(null);
     try {
-      const selectedService = serviceList.find(s => s.id === ebServiceId);
       const res = await fetch(`/api/bookings/${selectedBooking.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -601,8 +635,9 @@ export function BookingsSection() {
           serviceId: ebServiceId,
           serviceSummary: selectedService?.name || '',
           bookingDate: ebDate,
-          bookingTime: ebTime || undefined,
-          staff_id: (ebStaffId === "none" || !ebStaffId) ? undefined : ebStaffId,
+          bookingTime: isQueueMode ? undefined : (ebTime || undefined),
+          slotNumber: isQueueMode ? Number(ebSlotNumber) : null,
+          staff_id: ebStaffId,
           branchId: ebBranchId || undefined,
           location: ebLocation,
           notes: ebNotes,
@@ -721,6 +756,14 @@ export function BookingsSection() {
       </Badge>
     );
   };
+
+  const selectedMbService = serviceList.find(s => s.id === mbServiceId);
+  const mbDurationMode = selectedMbService?.durationMode || 'time';
+  const mbDurationMinutes = Number(selectedMbService?.durationMinutes) || 30;
+
+  const selectedEbService = serviceList.find(s => s.id === ebServiceId);
+  const ebDurationMode = selectedEbService?.durationMode || 'time';
+  const ebDurationMinutes = Number(selectedEbService?.durationMinutes) || 30;
 
   return (
     <div className="space-y-6" dir={rtl ? "rtl" : "ltr"}>
@@ -1699,7 +1742,6 @@ export function BookingsSection() {
                 <Select value={mbStaffId} onValueChange={setMbStaffId}>
                   <SelectTrigger className={cn(rtl && "font-arabic")}><SelectValue placeholder={t(locale, "bookings.selectStaff")} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">{rtl ? "بدون عاملة" : "No staff"}</SelectItem>
                     {staffList.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -1717,10 +1759,34 @@ export function BookingsSection() {
                 <Label className={cn(rtl && "font-arabic")}>{t(locale, "date")}</Label>
                 <Input type="date" value={mbDate} onChange={(e) => setMbDate(e.target.value)} dir="ltr" />
               </div>
-              <div className="space-y-2">
-                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.bookingTime")}</Label>
-                <Input type="time" value={mbTime} onChange={(e) => setMbTime(e.target.value)} dir="ltr" />
-              </div>
+              {mbDurationMode === "queue" ? (
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.slotNumber")}</Label>
+                  <Input 
+                    type="number" 
+                    min={1} 
+                    value={mbSlotNumber} 
+                    onChange={(e) => setMbSlotNumber(e.target.value === "" ? "" : Number(e.target.value))} 
+                    className={cn(rtl && "text-right font-arabic")} 
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.bookingTime")}</Label>
+                  <Select value={mbTime} onValueChange={setMbTime}>
+                    <SelectTrigger className="font-sans animate-none" dir="ltr">
+                      <SelectValue placeholder="--:--" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {generateTimeSlots(mbDurationMinutes).map((slot) => (
+                        <SelectItem key={slot} value={slot}>
+                          {formatTimeLabel(slot)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1745,7 +1811,7 @@ export function BookingsSection() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setManualDialogOpen(false)} className={cn(rtl && "font-arabic")}>{t(locale, "cancel")}</Button>
-            <Button onClick={handleManualBookingSave} disabled={manualSaving || !mbClientName || !mbClientPhone || !mbServiceId || !mbDate}>
+            <Button onClick={handleManualBookingSave} disabled={manualSaving || !mbClientName || !mbClientPhone || !mbServiceId || !mbDate || !mbStaffId || mbStaffId === "none" || (mbDurationMode === "queue" ? mbSlotNumber === "" : !mbTime)}>
               {manualSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               <span className={cn(rtl && "font-arabic")}>{t(locale, "save")}</span>
             </Button>
@@ -1816,7 +1882,6 @@ export function BookingsSection() {
                 <Select value={ebStaffId} onValueChange={setEbStaffId}>
                   <SelectTrigger className={cn(rtl && "font-arabic")}><SelectValue placeholder={t(locale, "bookings.selectStaff")} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">{rtl ? "بدون عاملة" : "No staff"}</SelectItem>
                     {staffList.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -1834,10 +1899,34 @@ export function BookingsSection() {
                 <Label className={cn(rtl && "font-arabic")}>{t(locale, "date")}</Label>
                 <Input type="date" value={ebDate} onChange={(e) => setEbDate(e.target.value)} dir="ltr" />
               </div>
-              <div className="space-y-2">
-                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.bookingTime")}</Label>
-                <Input type="time" value={ebTime} onChange={(e) => setEbTime(e.target.value)} dir="ltr" />
-              </div>
+              {ebDurationMode === "queue" ? (
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.slotNumber")}</Label>
+                  <Input 
+                    type="number" 
+                    min={1} 
+                    value={ebSlotNumber} 
+                    onChange={(e) => setEbSlotNumber(e.target.value === "" ? "" : Number(e.target.value))} 
+                    className={cn(rtl && "text-right font-arabic")} 
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.bookingTime")}</Label>
+                  <Select value={ebTime} onValueChange={setEbTime}>
+                    <SelectTrigger className="font-sans animate-none" dir="ltr">
+                      <SelectValue placeholder="--:--" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {generateTimeSlots(ebDurationMinutes).map((slot) => (
+                        <SelectItem key={slot} value={slot}>
+                          {formatTimeLabel(slot)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1858,7 +1947,7 @@ export function BookingsSection() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} className={cn(rtl && "font-arabic")}>{t(locale, "cancel")}</Button>
-            <Button onClick={handleEditBookingSave} disabled={editSaving || !ebClientName || !ebClientPhone || !ebServiceId || !ebDate}>
+            <Button onClick={handleEditBookingSave} disabled={editSaving || !ebClientName || !ebClientPhone || !ebServiceId || !ebDate || !ebStaffId || ebStaffId === "none" || (ebDurationMode === "queue" ? ebSlotNumber === "" : !ebTime)}>
               {editSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               <span className={cn(rtl && "font-arabic")}>{t(locale, "save")}</span>
             </Button>

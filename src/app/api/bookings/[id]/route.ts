@@ -220,10 +220,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.branchId !== undefined) updateData.branchId = body.branchId;
     if (body.location !== undefined) updateData.location = body.location;
     if (body.notes !== undefined) updateData.notes = body.notes;
+    if (body.slotNumber !== undefined) updateData.slotNumber = body.slotNumber;
 
     if (calculatedBookingDate) {
       updateData.bookingDate = calculatedBookingDate;
-      updateData.bookingTime = targetBookingTime || null;
+      updateData.bookingTime = durationMode === "queue" ? null : (targetBookingTime || null);
       updateData.endTime = calculatedEndTime;
     }
 
