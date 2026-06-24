@@ -18,7 +18,7 @@ export async function GET() {
     ] = await Promise.all([
       supabase.from('Channel').select('*'),
       supabase.from('Product').select('*'),
-      supabase.from('Booking').select('*'),
+      supabase.from('Booking').select('*, client:Client(*)'),
       supabase.from('Client').select('*, Message(id, platform_timestamp)'),
     ]);
 
@@ -74,11 +74,13 @@ export async function GET() {
         if (cType.includes("whatsapp")) channelAr = "واتساب";
         else if (cType.includes("facebook") || cType.includes("messenger")) channelAr = "فيسبوك";
         else if (cType.includes("instagram")) channelAr = "انستجرام";
+        else if (cType.includes("manual")) channelAr = "يدوي";
+        else if (cType.includes("website")) channelAr = "الموقع";
 
         return {
           id: b.id,
-          clientName: b.clientName,
-          clientNameAr: b.clientName, // Fallback if no AR name
+          clientName: (b as any).client?.name || 'Unknown',
+          clientNameAr: (b as any).client?.name || 'Unknown', // Fallback if no AR name
           service: b.serviceSummary,
           serviceAr: b.serviceSummary,
           channel: b.channelType,

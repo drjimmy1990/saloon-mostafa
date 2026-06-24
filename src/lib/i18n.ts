@@ -264,6 +264,8 @@ export const translations = {
       selectSlot: "Select Slot",
       slotTaken: "Taken",
       slotAvailable: "Available",
+      deleteBooking: "Delete Booking",
+      deleteBookingConfirm: "Are you sure you want to delete this booking? This action cannot be undone.",
     },
 
     // Clients
@@ -724,6 +726,8 @@ export const translations = {
       selectSlot: "اختر الدور",
       slotTaken: "محجوز",
       slotAvailable: "متاح",
+      deleteBooking: "حذف الحجز",
+      deleteBookingConfirm: "هل أنت متأكد من حذف هذا الحجز؟ لا يمكن التراجع عن هذا الإجراء.",
     },
 
     // Clients

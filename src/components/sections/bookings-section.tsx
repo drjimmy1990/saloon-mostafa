@@ -28,6 +28,9 @@ import {
   Plus,
   Loader2,
   SlidersHorizontal,
+  AlertCircle,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   Card,
@@ -70,13 +73,25 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type BookingStatus = "pending" | "confirmed" | "cancelled" | "completed" | "waiting_payment";
-type ChannelSource = "whatsapp" | "facebook" | "instagram" | "website";
+type ChannelSource = "whatsapp" | "facebook" | "instagram" | "website" | "manual";
 
 export interface Booking {
   id: string;
@@ -101,6 +116,12 @@ export interface Booking {
   depositStatus?: string;
   depositAmount?: number;
   createdAt?: string;
+  serviceId?: string;
+  staff_id?: string | null;
+  branchId?: string;
+  bookingTime?: string | null;
+  location?: string;
+  notes?: string | null;
 }
 
 // ─── Config Maps ──────────────────────────────────────────────────────────────
@@ -165,7 +186,7 @@ const channelConfig: Record<
     labelAr: string;
     bgColor: string;
     textColor: string;
-    icon: typeof MessageCircle;
+    icon: React.ComponentType<{ className?: string }>;
   }
 > = {
   whatsapp: {
@@ -195,6 +216,13 @@ const channelConfig: Record<
     bgColor: "bg-violet-50 dark:bg-violet-900/20",
     textColor: "text-violet-700 dark:text-violet-400",
     icon: Globe,
+  },
+  manual: {
+    label: "Manual",
+    labelAr: "يدوي",
+    bgColor: "bg-amber-50 dark:bg-amber-900/20",
+    textColor: "text-amber-700 dark:text-amber-400",
+    icon: CalendarCheck,
   },
 };
 
@@ -329,6 +357,7 @@ export function BookingsSection() {
   // ─── Manual Booking Dialog State ──────────────────────────────────────
   const [manualDialogOpen, setManualDialogOpen] = useState(false);
   const [manualSaving, setManualSaving] = useState(false);
+  const [mbError, setMbError] = useState<string | null>(null);
   const [mbClientName, setMbClientName] = useState("");
   const [mbClientPhone, setMbClientPhone] = useState("");
   const [mbServiceId, setMbServiceId] = useState("");
@@ -338,6 +367,25 @@ export function BookingsSection() {
   const [mbTime, setMbTime] = useState("");
   const [mbLocation, setMbLocation] = useState("salon");
   const [mbNotes, setMbNotes] = useState("");
+
+  // ─── Edit Booking Dialog State ────────────────────────────────────────
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [ebError, setEbError] = useState<string | null>(null);
+  const [ebClientName, setEbClientName] = useState("");
+  const [ebClientPhone, setEbClientPhone] = useState("");
+  const [ebServiceId, setEbServiceId] = useState("");
+  const [ebStaffId, setEbStaffId] = useState("");
+  const [ebBranchId, setEbBranchId] = useState("");
+  const [ebDate, setEbDate] = useState("");
+  const [ebTime, setEbTime] = useState("");
+  const [ebLocation, setEbLocation] = useState("salon");
+  const [ebNotes, setEbNotes] = useState("");
+  const [ebStatus, setEbStatus] = useState<BookingStatus>("pending");
+
+  // ─── Delete Confirmation State ────────────────────────────────────────
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteSaving, setDeleteSaving] = useState(false);
 
   useEffect(() => {
     fetch('/api/channels')
@@ -407,11 +455,13 @@ export function BookingsSection() {
 
   // Reset to page 1 when filters change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [channelFilter, statusFilter, staffFilter, clientTypeFilter, dateFrom, dateTo]);
 
   // Fetch on param change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
   }, [page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo, fetchBookings]);
 
@@ -440,22 +490,23 @@ export function BookingsSection() {
     router.push('/chat');
   };
 
-  // ─── Manual Booking Handler ───────────────────────────────────────────
   const handleManualBookingSave = async () => {
     if (!mbClientName || !mbClientPhone || !mbServiceId || !mbDate) return;
     setManualSaving(true);
+    setMbError(null);
     try {
       const selectedService = serviceList.find(s => s.id === mbServiceId);
-      await fetch('/api/bookings', {
+      const res = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientName: mbClientName,
           clientPhone: mbClientPhone,
+          serviceId: mbServiceId,
           serviceSummary: selectedService?.name || '',
           bookingDate: mbDate,
           bookingTime: mbTime,
-          staff_id: mbStaffId || undefined,
+          staff_id: (mbStaffId === "none" || !mbStaffId) ? undefined : mbStaffId,
           branchId: mbBranchId || undefined,
           location: mbLocation,
           notes: mbNotes,
@@ -465,15 +516,29 @@ export function BookingsSection() {
           status: 'confirmed',
         }),
       });
-      setManualDialogOpen(false);
-      setMbClientName(''); setMbClientPhone(''); setMbServiceId('');
-      setMbStaffId(''); setMbBranchId(''); setMbDate(''); setMbTime('');
-      setMbLocation('salon'); setMbNotes('');
-      fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.error || (rtl ? "حدث خطأ أثناء حفظ الحجز" : "An error occurred while saving the booking");
+        setMbError(errorMessage);
+        toast.error(errorMessage);
+      } else {
+        toast.success(rtl ? "تم حفظ الحجز بنجاح" : "Booking saved successfully");
+        setManualDialogOpen(false);
+        setMbClientName(''); setMbClientPhone(''); setMbServiceId('');
+        setMbStaffId(''); setMbBranchId(''); setMbDate(''); setMbTime('');
+        setMbLocation('salon'); setMbNotes('');
+        setMbError(null);
+        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
+      }
     } catch (err) {
       console.error('Failed to create manual booking', err);
+      const catchMessage = rtl ? "فشل الاتصال بالخادم" : "Failed to connect to the server";
+      setMbError(catchMessage);
+      toast.error(catchMessage);
+    } finally {
+      setManualSaving(false);
     }
-    setManualSaving(false);
   };
 
   const confirmStatusUpdate = async () => {
@@ -487,14 +552,113 @@ export function BookingsSection() {
       });
       
       if (res.ok) {
+        toast.success(rtl ? "تم تحديث حالة الحجز بنجاح" : "Booking status updated successfully");
         fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
+        setUpdateStatusDialogOpen(false);
+        setSelectedBooking(null);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.error || (rtl ? "فشل تحديث حالة الحجز" : "Failed to update booking status");
+        toast.error(errorMessage);
       }
     } catch (err) {
       console.error("Failed to update status", err);
+      const catchMessage = rtl ? "فشل الاتصال بالخادم" : "Failed to connect to the server";
+      toast.error(catchMessage);
     }
-    
-    setUpdateStatusDialogOpen(false);
-    setSelectedBooking(null);
+  };
+
+  const handleEditBooking = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setEbClientName(booking.client?.name || "");
+    setEbClientPhone(booking.client?.phone || "");
+    setEbServiceId(booking.serviceId || "");
+    setEbStaffId(booking.staff_id || "none");
+    setEbBranchId(booking.branchId || "");
+    setEbDate(booking.bookingDate ? booking.bookingDate.split('T')[0] : "");
+    setEbTime(booking.bookingTime || "");
+    setEbLocation(booking.location || "salon");
+    setEbNotes(booking.notes || "");
+    setEbStatus(booking.status || "pending");
+    setEbError(null);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditBookingSave = async () => {
+    if (!selectedBooking) return;
+    if (!ebClientName || !ebClientPhone || !ebServiceId || !ebDate) return;
+
+    setEditSaving(true);
+    setEbError(null);
+    try {
+      const selectedService = serviceList.find(s => s.id === ebServiceId);
+      const res = await fetch(`/api/bookings/${selectedBooking.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientName: ebClientName,
+          clientPhone: ebClientPhone,
+          serviceId: ebServiceId,
+          serviceSummary: selectedService?.name || '',
+          bookingDate: ebDate,
+          bookingTime: ebTime || undefined,
+          staff_id: (ebStaffId === "none" || !ebStaffId) ? undefined : ebStaffId,
+          branchId: ebBranchId || undefined,
+          location: ebLocation,
+          notes: ebNotes,
+          status: ebStatus,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.error || (rtl ? "حدث خطأ أثناء تعديل الحجز" : "An error occurred while editing the booking");
+        setEbError(errorMessage);
+        toast.error(errorMessage);
+      } else {
+        toast.success(rtl ? "تم تعديل الحجز بنجاح" : "Booking updated successfully");
+        setEditDialogOpen(false);
+        setEbError(null);
+        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
+      }
+    } catch (err) {
+      console.error('Failed to save edited booking', err);
+      const catchMessage = rtl ? "فشل الاتصال بالخادم" : "Failed to connect to the server";
+      setEbError(catchMessage);
+      toast.error(catchMessage);
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
+  const handleDeleteBooking = (booking: Booking) => {
+    setSelectedBooking(booking);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedBooking) return;
+    setDeleteSaving(true);
+    try {
+      const res = await fetch(`/api/bookings/${selectedBooking.id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        toast.success(rtl ? "تم حذف الحجز بنجاح" : "Booking deleted successfully");
+        setDeleteDialogOpen(false);
+        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        const errorMessage = errorData.error || (rtl ? "فشل حذف الحجز" : "Failed to delete booking");
+        toast.error(errorMessage);
+      }
+    } catch (err) {
+      console.error("Failed to delete booking", err);
+      toast.error(rtl ? "حدث خطأ أثناء الاتصال بالخادم" : "An error occurred while connecting to the server");
+    } finally {
+      setDeleteSaving(false);
+      setSelectedBooking(null);
+    }
   };
 
   // ─── Render Helpers ───────────────────────────────────────────────────────
@@ -668,7 +832,7 @@ export function BookingsSection() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button onClick={() => setManualDialogOpen(true)} className="gap-2 shrink-0">
+          <Button onClick={() => { setMbError(null); setManualDialogOpen(true); }} className="gap-2 shrink-0">
             <Plus className="w-4 h-4" />
             <span className={cn(rtl && "font-arabic")}>{t(locale, "bookings.addBooking")}</span>
           </Button>
@@ -704,6 +868,9 @@ export function BookingsSection() {
             <SelectContent>
               <SelectItem value="all" className={rtl ? "font-arabic" : ""}>
                 {t(locale, "bookings.allChannels")}
+              </SelectItem>
+              <SelectItem value="manual" className={rtl ? "font-arabic" : ""}>
+                {rtl ? "يدوي" : "Manual"}
               </SelectItem>
               {channels.map((ch) => (
                 <SelectItem key={ch.id} value={ch.id} className={rtl ? "font-arabic" : ""}>
@@ -1113,6 +1280,23 @@ export function BookingsSection() {
                               <MessageCircle className="w-4 h-4" />
                               {rtl ? "عرض المحادثة" : "View Chat"}
                             </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleEditBooking(booking)}
+                              className={cn("gap-2", rtl && "font-arabic")}
+                            >
+                              <Pencil className="w-4 h-4" />
+                              {rtl ? "تعديل الحجز" : "Edit Booking"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteBooking(booking)}
+                              className={cn(
+                                "gap-2 text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer",
+                                rtl && "font-arabic"
+                              )}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              {t(locale, "bookings.deleteBooking")}
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -1468,7 +1652,10 @@ export function BookingsSection() {
       </Dialog>
 
       {/* Manual Booking Dialog */}
-      <Dialog open={manualDialogOpen} onOpenChange={setManualDialogOpen}>
+      <Dialog open={manualDialogOpen} onOpenChange={(open) => {
+        setMbError(null);
+        setManualDialogOpen(open);
+      }}>
         <DialogContent className="sm:max-w-[500px]" dir={rtl ? "rtl" : "ltr"}>
           <DialogHeader>
             <DialogTitle className={cn(rtl && "font-arabic text-right")}>
@@ -1478,6 +1665,16 @@ export function BookingsSection() {
               {t(locale, "bookings.manualBookingDesc")}
             </DialogDescription>
           </DialogHeader>
+          
+          {mbError && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className={cn(rtl && "font-arabic text-right")}>
+                {mbError}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1555,6 +1752,155 @@ export function BookingsSection() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Booking Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEbError(null);
+        setEditDialogOpen(open);
+      }}>
+        <DialogContent className="sm:max-w-[500px]" dir={rtl ? "rtl" : "ltr"}>
+          <DialogHeader>
+            <DialogTitle className={cn(rtl && "font-arabic text-right")}>
+              {rtl ? "تعديل الحجز" : "Edit Booking"}
+            </DialogTitle>
+            <DialogDescription className={cn(rtl && "font-arabic text-right")}>
+              {rtl ? "تعديل تفاصيل هذا الحجز" : "Modify the details of this booking"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {ebError && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className={cn(rtl && "font-arabic text-right")}>
+                {ebError}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "name")}</Label>
+                <Input value={ebClientName} onChange={(e) => setEbClientName(e.target.value)} className={cn(rtl && "text-right font-arabic")} />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "phone")}</Label>
+                <Input value={ebClientPhone} onChange={(e) => setEbClientPhone(e.target.value)} dir="ltr" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.selectService")}</Label>
+                <Select value={ebServiceId} onValueChange={setEbServiceId}>
+                  <SelectTrigger className={cn(rtl && "font-arabic")}><SelectValue placeholder={t(locale, "bookings.selectService")} /></SelectTrigger>
+                  <SelectContent>{serviceList.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.bookingStatus")}</Label>
+                <Select value={ebStatus} onValueChange={(val: BookingStatus) => setEbStatus(val)}>
+                  <SelectTrigger className={cn(rtl && "font-arabic")}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">{rtl ? "معلق" : "Pending"}</SelectItem>
+                    <SelectItem value="confirmed">{rtl ? "مؤكد" : "Confirmed"}</SelectItem>
+                    <SelectItem value="cancelled">{rtl ? "ملغي" : "Cancelled"}</SelectItem>
+                    <SelectItem value="completed">{rtl ? "مكتمل" : "Completed"}</SelectItem>
+                    <SelectItem value="waiting_payment">{rtl ? "في انتظار الدفع" : "Waiting Payment"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.selectStaff")}</Label>
+                <Select value={ebStaffId} onValueChange={setEbStaffId}>
+                  <SelectTrigger className={cn(rtl && "font-arabic")}><SelectValue placeholder={t(locale, "bookings.selectStaff")} /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{rtl ? "بدون عاملة" : "No staff"}</SelectItem>
+                    {staffList.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.selectBranch")}</Label>
+                <Select value={ebBranchId} onValueChange={setEbBranchId}>
+                  <SelectTrigger className={cn(rtl && "font-arabic")}><SelectValue placeholder={t(locale, "bookings.selectBranch")} /></SelectTrigger>
+                  <SelectContent>{branchList.map((b) => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "date")}</Label>
+                <Input type="date" value={ebDate} onChange={(e) => setEbDate(e.target.value)} dir="ltr" />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.bookingTime")}</Label>
+                <Input type="time" value={ebTime} onChange={(e) => setEbTime(e.target.value)} dir="ltr" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.selectLocation")}</Label>
+                <Select value={ebLocation} onValueChange={setEbLocation}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="salon">{t(locale, "bookings.salon")}</SelectItem>
+                    <SelectItem value="home">{t(locale, "bookings.home")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>{t(locale, "notes")}</Label>
+                <Input value={ebNotes} onChange={(e) => setEbNotes(e.target.value)} className={cn(rtl && "text-right font-arabic")} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} className={cn(rtl && "font-arabic")}>{t(locale, "cancel")}</Button>
+            <Button onClick={handleEditBookingSave} disabled={editSaving || !ebClientName || !ebClientPhone || !ebServiceId || !ebDate}>
+              {editSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              <span className={cn(rtl && "font-arabic")}>{t(locale, "save")}</span>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Booking Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent dir={rtl ? "rtl" : "ltr"} className={cn(rtl && "font-arabic")}>
+          <AlertDialogHeader className={cn(rtl && "text-right items-end")}>
+            <AlertDialogTitle className={cn(rtl && "text-right")}>
+              {t(locale, "bookings.deleteBooking")}
+            </AlertDialogTitle>
+            <AlertDialogDescription className={cn(rtl && "text-right")}>
+              {t(locale, "bookings.deleteBookingConfirm")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={cn(rtl && "sm:flex-row-reverse sm:justify-start gap-2")}>
+            <AlertDialogCancel disabled={deleteSaving} className={cn(rtl && "font-arabic")}>
+              {t(locale, "cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault(); // Prevents Radix from closing automatically until request succeeds
+                handleDeleteConfirm();
+              }}
+              disabled={deleteSaving}
+              className="bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700"
+            >
+              {deleteSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  {rtl ? "جاري الحذف..." : "Deleting..."}
+                </>
+              ) : (
+                t(locale, "delete")
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
