@@ -65,7 +65,7 @@ export function HeroSection() {
             {/* Heading */}
             <h1 className="mb-6">
               <span
-                className="text-dark block mb-[-15px] text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-none tracking-wide"
+                className="text-dark block mb-[-25px] mt-[-10px] text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold leading-none tracking-wide"
                 style={{ fontFamily: "var(--font-alex-brush), cursive", direction: "ltr" }}
               >
                 Salon Noon
@@ -83,9 +83,10 @@ export function HeroSection() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed"
+              className="text-lg md:text-xl text-muted-foreground mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed font-bold"
+              style={{ fontFamily: "var(--font-ibm-plex-sans-arabic), sans-serif" }}
             >
-              خدمات تجميل احترافية — تصفيف الشعر، العناية بالبشرة، الأظافر، والمكياج. احجزي موعدك أو تسوّقي منتجاتنا أونلاين.
+              احجزي موعدك مكياج - تصفيف شعر -الأظافر - العناية بالبشرة
             </motion.p>
 
             {/* CTAs */}
@@ -101,12 +102,6 @@ export function HeroSection() {
               >
                 احجزي الآن
                 <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
-              </Link>
-              <Link
-                href="/products"
-                className="inline-flex items-center gap-2 px-8 py-4 text-lg font-bold text-dark rounded-2xl glass border border-border/60 hover:border-terracotta/30 hover:bg-white/80 transition-all hover:scale-105 active:scale-100 shadow-sm"
-              >
-                تسوّقي المنتجات
               </Link>
             </motion.div>
           </motion.div>

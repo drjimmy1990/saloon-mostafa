@@ -11,8 +11,6 @@ import { useEffect, useState } from "react";
 const tabs = [
   { label: "الرئيسية", href: "/", icon: Home },
   { label: "الخدمات", href: "/services", icon: Scissors },
-  { label: "المنتجات", href: "/products", icon: Package },
-  { label: "السلة", href: "/cart", icon: ShoppingBag },
   { label: "احجزي", href: "/booking", icon: CalendarDays },
   { label: "حسابي", href: "/account", icon: User, authAware: true },
 ];

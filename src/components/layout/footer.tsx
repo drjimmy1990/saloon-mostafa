@@ -4,7 +4,6 @@ import { getSiteSettings } from "@/lib/settings";
 
 const footerLinks = [
   { label: "الخدمات", href: "/services" },
-  { label: "المنتجات", href: "/products" },
   { label: "المعرض", href: "/gallery" },
   { label: "فروعنا", href: "/branches" },
   { label: "احجزي الآن", href: "/booking" },
