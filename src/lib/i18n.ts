@@ -386,6 +386,7 @@ export const translations = {
       all: "All",
       customerService: "Customer Service Request",
       timeAgo: "{time} ago",
+      delete: "Delete",
     },
 
     // Gallery
@@ -848,6 +849,7 @@ export const translations = {
       all: "الكل",
       customerService: "طلب خدمة عملاء",
       timeAgo: "منذ {time}",
+      delete: "حذف",
     },
 
     // Gallery
