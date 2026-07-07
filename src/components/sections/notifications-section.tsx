@@ -33,18 +33,21 @@ const CATEGORY_MATCHERS: { category: NotifCategory; keywords: string[] }[] = [
 ];
 
 function detectCategory(notif: Notification): NotifCategory {
-  // First check the `type` field from the DB
+  // 1. Match on Arabic keywords in the title FIRST (highest priority)
+  //    This catches cases where the DB type is generic "customer_service"
+  //    but the title says "طلب توظيف" or "باكدج العروسة"
+  const title = notif.title || "";
+  for (const matcher of CATEGORY_MATCHERS) {
+    if (matcher.keywords.some((kw) => title.includes(kw))) {
+      return matcher.category;
+    }
+  }
+
+  // 2. Fallback: check the `type` field from the DB
   if (notif.type === "job_request") return "job_request";
   if (notif.type === "bridal_inquiry") return "bridal_inquiry";
   if (notif.type === "customer_service") return "customer_service";
 
-  // Fallback: match on Arabic keywords in the title
-  const titleLower = notif.title;
-  for (const matcher of CATEGORY_MATCHERS) {
-    if (matcher.keywords.some((kw) => titleLower.includes(kw))) {
-      return matcher.category;
-    }
-  }
   return "customer_service"; // default
 }
 
