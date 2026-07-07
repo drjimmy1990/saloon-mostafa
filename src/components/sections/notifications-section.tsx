@@ -33,9 +33,12 @@ const CATEGORY_MATCHERS: { category: NotifCategory; keywords: string[] }[] = [
 ];
 
 function detectCategory(notif: Notification): NotifCategory {
-  // 1. Match on Arabic keywords in the title FIRST (highest priority)
-  //    This catches cases where the DB type is generic "customer_service"
-  //    but the title says "طلب توظيف" or "باكدج العروسة"
+  // 1. Check the DB `type` field FIRST (source of truth from n8n)
+  if (notif.type === "job_request") return "job_request";
+  if (notif.type === "bridal_inquiry") return "bridal_inquiry";
+
+  // 2. Keyword fallback for OLD notifications stored as "customer_service"
+  //    but whose title contains specific Arabic keywords
   const title = notif.title || "";
   for (const matcher of CATEGORY_MATCHERS) {
     if (matcher.keywords.some((kw) => title.includes(kw))) {
@@ -43,12 +46,9 @@ function detectCategory(notif: Notification): NotifCategory {
     }
   }
 
-  // 2. Fallback: check the `type` field from the DB
-  if (notif.type === "job_request") return "job_request";
-  if (notif.type === "bridal_inquiry") return "bridal_inquiry";
+  // 3. Default
   if (notif.type === "customer_service") return "customer_service";
-
-  return "customer_service"; // default
+  return "customer_service";
 }
 
 function getCategoryIcon(category: NotifCategory, isRead: boolean) {
