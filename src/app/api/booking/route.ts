@@ -241,9 +241,15 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
+      if (error.code === '23P01') {
+        return NextResponse.json(
+          { error: "هذا الوقت محجوز بالفعل. يرجى اختيار وقت آخر." },
+          { status: 409 }
+        );
+      }
       console.error("Booking creation error:", JSON.stringify(error, null, 2));
       return NextResponse.json(
-        { error: "Failed to create booking", details: error.message || error.code },
+        { error: "Failed to create booking" },
         { status: 500 }
       );
     }
