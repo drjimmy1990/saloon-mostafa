@@ -193,13 +193,14 @@ export async function POST(request: NextRequest) {
 
     let durationMinutes = 30;
     let durationMode = "time";
+    let maxSlots: number | null = null;
     const serviceId = body.serviceId;
 
     if (serviceId) {
       insertData.serviceId = serviceId;
       const { data: product } = await supabase
         .from('Product')
-        .select('name, durationMinutes, durationMode')
+        .select('name, durationMinutes, durationMode, maxSlots')
         .eq('id', serviceId)
         .maybeSingle();
       if (product) {
@@ -208,6 +209,7 @@ export async function POST(request: NextRequest) {
         if (!insertData.serviceSummary && product.name) {
           insertData.serviceSummary = product.name;
         }
+        maxSlots = product.maxSlots || null;
       }
     }
 
@@ -234,6 +236,15 @@ export async function POST(request: NextRequest) {
         const { count } = await q;
         queueNumber = (count || 0) + 1;
       }
+
+      // H11 fix: enforce maxSlots limit for queue mode
+      if (maxSlots && queueNumber > maxSlots) {
+        return NextResponse.json(
+          { error: 'تم اكتمال عدد الحجوزات لهذا اليوم' },
+          { status: 409 }
+        );
+      }
+
       insertData.queueNumber = queueNumber;
     } else {
       if (body.bookingDate) {
