@@ -14,11 +14,11 @@ import { getServiceRoleClient } from "@/lib/supabase";
  */
 export async function GET(req: NextRequest) {
   try {
-    // Optional simple auth
+    // Auth: require CRON_SECRET — fail closed if unset
     const { searchParams } = new URL(req.url);
     const key = searchParams.get("key");
-    const expectedKey = process.env.CRON_SECRET || "";
-    if (expectedKey && key !== expectedKey) {
+    const expectedKey = process.env.CRON_SECRET;
+    if (!expectedKey || key !== expectedKey) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

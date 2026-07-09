@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
+import { createClient } from "@/utils/supabase/server";
 
 // POST — Link a Supabase Auth user to a Client CRM row
 // Now uses email as primary identifier (sign-up is by email)
@@ -7,11 +8,17 @@ import { getServiceRoleClient } from "@/lib/supabase";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { authUserId, email, name, phone } = body;
+    const { email, name, phone } = body;
 
-    if (!authUserId) {
-      return NextResponse.json({ error: "Missing authUserId" }, { status: 400 });
+    // Verify auth from session cookie — derive authUserId server-side
+    const supabaseAuth = await createClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
+
+    const authUserId = user.id;
 
     const supabase = getServiceRoleClient();
 

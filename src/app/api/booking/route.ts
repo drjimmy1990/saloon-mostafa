@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     // 0. Get service details (for deposit amount and booking availability)
     const { data: service } = await supabase
       .from("Product")
-      .select("id, name, depositAmount, publishAt")
+      .select("id, name, depositAmount, publishAt, maxSlots")
       .eq("id", serviceId)
       .single();
 
@@ -194,6 +194,14 @@ export async function POST(req: NextRequest) {
         .neq("status", "cancelled");
 
       queueNumber = (count || 0) + 1;
+
+      // H11 fix: enforce maxSlots limit for queue mode
+      if (service?.maxSlots && queueNumber > service.maxSlots) {
+        return NextResponse.json(
+          { error: "تم اكتمال عدد الحجوزات لهذا اليوم" },
+          { status: 409 }
+        );
+      }
     }
 
     // 6. Generate unique booking code

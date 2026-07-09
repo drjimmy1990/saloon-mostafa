@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
+import { createClient } from "@/utils/supabase/server";
 
-// GET /api/account?authUserId=xxx — get customer's bookings and orders
+// GET /api/account — get customer's bookings and orders
 export async function GET(req: NextRequest) {
   try {
-    const authUserId = req.nextUrl.searchParams.get("authUserId");
+    // Verify auth from session cookie — never trust client-supplied ID
+    const supabaseAuth = await createClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
 
-    if (!authUserId) {
+    if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    const authUserId = user.id;
     const supabase = getServiceRoleClient();
 
     // 1. Find client by auth_user_id
@@ -53,12 +57,17 @@ export async function GET(req: NextRequest) {
 // PUT /api/account — update customer profile
 export async function PUT(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { authUserId, name, phone, address } = body;
+    // Verify auth from session cookie
+    const supabaseAuth = await createClient();
+    const { data: { user } } = await supabaseAuth.auth.getUser();
 
-    if (!authUserId) {
+    if (!user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
+
+    const authUserId = user.id;
+    const body = await req.json();
+    const { name, phone, address } = body;
 
     const supabase = getServiceRoleClient();
 
