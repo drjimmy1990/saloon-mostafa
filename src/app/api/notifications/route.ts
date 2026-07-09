@@ -1,20 +1,20 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { getServiceRoleClient } from "@/lib/supabase";
+import { requireAdmin } from "@/lib/admin-auth";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export async function POST(req: NextRequest) {
+  const guard = await requireAdmin(req);
+  if (guard instanceof NextResponse) return guard;
 
-export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await req.json();
     const { type, title, body: notifBody, client_id } = body;
 
     if (!title) {
       return NextResponse.json({ error: "title required" }, { status: 400 });
     }
 
+    const supabase = getServiceRoleClient();
     const { data, error } = await supabase
       .from("Notification")
       .insert({
@@ -29,10 +29,11 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
     return NextResponse.json(data, { status: 201 });
-  } catch (error: any) {
-    console.error("Notifications creation error:", error);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Notifications creation error:", message);
     return NextResponse.json(
-      { error: "Failed to create notification", details: error.message },
+      { error: "Failed to create notification" },
       { status: 500 }
     );
   }
