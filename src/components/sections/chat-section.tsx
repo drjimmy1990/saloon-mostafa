@@ -259,17 +259,25 @@ export function ChatSection() {
   }, [debouncedSearch, fetchClients]);
 
   // ─── Handle Direct Client Link from URL ───────────────────────────────────
+  // Keep a ref to the latest clients list so the effect can check it
+  // without having `clients` in the dependency array (which caused a
+  // cancellation race — every clients update re-ran the effect and set
+  // `active = false`, aborting the in-flight fetchSingleClient).
+  const clientsRef = useRef<Client[]>([]);
+  clientsRef.current = clients;
+
   useEffect(() => {
     if (!clientIdParam) return;
     if (lastInitializedClientId.current === clientIdParam) return;
+    // Wait until the initial client list load finishes
+    if (isLoading) return;
 
     // Check if client is already in the loaded list
-    const existing = clients.find(c => c.id === clientIdParam);
+    const existing = clientsRef.current.find(c => c.id === clientIdParam);
     if (existing) {
       setActiveChatId(clientIdParam);
       setMobileShowChat(true);
       lastInitializedClientId.current = clientIdParam;
-      // Clear the query parameter from the URL immediately so it doesn't lock selection
       if (typeof window !== "undefined") {
         window.history.replaceState(null, "", "/chat");
       }
@@ -291,7 +299,6 @@ export function ChatSection() {
           setActiveChatId(data.id);
           setMobileShowChat(true);
           lastInitializedClientId.current = clientIdParam;
-          // Clear the query parameter from the URL immediately so it doesn't lock selection
           if (typeof window !== "undefined") {
             window.history.replaceState(null, "", "/chat");
           }
@@ -303,7 +310,8 @@ export function ChatSection() {
 
     fetchSingleClient();
     return () => { active = false; };
-  }, [clientIdParam, clients, setActiveChatId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientIdParam, isLoading, setActiveChatId]);
 
   // Load more when sentinel is visible
   const loadMore = useCallback(() => {
