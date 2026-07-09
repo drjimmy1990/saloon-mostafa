@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/admin-auth";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from("Branch")
-    .select("*")
+    .select("id,name,nameAr,address,isActive,createdAt")
     .order("createdAt", { ascending: false });
 
   if (active === "true") {
@@ -47,6 +48,9 @@ export async function GET(req: NextRequest) {
 
 // POST — Create new branch
 export async function POST(req: NextRequest) {
+  const guard = await requireAdmin(req);
+  if (guard instanceof NextResponse) return guard;
+
   const body = await req.json();
 
   const { data, error } = await supabase
@@ -70,6 +74,9 @@ export async function POST(req: NextRequest) {
 
 // PUT — Update branch
 export async function PUT(req: NextRequest) {
+  const guard = await requireAdmin(req);
+  if (guard instanceof NextResponse) return guard;
+
   const body = await req.json();
 
   if (!body.id) {
@@ -98,6 +105,9 @@ export async function PUT(req: NextRequest) {
 
 // DELETE — Delete branch
 export async function DELETE(req: NextRequest) {
+  const guard = await requireAdmin(req);
+  if (guard instanceof NextResponse) return guard;
+
   const id = req.nextUrl.searchParams.get("id");
 
   if (!id) {
