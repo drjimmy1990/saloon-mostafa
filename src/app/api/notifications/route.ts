@@ -3,8 +3,15 @@ import { getServiceRoleClient } from "@/lib/supabase";
 import { requireAdmin } from "@/lib/admin-auth";
 
 export async function POST(req: NextRequest) {
-  const guard = await requireAdmin(req);
-  if (guard instanceof NextResponse) return guard;
+  // Allow access via API key (for n8n/bot) OR admin session (for dashboard)
+  const apiKey = req.headers.get("x-api-key");
+  const validApiKey = process.env.NOTIFICATIONS_API_KEY;
+
+  if (!apiKey || !validApiKey || apiKey !== validApiKey) {
+    // No valid API key — fall back to admin session check
+    const guard = await requireAdmin(req);
+    if (guard instanceof NextResponse) return guard;
+  }
 
   try {
     const body = await req.json();
