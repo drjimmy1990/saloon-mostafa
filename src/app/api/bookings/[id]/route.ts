@@ -235,7 +235,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .select('*, client:Client(*)')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '23P01') {
+        return NextResponse.json(
+          { error: 'هذا الوقت محجوز بالفعل. يرجى اختيار وقت آخر.' },
+          { status: 409 }
+        );
+      }
+      throw error;
+    }
     return NextResponse.json(booking);
   } catch (error) {
     console.error(error);

@@ -308,7 +308,15 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '23P01') {
+        return NextResponse.json(
+          { error: 'هذا الوقت محجوز بالفعل. يرجى اختيار وقت آخر.' },
+          { status: 409 }
+        );
+      }
+      throw error;
+    }
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {
     console.error(error);
