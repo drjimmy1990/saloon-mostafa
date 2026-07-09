@@ -23,7 +23,8 @@ export async function GET(req: NextRequest) {
   const { data, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Branches fetch error:", error);
+    return NextResponse.json({ error: "Failed to fetch branches" }, { status: 500 });
   }
 
   // If active=true, only return branches that have at least one active/available service
@@ -66,7 +67,8 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Branch create error:", error);
+    return NextResponse.json({ error: "Failed to create branch" }, { status: 500 });
   }
 
   return NextResponse.json(data, { status: 201 });
@@ -97,7 +99,8 @@ export async function PUT(req: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Branch update error:", error);
+    return NextResponse.json({ error: "Failed to update branch" }, { status: 500 });
   }
 
   return NextResponse.json(data);
@@ -117,7 +120,8 @@ export async function DELETE(req: NextRequest) {
   const { error } = await supabase.from("Branch").delete().eq("id", id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("Branch delete error:", error);
+    return NextResponse.json({ error: "Failed to delete branch" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });
