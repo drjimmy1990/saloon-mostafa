@@ -120,6 +120,8 @@ export interface Booking {
   staff_id?: string | null;
   branchId?: string;
   bookingTime?: string | null;
+  slotNumber?: number | null;
+  queueNumber?: number | null;
   location?: string;
   notes?: string | null;
 }
