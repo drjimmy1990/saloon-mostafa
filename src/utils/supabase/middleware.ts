@@ -42,6 +42,7 @@ export async function updateSession(request: NextRequest) {
     !isAuthRoute &&
     !request.nextUrl.pathname.startsWith('/api/public') &&
     !request.nextUrl.pathname.startsWith('/api/webhooks') &&
+    !request.nextUrl.pathname.startsWith('/api/notifications') &&
     request.nextUrl.pathname !== '/favicon.ico' &&
     !request.nextUrl.pathname.startsWith('/_next')
   ) {

@@ -31,9 +31,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/notifications — Create (called by n8n or internal)
+// POST /api/notifications — Create (called by n8n with API key)
 export async function POST(request: NextRequest) {
   try {
+    // Validate API key for external callers (n8n)
+    const apiKey = request.headers.get('x-api-key');
+    const expectedKey = process.env.NOTIFICATIONS_API_KEY;
+    
+    if (!expectedKey || apiKey !== expectedKey) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { type, title, body: notifBody, client_id } = body;
 
