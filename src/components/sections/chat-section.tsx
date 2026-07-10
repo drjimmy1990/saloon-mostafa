@@ -914,14 +914,9 @@ export function ChatSection() {
       <ScrollArea className="flex-1 min-h-0 overflow-hidden p-3" dir={rtl ? "rtl" : "ltr"}>
         <div className="space-y-3">
           {[...activeClient.messages].sort((a, b) => {
-            const timeA = new Date(a.platform_timestamp || a.sent_at || a.createdAt || 0).getTime();
-            const timeB = new Date(b.platform_timestamp || b.sent_at || b.createdAt || 0).getTime();
-            if (timeA !== timeB) return timeA - timeB;
-            
-            // Tie-breaker using actual database insertion time
-            const sentA = new Date(a.sent_at || a.createdAt || 0).getTime();
-            const sentB = new Date(b.sent_at || b.createdAt || 0).getTime();
-            return sentA - sentB;
+            const timeA = new Date(a.sent_at || a.platform_timestamp || a.createdAt || 0).getTime();
+            const timeB = new Date(b.sent_at || b.platform_timestamp || b.createdAt || 0).getTime();
+            return timeA - timeB;
           }).map((msg) => {
             const config = senderConfig[msg.sender_type] || senderConfig["user"];
             const Icon = config.icon;
@@ -978,7 +973,7 @@ export function ChatSection() {
                     dir="ltr"
                     style={{ textAlign: rtl ? 'left' : 'right' }}
                   >
-                    {new Date(msg.platform_timestamp || msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(msg.sent_at || msg.platform_timestamp || msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               </div>
