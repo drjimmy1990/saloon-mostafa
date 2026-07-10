@@ -100,8 +100,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
           const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
           calculatedEndTime = endDate.toISOString();
         } else {
+          // H10: compute a real endTime (midnight + duration) instead of
+          // NULL so migration 005's exclusion constraint protects this row.
           calculatedBookingDate = `${targetDateString}T00:00:00Z`;
-          calculatedEndTime = null;
+          const startDate = new Date(`${targetDateString}T00:00:00Z`);
+          const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+          calculatedEndTime = endDate.toISOString();
         }
       }
     }
@@ -140,7 +144,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
           const hasConflict = overlaps.some((b) => {
             const bStart = parseAsUTC(b.bookingDate);
-            const bEnd = b.endTime ? parseAsUTC(b.endTime) : bStart + 30 * 60 * 1000;
+            // H10: endTime is now always set for time-mode (006 backfills
+            // existing rows), so the +30 min fallback is removed.
+            const bEnd = parseAsUTC(b.endTime as string);
             return newStart < bEnd && newEnd > bStart;
           });
 
@@ -236,7 +242,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       .single();
 
     if (error) {
-      if (error.code === '23P01') {
+      // 23P01 = overlap exclusion (005), 23505 = slotNumber unique (007).
+      if (error.code === '23P01' || error.code === '23505') {
         return NextResponse.json(
           { error: 'هذا الوقت محجوز بالفعل. يرجى اختيار وقت آخر.' },
           { status: 409 }

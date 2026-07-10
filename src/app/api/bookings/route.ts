@@ -148,8 +148,15 @@ export async function POST(request: NextRequest) {
     const targetStaffId = body.staff_id;
     const targetDateString = body.bookingDate; // YYYY-MM-DD
 
-    if (targetStaffId && targetStaffId !== "none" && targetDateString) {
-      const lockKey = `${targetStaffId}_${targetDateString}`;
+    // H11: serialize bookings per day. When a staff member is assigned, key
+    // the in-memory lock by staff+date; when staff is "none"/absent (queue or
+    // no-staff time bookings), key it by service+date so concurrent requests
+    // don't race on queueNumber / maxSlots / slotNumber.
+    if (targetDateString) {
+      const lockKey =
+        targetStaffId && targetStaffId !== "none"
+          ? `${targetStaffId}_${targetDateString}`
+          : `svc_${body.serviceId}_${targetDateString}`;
       releaseLock = await acquireLock(lockKey);
     }
 
@@ -213,6 +220,26 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // H11: server-side slotNumber uniqueness — reject a duplicate active slot
+    // for the same service on the same day (DB backstop in migration 007).
+    if (insertData.slotNumber != null && body.bookingDate) {
+      const { data: dupSlot } = await supabase
+        .from('Booking')
+        .select('id')
+        .eq('serviceId', serviceId)
+        .eq('slotNumber', insertData.slotNumber)
+        .neq('status', 'cancelled')
+        .gte('bookingDate', `${body.bookingDate}T00:00:00Z`)
+        .lte('bookingDate', `${body.bookingDate}T23:59:59Z`)
+        .limit(1);
+      if (dupSlot && dupSlot.length > 0) {
+        return NextResponse.json(
+          { error: 'هذا الموعد محجوز بالفعل. يرجى اختيار وقت آخر.' },
+          { status: 409 }
+        );
+      }
+    }
+
     if (durationMode === "queue") {
       if (body.bookingDate) {
         insertData.bookingDate = `${body.bookingDate}T00:00:00Z`;
@@ -258,8 +285,14 @@ export async function POST(request: NextRequest) {
           const endTime = endDate.toISOString();
           insertData.endTime = endTime;
         } else {
+          // H10: even without a bookingTime, compute a real endTime
+          // (bookingDate midnight + service duration) instead of NULL, so
+          // migration 005's exclusion constraint protects this row too and
+          // the app no longer needs the +30 min overlap fallback.
           insertData.bookingDate = `${body.bookingDate}T00:00:00Z`;
-          insertData.endTime = null;
+          const startDate = new Date(`${body.bookingDate}T00:00:00Z`);
+          const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+          insertData.endTime = endDate.toISOString();
         }
       }
     }
@@ -282,7 +315,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 2. Check for time-based overlap
+      // 2. Check for time-based overlap.
+      // Queue mode intentionally skips overlap: each service is either time-
+      // based OR queue/slot-based (single mode per service), and queue
+      // bookings are sequential/slot-based with no fixed time — so the
+      // durationMode !== "queue" guard below is correct by design (H11).
       if (durationMode !== "queue" && body.bookingTime) {
         const { data: overlaps } = await supabase
           .from('Booking')
@@ -296,9 +333,11 @@ export async function POST(request: NextRequest) {
           const newStart = new Date(insertData.bookingDate as string).getTime();
           const newEnd = new Date(insertData.endTime as string).getTime();
 
+          // H10: endTime is now always set for time-mode bookings (and
+          // migration 006 backfills existing rows), so no +30 min fallback.
           const hasConflict = overlaps.some((b) => {
             const bStart = parseAsUTC(b.bookingDate);
-            const bEnd = b.endTime ? parseAsUTC(b.endTime) : bStart + 30 * 60 * 1000;
+            const bEnd = parseAsUTC(b.endTime as string);
             return newStart < bEnd && newEnd > bStart;
           });
 
@@ -320,9 +359,17 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      if (error.code === '23P01') {
+      // 23P01 = overlap exclusion (005), 23505 = slotNumber unique (007).
+      if (error.code === '23P01' || error.code === '23505') {
         return NextResponse.json(
           { error: 'هذا الوقت محجوز بالفعل. يرجى اختيار وقت آخر.' },
+          { status: 409 }
+        );
+      }
+      // maxSlots TOCTOU backstop from migration 007's trigger.
+      if (error.message?.includes('max_slots_exceeded')) {
+        return NextResponse.json(
+          { error: 'تم اكتمال عدد الحجوزات لهذا اليوم' },
           { status: 409 }
         );
       }
