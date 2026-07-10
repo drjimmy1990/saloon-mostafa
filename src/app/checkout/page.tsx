@@ -108,7 +108,11 @@ export default function CheckoutPage() {
           }),
         });
         const payData = await payRes.json();
+        if (!payRes.ok) throw new Error(payData.error || "Payment failed");
         if (payData.checkoutUrl) { window.location.href = payData.checkoutUrl; return; }
+        // No checkout URL = payment intent could not be started (Paymob down / no amount due).
+        // Do NOT fall through to clearCart + success — that would show success for an unpaid order.
+        throw new Error("Payment could not be started");
       }
       clearCart();
       router.push(`/checkout/success?code=${data.orderCode || ""}`);
