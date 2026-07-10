@@ -150,7 +150,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. For time-based bookings: double-check for overlap
+    // 4. For time-based bookings: double-check for overlap.
+    // Queue mode intentionally skips this: each service has a single mode
+    // (time OR queue/slot), and queue bookings are sequential/slot-based
+    // with no fixed time — so the durationMode !== "queue" guard is by
+    // design (H11).
     if (durationMode !== "queue" && staffId && time) {
       const { data: overlaps } = await supabase
         .from("Booking")
@@ -249,9 +253,17 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      if (error.code === '23P01') {
+      // 23P01 = overlap exclusion (005), 23505 = slotNumber unique (007).
+      if (error.code === '23P01' || error.code === '23505') {
         return NextResponse.json(
           { error: "هذا الوقت محجوز بالفعل. يرجى اختيار وقت آخر." },
+          { status: 409 }
+        );
+      }
+      // maxSlots TOCTOU backstop from migration 007's trigger.
+      if (error.message?.includes('max_slots_exceeded')) {
+        return NextResponse.json(
+          { error: "تم اكتمال عدد الحجوزات لهذا اليوم" },
           { status: 409 }
         );
       }
