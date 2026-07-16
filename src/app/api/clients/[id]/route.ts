@@ -8,13 +8,14 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { id } = await params;
     const supabase = getServiceRoleClient();
-    const { data: client, error } = await supabase.from('Client').select('*, Message(*)').eq('id', id).single();
+    const { data: client, error } = await supabase.from('Client').select('*, Channel(name, type), Message(*)').eq('id', id).single();
     if (error || !client) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     
-    // Map relations
+    // Map relations and normalize platform from Channel.type
     const mapped = {
       ...client,
-      messages: client.Message || []
+      platform: (client as any).Channel?.type || client.platform || 'whatsapp',
+      messages: (client as any).Message || []
     };
 
     return NextResponse.json(mapped);

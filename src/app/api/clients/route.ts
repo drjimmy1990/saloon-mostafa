@@ -39,8 +39,10 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
 
     // Map Message relation to messages array for frontend compatibility and calculate bookings_count
+    // Normalize platform from Channel.type if available, falling back to Client.platform
     const mapped = (clients || []).map((client: any) => ({
       ...client,
+      platform: client.Channel?.type || client.platform || 'whatsapp',
       messages: client.Message || [],
       bookings_count: client.Booking ? client.Booking.length : 0
     }));
