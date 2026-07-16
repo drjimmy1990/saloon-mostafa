@@ -338,6 +338,11 @@ export function ChatSection() {
   }, [loadMore]);
 
   // ─── Supabase Realtime Subscription ────────────────────────────────────
+  // Use a ref so the realtime callbacks always call the latest refetchClients
+  // without the effect re-running (which would tear down and recreate the channel).
+  const refetchClientsRef = useRef(refetchClients);
+  refetchClientsRef.current = refetchClients;
+
   useEffect(() => {
     const channel = supabase
       .channel("chat-realtime")
@@ -352,7 +357,7 @@ export function ChatSection() {
             const clientIdx = prev.findIndex((c) => c.id === newMsg.client_id);
             if (clientIdx === -1) {
               // New client we haven't loaded — do a soft refetch
-              refetchClients();
+              refetchClientsRef.current();
               return prev;
             }
             // Avoid duplicates (e.g. if we already added via optimistic update)
@@ -398,7 +403,7 @@ export function ChatSection() {
         { event: "INSERT", schema: "public", table: "Client" },
         () => {
           // A brand new client appeared — refetch the list
-          refetchClients();
+          refetchClientsRef.current();
         }
       )
       .subscribe((status) => {
@@ -408,7 +413,8 @@ export function ChatSection() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [refetchClients]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const activeClient = clients.find((c) => c.id === activeChatId) || null;
 
