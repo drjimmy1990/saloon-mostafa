@@ -1,11 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-// Use the public anon key for direct client uploads. 
-// Note: RLS policies must allow anon inserts, or the user must be authenticated.
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const storageClient = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase as storageClient } from './supabase';
 
 /**
  * Uploads a file to Supabase Storage and returns its public URL
