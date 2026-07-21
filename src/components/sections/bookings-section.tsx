@@ -321,11 +321,14 @@ const formatTimeLabel = (time24: string) => {
   return `${displayH.toString().padStart(2, '0')}:${mStr} ${ampm}`;
 };
 
+import { maskPhone, maskName } from "@/lib/demo-mask";
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function BookingsSection() {
   const router = useRouter();
-  const { locale, setActiveChatId } = useAppStore();
+  const { locale, setActiveChatId, userRole } = useAppStore();
+  const isDemo = userRole === "demo";
   const rtl = isRTL(locale);
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
     if (typeof window !== "undefined") {
@@ -1167,7 +1170,9 @@ export function BookingsSection() {
                           )}
                         >
                           <div className="flex items-center gap-2">
-                            <span>{booking.client?.name || 'Unknown'}</span>
+                            <span className={cn(isDemo && "blur-[3.5px] select-none pointer-events-none")}>
+                              {maskName(booking.client?.name, isDemo)}
+                            </span>
                             {booking.client?.auth_user_id ? (
                               <Badge variant="outline" className="gap-1 text-[10px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40">
                                 <UserCheck className="w-3 h-3" />
@@ -1186,10 +1191,11 @@ export function BookingsSection() {
                         <TableCell
                           className={cn(
                             "tabular-nums text-muted-foreground",
-                            rtl && "text-right"
+                            rtl && "text-right",
+                            isDemo && "blur-[3.5px] select-none pointer-events-none"
                           )}
                         >
-                          {booking.client?.phone || 'N/A'}
+                          {maskPhone(booking.client?.phone, isDemo)}
                         </TableCell>
                       )}
                       {visibleColumns.serviceSummary && (

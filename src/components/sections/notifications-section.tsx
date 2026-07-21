@@ -99,8 +99,11 @@ function timeAgo(dateStr: string, locale: string): string {
   return locale === "ar" ? `${days} يوم` : `${days}d`;
 }
 
+import { maskPhone, maskName, maskText } from "@/lib/demo-mask";
+
 export function NotificationsSection() {
-  const { locale } = useAppStore();
+  const { locale, userRole } = useAppStore();
+  const isDemo = userRole === "demo";
   const rtl = isRTL(locale);
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -275,10 +278,10 @@ export function NotificationsSection() {
                           <p className={cn("font-semibold text-sm", rtl && "font-arabic")}>{notif.title}</p>
                           <span className="text-xs text-muted-foreground shrink-0">{timeAgo(notif.createdAt, locale)}</span>
                         </div>
-                        {notif.body && <p className={cn("text-sm text-muted-foreground mb-2", rtl && "font-arabic")}>{notif.body}</p>}
+                        {notif.body && <p className={cn("text-sm text-muted-foreground mb-2", rtl && "font-arabic", isDemo && "blur-[3.5px] select-none pointer-events-none")}>{maskText(notif.body, isDemo)}</p>}
                         {notif.client && (
-                          <p className="text-xs text-muted-foreground">
-                            {notif.client.name} · {notif.client.phone}
+                          <p className={cn("text-xs text-muted-foreground", isDemo && "blur-[3.5px] select-none pointer-events-none")}>
+                            {maskName(notif.client.name, isDemo)} · {maskPhone(notif.client.phone, isDemo)}
                           </p>
                         )}
                         <div className={cn("flex items-center gap-2 mt-3", rtl && "flex-row-reverse")}>

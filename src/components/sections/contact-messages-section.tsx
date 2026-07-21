@@ -81,10 +81,13 @@ interface ContactMessage {
   } | null;
 }
 
+import { maskPhone, maskName, maskText } from "@/lib/demo-mask";
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ContactMessagesSection() {
-  const { locale } = useAppStore();
+  const { locale, userRole } = useAppStore();
+  const isDemo = userRole === "demo";
   const rtl = isRTL(locale);
 
   // State
@@ -333,12 +336,12 @@ export function ContactMessagesSection() {
                       )}
                     </TableCell>
                     <TableCell className={cn(rtl && "font-arabic")}>
-                      <span className={cn(!msg.isRead && "font-bold")}>{msg.name}</span>
+                      <span className={cn(!msg.isRead && "font-bold", isDemo && "blur-[3.5px] select-none pointer-events-none")}>{maskName(msg.name, isDemo)}</span>
                     </TableCell>
-                    <TableCell dir="ltr" className="text-sm tabular-nums">{msg.phone}</TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground truncate max-w-[150px]">{msg.email || "—"}</TableCell>
-                    <TableCell className={cn("hidden lg:table-cell text-sm text-muted-foreground truncate max-w-[200px]", rtl && "font-arabic")}>
-                      {msg.message.length > 50 ? msg.message.substring(0, 50) + "..." : msg.message}
+                    <TableCell dir="ltr" className={cn("text-sm tabular-nums", isDemo && "blur-[3.5px] select-none pointer-events-none")}>{maskPhone(msg.phone, isDemo)}</TableCell>
+                    <TableCell className={cn("hidden md:table-cell text-sm text-muted-foreground truncate max-w-[150px]", isDemo && "blur-[3.5px] select-none pointer-events-none")}>{maskText(msg.email, isDemo)}</TableCell>
+                    <TableCell className={cn("hidden lg:table-cell text-sm text-muted-foreground truncate max-w-[200px]", rtl && "font-arabic", isDemo && "blur-[3.5px] select-none pointer-events-none")}>
+                      {maskText(msg.message, isDemo)}
                     </TableCell>
                     <TableCell className={cn("hidden md:table-cell text-sm", rtl && "font-arabic")}>
                       {msg.Branch ? (

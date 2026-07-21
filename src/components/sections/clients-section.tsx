@@ -91,10 +91,13 @@ export interface Client {
   Channel?: { name: string; type: string } | null;
 }
 
+import { maskPhone, maskName, maskText } from "@/lib/demo-mask";
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ClientsSection() {
-  const { locale, setActiveChatId } = useAppStore();
+  const { locale, setActiveChatId, userRole } = useAppStore();
+  const isDemo = userRole === "demo";
   const router = useRouter();
   const rtl = isRTL(locale);
 
@@ -501,7 +504,9 @@ export function ClientsSection() {
                           </div>
                           <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-1.5">
-                              {client.name}
+                              <span className={cn(isDemo && "blur-[3.5px] select-none pointer-events-none")}>
+                                {maskName(client.name, isDemo)}
+                              </span>
                               {client.auth_user_id ? (
                                 <Badge variant="outline" className="gap-1 text-[10px] font-medium bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40">
                                   <UserCheck className="w-3 h-3" />
@@ -520,8 +525,8 @@ export function ClientsSection() {
                               )}
                             </div>
                             {client.last_message_preview && (
-                              <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">
-                                {client.last_message_preview}
+                              <span className={cn("text-[10px] text-muted-foreground truncate max-w-[150px]", isDemo && "blur-[3.5px] select-none pointer-events-none")}>
+                                {maskText(client.last_message_preview, isDemo)}
                               </span>
                             )}
                           </div>
@@ -530,10 +535,11 @@ export function ClientsSection() {
                       <TableCell
                         className={cn(
                           "tabular-nums text-muted-foreground",
-                          rtl && "text-right"
+                          rtl && "text-right",
+                          isDemo && "blur-[3.5px] select-none pointer-events-none"
                         )}
                       >
-                        {client.phone}
+                        {maskPhone(client.phone, isDemo)}
                       </TableCell>
                       <TableCell className={cn(rtl && "text-right")}>
                         <div className="flex flex-col">
@@ -569,18 +575,20 @@ export function ClientsSection() {
                       <TableCell
                         className={cn(
                           "max-w-[200px] truncate text-muted-foreground",
-                          rtl && "text-right font-arabic"
+                          rtl && "text-right font-arabic",
+                          isDemo && "blur-[3.5px] select-none pointer-events-none"
                         )}
                       >
-                        {client.address}
+                        {maskText(client.address, isDemo)}
                       </TableCell>
                       <TableCell
                         className={cn(
                           "max-w-[200px] truncate text-muted-foreground",
-                          rtl && "text-right font-arabic"
+                          rtl && "text-right font-arabic",
+                          isDemo && "blur-[3.5px] select-none pointer-events-none"
                         )}
                       >
-                        {client.notes}
+                        {maskText(client.notes, isDemo)}
                       </TableCell>
                       <TableCell>
                         <div className={cn("flex items-center gap-1", "")}>

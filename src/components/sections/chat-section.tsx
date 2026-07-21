@@ -153,10 +153,13 @@ const senderConfig: Record<
   },
 };
 
+import { maskPhone, maskName, maskId, maskText } from "@/lib/demo-mask";
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ChatSection() {
-  const { locale, activeChatId, setActiveChatId } = useAppStore();
+  const { locale, activeChatId, setActiveChatId, userRole } = useAppStore();
+  const isDemo = userRole === "demo";
   const rtl = isRTL(locale);
   const searchParams = useSearchParams();
   const clientIdParam = searchParams.get("clientId");
@@ -754,8 +757,8 @@ export function ChatSection() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className={cn("text-sm font-semibold truncate", rtl && "font-arabic")}>
-                              {conv.name || conv.platform_user_id || conv.phone}
+                            <span className={cn("text-sm font-semibold truncate", rtl && "font-arabic", isDemo && "blur-[3.5px] select-none pointer-events-none")}>
+                              {conv.name ? maskName(conv.name, isDemo) : (conv.phone ? maskPhone(conv.phone, isDemo) : maskId(conv.platform_user_id, isDemo))}
                             </span>
                             {conv.unread_count > 0 && (
                               <Badge variant="default" className="text-[10px] px-1.5 py-0 h-4 leading-none shrink-0 rounded-full bg-primary text-primary-foreground">
@@ -777,15 +780,15 @@ export function ChatSection() {
                         </div>
                         {conv.name && (conv.phone || conv.platform_user_id) && (
                           <p 
-                            className="text-[11px] text-muted-foreground/80 truncate mt-0.5 tabular-nums" 
+                            className={cn("text-[11px] text-muted-foreground/80 truncate mt-0.5 tabular-nums", isDemo && "blur-[3.5px] select-none pointer-events-none")} 
                             dir="ltr"
                             style={{ textAlign: rtl ? 'right' : 'left' }}
                           >
-                            {conv.phone || conv.platform_user_id}
+                            {conv.phone ? maskPhone(conv.phone, isDemo) : maskId(conv.platform_user_id, isDemo)}
                           </p>
                         )}
-                        <p className={cn("text-xs text-muted-foreground truncate mt-1", rtl && "font-arabic")}>
-                          {lastMsgText}
+                        <p className={cn("text-xs text-muted-foreground truncate mt-1", rtl && "font-arabic", isDemo && "blur-[3.5px] select-none pointer-events-none")}>
+                          {maskText(lastMsgText, isDemo)}
                         </p>
                       </div>
                     </div>
@@ -830,8 +833,8 @@ export function ChatSection() {
           </div>
           <div className="min-w-0 flex-1 flex flex-col justify-center">
             <div className="flex items-center gap-1.5">
-              <h3 className={cn("font-bold text-sm truncate", rtl && "font-arabic")}>
-                {activeClient.name || activeClient.platform_user_id || activeClient.phone}
+              <h3 className={cn("font-bold text-sm truncate", rtl && "font-arabic", isDemo && "blur-[3.5px] select-none pointer-events-none")}>
+                {activeClient.name ? maskName(activeClient.name, isDemo) : (activeClient.phone ? maskPhone(activeClient.phone, isDemo) : maskId(activeClient.platform_user_id, isDemo))}
               </h3>
               {activeClient.ai_enabled === false && (
                 <Badge variant="secondary" className="text-[8px] px-1 h-3.5 shrink-0 leading-none bg-orange-100 text-orange-700 hover:bg-orange-100 dark:bg-orange-900/30 dark:text-orange-400">
@@ -842,8 +845,8 @@ export function ChatSection() {
             <div className="flex items-center gap-1 mt-0.5">
               {(activeClient.name) && (activeClient.phone || activeClient.platform_user_id) && (
                 <>
-                  <span className="text-[11px] font-medium text-muted-foreground tabular-nums" dir="ltr">
-                    {activeClient.phone || activeClient.platform_user_id}
+                  <span className={cn("text-[11px] font-medium text-muted-foreground tabular-nums", isDemo && "blur-[3.5px] select-none pointer-events-none")} dir="ltr">
+                    {activeClient.phone ? maskPhone(activeClient.phone, isDemo) : maskId(activeClient.platform_user_id, isDemo)}
                   </span>
                   <span className="text-[11px] text-muted-foreground/50">•</span>
                 </>
@@ -970,8 +973,8 @@ export function ChatSection() {
                     </a>
                   )}
                   {msg.text_content && msg.text_content.trim() !== "" && (
-                    <p className={rtl ? "font-arabic" : ""}>
-                      {msg.text_content}
+                    <p className={cn(rtl && "font-arabic", isDemo && "blur-[3.5px] select-none pointer-events-none")}>
+                      {maskText(msg.text_content, isDemo)}
                     </p>
                   )}
                   <span 

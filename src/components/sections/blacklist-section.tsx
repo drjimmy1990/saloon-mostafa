@@ -42,8 +42,11 @@ export interface PausedClient {
   createdAt: string;
 }
 
+import { maskPhone, maskName, maskId } from "@/lib/demo-mask";
+
 export function BlacklistSection() {
-  const { locale } = useAppStore();
+  const { locale, userRole } = useAppStore();
+  const isDemo = userRole === "demo";
   const rtl = isRTL(locale);
 
   const [clients, setClients] = useState<PausedClient[]>([]);
@@ -304,11 +307,12 @@ export function BlacklistSection() {
                         >
                           <span
                             className={cn(
-                              "font-semibold text-sm",
-                              rtl && "font-arabic"
+                              "font-medium",
+                              rtl && "font-arabic",
+                              isDemo && "blur-[3.5px] select-none pointer-events-none"
                             )}
                           >
-                            {client.name || client.phone || client.platform_user_id}
+                            {client.name ? maskName(client.name, isDemo) : (client.phone ? maskPhone(client.phone, isDemo) : maskId(client.platform_user_id, isDemo))}
                           </span>
                           <Badge
                             variant="secondary"
@@ -322,11 +326,12 @@ export function BlacklistSection() {
                           <p
                             className={cn(
                               "text-xs text-muted-foreground mt-0.5",
-                              rtl && "font-arabic"
+                              rtl && "font-arabic",
+                              isDemo && "blur-[3.5px] select-none pointer-events-none"
                             )}
                             dir="ltr"
                           >
-                            {client.phone || client.platform_user_id}
+                            {client.phone ? maskPhone(client.phone, isDemo) : maskId(client.platform_user_id, isDemo)}
                           </p>
                         )}
                         <div
