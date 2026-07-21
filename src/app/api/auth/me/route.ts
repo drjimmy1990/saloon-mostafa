@@ -17,9 +17,11 @@ export async function GET() {
       .eq('user_id', user.id)
       .single();
 
+    const userRole = (role?.role as "admin" | "team" | "demo") || 'team';
+
     return NextResponse.json({ 
       user: { id: user.id, email: user.email }, 
-      role: role?.role || 'team',
+      role: userRole,
       name: role?.name || user.email?.split('@')[0],
       permissions: role?.permissions || []
     });

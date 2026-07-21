@@ -5,8 +5,15 @@ import { getAuthUser } from "@/lib/auth";
 // GET — Export all clients as CSV (admin-only)
 export async function GET() {
   const user = await getAuthUser();
-  if (!user || user.role !== "admin")
+  if (!user || user.role !== "admin") {
+    if (user?.role === "demo") {
+      return NextResponse.json(
+        { error: "غير مصرح - حساب العرض التوضيحي لا يمكنه الوصول لهذه البيانات" },
+        { status: 403 }
+      );
+    }
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
 
   const supabase = getServiceRoleClient();
   const { data, error } = await supabase

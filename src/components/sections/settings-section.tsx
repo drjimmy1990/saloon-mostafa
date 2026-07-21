@@ -31,12 +31,12 @@ interface AppUserRole {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "team";
+  role: "admin" | "team" | "demo";
   permissions: string[];
 }
 
 export function SettingsSection() {
-  const { locale } = useAppStore();
+  const { locale, userRole } = useAppStore();
   const rtl = isRTL(locale);
 
   // General Settings State
@@ -68,7 +68,7 @@ export function SettingsSection() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<AppUserRole | null>(null);
-  const [userForm, setUserForm] = useState<{name: string, email: string, role: "admin" | "team", password?: string, permissions: string[]}>({ name: "", email: "", role: "team", permissions: [] });
+  const [userForm, setUserForm] = useState<{name: string, email: string, role: "admin" | "team" | "demo", password?: string, permissions: string[]}>({ name: "", email: "", role: "team", permissions: [] });
 
   const AVAILABLE_PERMISSIONS = [
     { id: "channels", labelAr: "القنوات", labelEn: "Channels" },
@@ -296,6 +296,24 @@ export function SettingsSection() {
         </p>
       </div>
 
+      {userRole === "demo" && (
+        <div className="bg-amber-500/15 border border-amber-500/30 rounded-lg p-4 text-amber-800 dark:text-amber-300 text-sm font-medium flex items-center gap-3 shadow-sm">
+          <div className="p-2 rounded-md bg-amber-500/20 shrink-0">
+            <Settings className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <p className="font-bold">
+              {rtl ? "وضع العرض التوضيحي (معاينة فقط)" : "Demo Mode (Preview Only)"}
+            </p>
+            <p className="text-xs sm:text-sm mt-0.5">
+              {rtl
+                ? "تنبيه: أنت في وضع العرض التوضيحي. جميع الإعدادات أصبحت للعرض فقط وتم تعطيل عمليات الحفظ والتعديل."
+                : "Alert: You are in Demo Mode. All settings are read-only and save/edit operations are disabled."}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Change Password */}
         <Card>
@@ -320,11 +338,12 @@ export function SettingsSection() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••"
                 dir="ltr"
+                disabled={userRole === "demo"}
               />
             </div>
             <Button
               onClick={handleUpdatePassword}
-              disabled={isUpdatingPassword}
+              disabled={isUpdatingPassword || userRole === "demo"}
               className={cn("w-full gap-2", rtl && "font-arabic")}
             >
               <Save className="w-4 h-4" />
@@ -356,6 +375,7 @@ export function SettingsSection() {
                 placeholder={rtl ? "شارع مكة، عمّان..." : "123 Main St..."}
                 className={cn(rtl && "font-arabic text-right")}
                 dir={rtl ? "rtl" : "ltr"}
+                disabled={userRole === "demo"}
               />
             </div>
             <div className="space-y-2">
@@ -368,6 +388,7 @@ export function SettingsSection() {
                 onChange={(e) => setWhatsappNotification(e.target.value)}
                 placeholder="962790000000"
                 dir="ltr"
+                disabled={userRole === "demo"}
               />
             </div>
             <div className="space-y-2">
@@ -383,6 +404,7 @@ export function SettingsSection() {
                 onChange={(e) => setDeliveryFee(e.target.value)}
                 placeholder="2"
                 dir="ltr"
+                disabled={userRole === "demo"}
               />
               <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
                 {rtl ? "رسوم التوصيل التي تظهر في صفحة الدفع بالموقع" : "Delivery fee shown on website checkout"}
@@ -390,7 +412,7 @@ export function SettingsSection() {
             </div>
             <Button
               onClick={handleSaveSettings}
-              disabled={isSavingSettings}
+              disabled={isSavingSettings || userRole === "demo"}
               className={cn("w-full gap-2", rtl && "font-arabic")}
             >
               <Save className="w-4 h-4" />
@@ -414,35 +436,35 @@ export function SettingsSection() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className={cn(rtl && "font-arabic")}>{rtl ? "رقم الهاتف" : "Phone Number"}</Label>
-                <Input value={salonPhone} onChange={(e) => setSalonPhone(e.target.value)} placeholder="962786753791" dir="ltr" />
+                <Input value={salonPhone} onChange={(e) => setSalonPhone(e.target.value)} placeholder="962786753791" dir="ltr" disabled={userRole === "demo"} />
               </div>
               <div className="space-y-2">
                 <Label className={cn(rtl && "font-arabic")}>{rtl ? "رقم واتساب" : "WhatsApp Number"}</Label>
-                <Input value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="962786753791" dir="ltr" />
+                <Input value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="962786753791" dir="ltr" disabled={userRole === "demo"} />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط انستغرام" : "Instagram URL"}</Label>
-                <Input value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} placeholder="https://instagram.com/..." dir="ltr" />
+                <Input value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} placeholder="https://instagram.com/..." dir="ltr" disabled={userRole === "demo"} />
               </div>
               <div className="space-y-2">
                 <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط فيسبوك" : "Facebook URL"}</Label>
-                <Input value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} placeholder="https://facebook.com/..." dir="ltr" />
+                <Input value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} placeholder="https://facebook.com/..." dir="ltr" disabled={userRole === "demo"} />
               </div>
               <div className="space-y-2">
                 <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط تيك توك" : "TikTok URL"}</Label>
-                <Input value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://tiktok.com/..." dir="ltr" />
+                <Input value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://tiktok.com/..." dir="ltr" disabled={userRole === "demo"} />
               </div>
             </div>
             <div className="space-y-2">
               <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط خريطة Google Maps" : "Google Maps Embed URL"}</Label>
-              <Input value={googleMapsUrl} onChange={(e) => setGoogleMapsUrl(e.target.value)} placeholder="https://www.google.com/maps/embed?pb=..." dir="ltr" />
+              <Input value={googleMapsUrl} onChange={(e) => setGoogleMapsUrl(e.target.value)} placeholder="https://www.google.com/maps/embed?pb=..." dir="ltr" disabled={userRole === "demo"} />
               <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
                 {rtl ? "انسخي رابط التضمين من Google Maps" : "Paste the embed URL from Google Maps"}
               </p>
             </div>
-            <Button onClick={handleSaveSettings} disabled={isSavingSettings} className={cn("w-full gap-2", rtl && "font-arabic")}>
+            <Button onClick={handleSaveSettings} disabled={isSavingSettings || userRole === "demo"} className={cn("w-full gap-2", rtl && "font-arabic")}>
               <Save className="w-4 h-4" />
               {rtl ? "حفظ" : "Save"}
             </Button>
@@ -463,23 +485,23 @@ export function SettingsSection() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className={cn(rtl && "font-arabic")}>{rtl ? "أوقات العمل (أيام الأسبوع)" : "Weekday Hours"}</Label>
-              <Input value={workingHoursWeekdays} onChange={(e) => setWorkingHoursWeekdays(e.target.value)} placeholder="السبت - الخميس: 10:00 ص - 8:00 م" className={cn(rtl && "font-arabic text-right")} dir={rtl ? "rtl" : "ltr"} />
+              <Input value={workingHoursWeekdays} onChange={(e) => setWorkingHoursWeekdays(e.target.value)} placeholder="السبت - الخميس: 10:00 ص - 8:00 م" className={cn(rtl && "font-arabic text-right")} dir={rtl ? "rtl" : "ltr"} disabled={userRole === "demo"} />
             </div>
             <div className="space-y-2">
               <Label className={cn(rtl && "font-arabic")}>{rtl ? "أوقات العمل (الجمعة)" : "Friday Hours"}</Label>
-              <Input value={workingHoursFriday} onChange={(e) => setWorkingHoursFriday(e.target.value)} placeholder="الجمعة: مغلق" className={cn(rtl && "font-arabic text-right")} dir={rtl ? "rtl" : "ltr"} />
+              <Input value={workingHoursFriday} onChange={(e) => setWorkingHoursFriday(e.target.value)} placeholder="الجمعة: مغلق" className={cn(rtl && "font-arabic text-right")} dir={rtl ? "rtl" : "ltr"} disabled={userRole === "demo"} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className={cn(rtl && "font-arabic")}>{rtl ? "بداية أوقات الحجز" : "Booking Start"}</Label>
-                <Input type="time" value={bookingStartTime} onChange={(e) => setBookingStartTime(e.target.value)} dir="ltr" />
+                <Input type="time" value={bookingStartTime} onChange={(e) => setBookingStartTime(e.target.value)} dir="ltr" disabled={userRole === "demo"} />
               </div>
               <div className="space-y-2">
                 <Label className={cn(rtl && "font-arabic")}>{rtl ? "نهاية أوقات الحجز" : "Booking End"}</Label>
-                <Input type="time" value={bookingEndTime} onChange={(e) => setBookingEndTime(e.target.value)} dir="ltr" />
+                <Input type="time" value={bookingEndTime} onChange={(e) => setBookingEndTime(e.target.value)} dir="ltr" disabled={userRole === "demo"} />
               </div>
             </div>
-            <Button onClick={handleSaveSettings} disabled={isSavingSettings} className={cn("w-full gap-2", rtl && "font-arabic")}>
+            <Button onClick={handleSaveSettings} disabled={isSavingSettings || userRole === "demo"} className={cn("w-full gap-2", rtl && "font-arabic")}>
               <Save className="w-4 h-4" />
               {rtl ? "حفظ" : "Save"}
             </Button>
@@ -487,56 +509,58 @@ export function SettingsSection() {
         </Card>
 
         {/* Team Management */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
-                <Users className="w-5 h-5 text-primary" />
-                {rtl ? "إدارة فريق العمل" : "Team Management"}
-              </CardTitle>
-              <CardDescription className={cn(rtl && "font-arabic")}>
-                {rtl ? "صلاحيات الوصول للوحة التحكم" : "Dashboard access permissions"}
-              </CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={() => openUserDialog()} className={cn("gap-1.5", rtl && "font-arabic")}>
-              <Plus className="w-4 h-4" />
-              {rtl ? "إضافة عضو" : "Add Member"}
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {isLoadingUsers ? (
-              <div className="text-center py-8 text-muted-foreground">Loading...</div>
-            ) : users.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground text-sm">
-                {rtl ? "لا يوجد أعضاء في الفريق" : "No team members found"}
+        {userRole !== "demo" && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
+                  <Users className="w-5 h-5 text-primary" />
+                  {rtl ? "إدارة فريق العمل" : "Team Management"}
+                </CardTitle>
+                <CardDescription className={cn(rtl && "font-arabic")}>
+                  {rtl ? "صلاحيات الوصول للوحة التحكم" : "Dashboard access permissions"}
+                </CardDescription>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {users.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
-                    <div>
-                      <p className="font-medium text-sm">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
-                      <span className={cn("inline-block mt-1 px-2 py-0.5 text-[10px] font-medium rounded-full",
-                        user.role === 'admin' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                      )}>
-                        {user.role.toUpperCase()}
-                      </span>
+              <Button variant="outline" size="sm" onClick={() => openUserDialog()} className={cn("gap-1.5", rtl && "font-arabic")}>
+                <Plus className="w-4 h-4" />
+                {rtl ? "إضافة عضو" : "Add Member"}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {isLoadingUsers ? (
+                <div className="text-center py-8 text-muted-foreground">Loading...</div>
+              ) : users.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">
+                  {rtl ? "لا يوجد أعضاء في الفريق" : "No team members found"}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {users.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
+                      <div>
+                        <p className="font-medium text-sm">{user.name}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                        <span className={cn("inline-block mt-1 px-2 py-0.5 text-[10px] font-medium rounded-full",
+                          user.role === 'admin' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                        )}>
+                          {user.role.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => openUserDialog(user)} className="h-8 w-8">
+                          <Settings className="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.id)} className="h-8 w-8 hover:bg-red-50 hover:text-red-600">
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => openUserDialog(user)} className="h-8 w-8">
-                        <Settings className="w-4 h-4 text-muted-foreground" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.id)} className="h-8 w-8 hover:bg-red-50 hover:text-red-600">
-                        <Trash2 className="w-4 h-4 text-red-500" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Hero Section Images */}
         <Card>
@@ -563,6 +587,7 @@ export function SettingsSection() {
                   placeholder="/images/hero/hero_salon_1.png"
                   dir="ltr"
                   className="flex-1"
+                  disabled={userRole === "demo"}
                 />
                 <input
                   type="file"
@@ -570,12 +595,12 @@ export function SettingsSection() {
                   accept="image/*"
                   onChange={(e) => handleImageUpload(e, 1)}
                   className="hidden"
-                  disabled={isUploading1}
+                  disabled={isUploading1 || userRole === "demo"}
                 />
                 <Button
                   asChild
                   variant="outline"
-                  className={cn("gap-2 shrink-0 cursor-pointer", isUploading1 && "opacity-50 pointer-events-none")}
+                  className={cn("gap-2 shrink-0 cursor-pointer", (isUploading1 || userRole === "demo") && "opacity-50 pointer-events-none")}
                 >
                   <label htmlFor="hero-upload-1" className="flex items-center gap-2 cursor-pointer">
                     {isUploading1 ? (
@@ -598,7 +623,8 @@ export function SettingsSection() {
                   <button
                     type="button"
                     onClick={() => setHeroImage1("")}
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    disabled={userRole === "demo"}
+                    className={cn("absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200", userRole === "demo" && "pointer-events-none hidden")}
                   >
                     <Trash2 className="w-5 h-5 text-white" />
                   </button>
@@ -617,6 +643,7 @@ export function SettingsSection() {
                   placeholder="/images/hero/hero_salon_2.png"
                   dir="ltr"
                   className="flex-1"
+                  disabled={userRole === "demo"}
                 />
                 <input
                   type="file"
@@ -624,12 +651,12 @@ export function SettingsSection() {
                   accept="image/*"
                   onChange={(e) => handleImageUpload(e, 2)}
                   className="hidden"
-                  disabled={isUploading2}
+                  disabled={isUploading2 || userRole === "demo"}
                 />
                 <Button
                   asChild
                   variant="outline"
-                  className={cn("gap-2 shrink-0 cursor-pointer", isUploading2 && "opacity-50 pointer-events-none")}
+                  className={cn("gap-2 shrink-0 cursor-pointer", (isUploading2 || userRole === "demo") && "opacity-50 pointer-events-none")}
                 >
                   <label htmlFor="hero-upload-2" className="flex items-center gap-2 cursor-pointer">
                     {isUploading2 ? (
@@ -652,7 +679,8 @@ export function SettingsSection() {
                   <button
                     type="button"
                     onClick={() => setHeroImage2("")}
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    disabled={userRole === "demo"}
+                    className={cn("absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200", userRole === "demo" && "pointer-events-none hidden")}
                   >
                     <Trash2 className="w-5 h-5 text-white" />
                   </button>
@@ -671,6 +699,7 @@ export function SettingsSection() {
                   placeholder="/images/hero/hero_salon_3.png"
                   dir="ltr"
                   className="flex-1"
+                  disabled={userRole === "demo"}
                 />
                 <input
                   type="file"
@@ -678,12 +707,12 @@ export function SettingsSection() {
                   accept="image/*"
                   onChange={(e) => handleImageUpload(e, 3)}
                   className="hidden"
-                  disabled={isUploading3}
+                  disabled={isUploading3 || userRole === "demo"}
                 />
                 <Button
                   asChild
                   variant="outline"
-                  className={cn("gap-2 shrink-0 cursor-pointer", isUploading3 && "opacity-50 pointer-events-none")}
+                  className={cn("gap-2 shrink-0 cursor-pointer", (isUploading3 || userRole === "demo") && "opacity-50 pointer-events-none")}
                 >
                   <label htmlFor="hero-upload-3" className="flex items-center gap-2 cursor-pointer">
                     {isUploading3 ? (
@@ -706,7 +735,8 @@ export function SettingsSection() {
                   <button
                     type="button"
                     onClick={() => setHeroImage3("")}
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    disabled={userRole === "demo"}
+                    className={cn("absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200", userRole === "demo" && "pointer-events-none hidden")}
                   >
                     <Trash2 className="w-5 h-5 text-white" />
                   </button>
@@ -715,7 +745,7 @@ export function SettingsSection() {
             </div>
             <Button
               onClick={handleSaveSettings}
-              disabled={isSavingSettings}
+              disabled={isSavingSettings || userRole === "demo"}
               className={cn("w-full gap-2", rtl && "font-arabic")}
             >
               <Save className="w-4 h-4" />
@@ -726,96 +756,99 @@ export function SettingsSection() {
       </div>
 
       {/* Add/Edit User Dialog */}
-      <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
-        <DialogContent className={cn("sm:max-w-md", rtl && "font-arabic")} dir={rtl ? "rtl" : "ltr"}>
-          <DialogHeader className={cn(rtl && "text-right")}>
-            <DialogTitle>{editingUser ? (rtl ? "تعديل المستخدم" : "Edit User") : (rtl ? "إضافة عضو جديد" : "Add New Member")}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label className={cn(rtl && "text-right block")}>{rtl ? "الاسم" : "Name"}</Label>
-              <Input
-                value={userForm.name}
-                onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
-                className={cn(rtl && "text-right font-arabic")}
-                dir={rtl ? "rtl" : "ltr"}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className={cn(rtl && "text-right block")}>{rtl ? "البريد الإلكتروني" : "Email"}</Label>
-              <Input
-                type="email"
-                value={userForm.email}
-                onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                dir="ltr"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className={cn(rtl && "text-right block")}>{rtl ? "الصلاحية" : "Role"}</Label>
-              <Select value={userForm.role} onValueChange={(val: "admin" | "team") => setUserForm({ ...userForm, role: val })}>
-                <SelectTrigger className={cn(rtl && "font-arabic")}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin" className={cn(rtl && "font-arabic")}>{rtl ? "مدير (Admin)" : "Admin"}</SelectItem>
-                  <SelectItem value="team" className={cn(rtl && "font-arabic")}>{rtl ? "فريق عمل (Team)" : "Team"}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className={cn(rtl && "text-right block")}>
-                {rtl ? "كلمة المرور" : "Password"}
-                {editingUser && <span className="text-muted-foreground text-xs mx-2">({rtl ? "اتركه فارغاً لعدم التغيير" : "Leave blank to keep current"})</span>}
-              </Label>
-              <Input
-                type="password"
-                value={userForm.password || ""}
-                onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                dir="ltr"
-                placeholder="••••••"
-              />
-            </div>
-
-            {userForm.role === "team" && (
-              <div className="space-y-3 pt-2 border-t mt-4">
-                <Label className={cn(rtl && "text-right block")}>{rtl ? "صلاحيات الوصول (الصفحات)" : "Access Permissions (Pages)"}</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {AVAILABLE_PERMISSIONS.map((perm) => (
-                    <div key={perm.id} className={cn("flex items-center space-x-2", rtl && "flex-row-reverse space-x-reverse")}>
-                      <Checkbox
-                        id={`perm-${perm.id}`}
-                        checked={userForm.permissions.includes(perm.id)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setUserForm({ ...userForm, permissions: [...userForm.permissions, perm.id] });
-                          } else {
-                            setUserForm({ ...userForm, permissions: userForm.permissions.filter(p => p !== perm.id) });
-                          }
-                        }}
-                      />
-                      <label
-                        htmlFor={`perm-${perm.id}`}
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {rtl ? perm.labelAr : perm.labelEn}
-                      </label>
-                    </div>
-                  ))}
-                </div>
+      {userRole !== "demo" && (
+        <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
+          <DialogContent className={cn("sm:max-w-md", rtl && "font-arabic")} dir={rtl ? "rtl" : "ltr"}>
+            <DialogHeader className={cn(rtl && "text-right")}>
+              <DialogTitle>{editingUser ? (rtl ? "تعديل المستخدم" : "Edit User") : (rtl ? "إضافة عضو جديد" : "Add New Member")}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "text-right block")}>{rtl ? "الاسم" : "Name"}</Label>
+                <Input
+                  value={userForm.name}
+                  onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+                  className={cn(rtl && "text-right font-arabic")}
+                  dir={rtl ? "rtl" : "ltr"}
+                />
               </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUserDialogOpen(false)} className={cn(rtl && "font-arabic")}>
-              {t(locale, "cancel")}
-            </Button>
-            <Button onClick={handleSaveUser} disabled={!userForm.name || !userForm.email || (!editingUser && !userForm.password)} className={cn(rtl && "font-arabic")}>
-              {t(locale, "save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "text-right block")}>{rtl ? "البريد الإلكتروني" : "Email"}</Label>
+                <Input
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+                  dir="ltr"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "text-right block")}>{rtl ? "الصلاحية" : "Role"}</Label>
+                <Select value={userForm.role} onValueChange={(val: "admin" | "team" | "demo") => setUserForm({ ...userForm, role: val })}>
+                  <SelectTrigger className={cn(rtl && "font-arabic")}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin" className={cn(rtl && "font-arabic")}>{rtl ? "مدير (Admin)" : "Admin"}</SelectItem>
+                    <SelectItem value="team" className={cn(rtl && "font-arabic")}>{rtl ? "فريق عمل (Team)" : "Team"}</SelectItem>
+                    <SelectItem value="demo" className={cn(rtl && "font-arabic")}>{rtl ? "عرض توضيحي (Demo)" : "Demo"}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className={cn(rtl && "text-right block")}>
+                  {rtl ? "كلمة المرور" : "Password"}
+                  {editingUser && <span className="text-muted-foreground text-xs mx-2">({rtl ? "اتركه فارغاً لعدم التغيير" : "Leave blank to keep current"})</span>}
+                </Label>
+                <Input
+                  type="password"
+                  value={userForm.password || ""}
+                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                  dir="ltr"
+                  placeholder="••••••"
+                />
+              </div>
+
+              {userForm.role === "team" && (
+                <div className="space-y-3 pt-2 border-t mt-4">
+                  <Label className={cn(rtl && "text-right block")}>{rtl ? "صلاحيات الوصول (الصفحات)" : "Access Permissions (Pages)"}</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {AVAILABLE_PERMISSIONS.map((perm) => (
+                      <div key={perm.id} className={cn("flex items-center space-x-2", rtl && "flex-row-reverse space-x-reverse")}>
+                        <Checkbox
+                          id={`perm-${perm.id}`}
+                          checked={userForm.permissions.includes(perm.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setUserForm({ ...userForm, permissions: [...userForm.permissions, perm.id] });
+                            } else {
+                              setUserForm({ ...userForm, permissions: userForm.permissions.filter(p => p !== perm.id) });
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={`perm-${perm.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {rtl ? perm.labelAr : perm.labelEn}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setUserDialogOpen(false)} className={cn(rtl && "font-arabic")}>
+                {t(locale, "cancel")}
+              </Button>
+              <Button onClick={handleSaveUser} disabled={!userForm.name || !userForm.email || (!editingUser && !userForm.password)} className={cn(rtl && "font-arabic")}>
+                {t(locale, "save")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

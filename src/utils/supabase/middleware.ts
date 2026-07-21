@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getServiceRoleClient } from '@/lib/supabase'
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -57,6 +58,40 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
+  }
+
+  // Demo user API security enforcement
+  if (user && request.nextUrl.pathname.startsWith('/api/')) {
+    try {
+      const { data: roleData } = await getServiceRoleClient()
+        .from('AppUserRole')
+        .select('role')
+        .eq('user_id', user.id)
+        .single()
+
+      if (roleData?.role === 'demo') {
+        const path = request.nextUrl.pathname
+        const method = request.method.toUpperCase()
+
+        // 1. Restricted paths (/api/users* and /api/clients/export)
+        if (path.startsWith('/api/users') || path.startsWith('/api/clients/export')) {
+          return NextResponse.json(
+            { error: 'غير مصرح - حساب العرض التوضيحي لا يمكنه الوصول لهذه البيانات' },
+            { status: 403 }
+          )
+        }
+
+        // 2. Write HTTP methods (POST, PUT, PATCH, DELETE)
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+          return NextResponse.json(
+            { error: 'وضع العرض التوضيحي للقراءة فقط - لا يمكن تعديل البيانات' },
+            { status: 403 }
+          )
+        }
+      }
+    } catch {
+      // Ignore database error in middleware and proceed to route handler
+    }
   }
 
   return supabaseResponse

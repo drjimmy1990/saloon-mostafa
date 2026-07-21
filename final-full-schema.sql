@@ -394,7 +394,7 @@ CREATE TABLE IF NOT EXISTS "public"."AppUserRole" (
     "user_id" UUID UNIQUE, -- Can map to auth.users.id later
     "name" TEXT NOT NULL,
     "email" TEXT UNIQUE NOT NULL,
-    "role" TEXT NOT NULL CHECK ("role" IN ('admin', 'team')),
+    "role" TEXT NOT NULL CHECK ("role" IN ('admin', 'team', 'demo')),
     "permissions" JSONB DEFAULT '[]'::jsonb,
     "createdAt" TIMESTAMPTZ DEFAULT NOW(),
     "updatedAt" TIMESTAMPTZ DEFAULT NOW()

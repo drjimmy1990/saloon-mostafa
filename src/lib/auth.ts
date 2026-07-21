@@ -5,7 +5,7 @@ import { getServiceRoleClient } from "@/lib/supabase";
 export type AuthUser = {
   id: string;
   email: string;
-  role: "admin" | "team";
+  role: "admin" | "team" | "demo";
   name: string;
   permissions: string[];
 };
@@ -32,13 +32,42 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     return {
       id: user.id,
       email: user.email || "",
-      role: (role?.role as "admin" | "team") || "team",
+      role: (role?.role as "admin" | "team" | "demo") || "team",
       name: role?.name || user.email?.split("@")[0] || "User",
       permissions: role?.permissions || [],
     };
   } catch {
     return null;
   }
+}
+
+/**
+ * Checks if the authenticated user is a demo user and restricts write actions or sensitive endpoints.
+ * Returns a 403 NextResponse if restricted, or null if allowed.
+ */
+export function checkDemoRestriction(user: AuthUser, req: NextRequest): NextResponse | null {
+  if (user.role !== "demo") return null;
+
+  const path = req.nextUrl.pathname;
+  const method = req.method.toUpperCase();
+
+  // a. Restricted endpoints (/api/users* and /api/clients/export)
+  if (path.startsWith("/api/users") || path.startsWith("/api/clients/export")) {
+    return NextResponse.json(
+      { error: "غير مصرح - حساب العرض التوضيحي لا يمكنه الوصول لهذه البيانات" },
+      { status: 403 }
+    );
+  }
+
+  // b. Write HTTP methods (POST, PUT, PATCH, DELETE)
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    return NextResponse.json(
+      { error: "وضع العرض التوضيحي للقراءة فقط - لا يمكن تعديل البيانات" },
+      { status: 403 }
+    );
+  }
+
+  return null;
 }
 
 /**
@@ -65,6 +94,9 @@ export function withAuth(
         { status: 401 }
       );
     }
+
+    const demoRestriction = checkDemoRestriction(user, req);
+    if (demoRestriction) return demoRestriction;
 
     if (options?.adminOnly && user.role !== "admin") {
       return NextResponse.json(

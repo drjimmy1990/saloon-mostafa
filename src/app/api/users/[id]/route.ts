@@ -5,7 +5,12 @@ import { getAuthUser } from '@/lib/auth';
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getAuthUser();
-    if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (!user || user.role !== 'admin') {
+      if (user?.role === 'demo') {
+        return NextResponse.json({ error: 'غير مصرح - حساب العرض التوضيحي لا يمكنه الوصول لهذه البيانات' }, { status: 403 });
+      }
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     const { id } = await params;
     const body = await request.json();
     const supabase = getServiceRoleClient();
@@ -51,7 +56,12 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getAuthUser();
-    if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (!user || user.role !== 'admin') {
+      if (user?.role === 'demo') {
+        return NextResponse.json({ error: 'غير مصرح - حساب العرض التوضيحي لا يمكنه الوصول لهذه البيانات' }, { status: 403 });
+      }
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
     const { id } = await params;
     const supabase = getServiceRoleClient();
 

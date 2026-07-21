@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 
 export function BotSettingsSection() {
-  const { locale } = useAppStore();
+  const { locale, userRole } = useAppStore();
   const rtl = isRTL(locale);
 
   const [staffHours, setStaffHours] = useState("2");
@@ -92,6 +92,7 @@ export function BotSettingsSection() {
                 onChange={(e) => setStaffHours(e.target.value)}
                 className="max-w-[200px]"
                 dir="ltr"
+                disabled={userRole === "demo"}
               />
             </div>
             <div className="space-y-2">
@@ -104,12 +105,13 @@ export function BotSettingsSection() {
                 onChange={(e) => setClientHours(e.target.value)}
                 className="max-w-[200px]"
                 dir="ltr"
+                disabled={userRole === "demo"}
               />
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <Button onClick={handleSave} disabled={saving} className="gap-2">
+            <Button onClick={handleSave} disabled={saving || userRole === "demo"} className="gap-2">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               <span className={cn(rtl && "font-arabic")}>{t(locale, "save")}</span>
             </Button>

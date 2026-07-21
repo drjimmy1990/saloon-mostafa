@@ -10,8 +10,8 @@ interface AppState {
   setSidebarOpen: (open: boolean) => void;
   activeChatId: string | null;
   setActiveChatId: (id: string | null) => void;
-  userRole: "admin" | "team" | null;
-  setUserRole: (role: "admin" | "team" | null) => void;
+  userRole: "admin" | "team" | "demo" | null;
+  setUserRole: (role: "admin" | "team" | "demo" | null) => void;
   userName: string | null;
   setUserName: (name: string | null) => void;
   userPermissions: string[];

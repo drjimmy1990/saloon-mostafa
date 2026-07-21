@@ -5,7 +5,12 @@ import { getAuthUser } from '@/lib/auth';
 export async function GET() {
   try {
     const user = await getAuthUser();
-    if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (!user || user.role !== 'admin') {
+      if (user?.role === 'demo') {
+        return NextResponse.json({ error: 'غير مصرح - حساب العرض التوضيحي لا يمكنه الوصول لهذه البيانات' }, { status: 403 });
+      }
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
     const supabase = getServiceRoleClient();
     const { data: users, error } = await supabase
@@ -24,7 +29,12 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await getAuthUser();
-    if (!user || user.role !== 'admin') return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    if (!user || user.role !== 'admin') {
+      if (user?.role === 'demo') {
+        return NextResponse.json({ error: 'غير مصرح - حساب العرض التوضيحي لا يمكنه الوصول لهذه البيانات' }, { status: 403 });
+      }
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
 
     const body = await request.json();
     const { email, password, name, role, permissions } = body;

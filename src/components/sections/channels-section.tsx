@@ -226,7 +226,7 @@ function deepCloneChannel(ch: Channel): Omit<Channel, "id"> {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export function ChannelsSection() {
-  const { locale } = useAppStore();
+  const { locale, userRole } = useAppStore();
   const rtl = isRTL(locale);
 
   const [channels, setChannels] = useState<Channel[]>([]);
@@ -1340,6 +1340,7 @@ function ChannelCard({
   onSaveInline,
   isSaving,
 }: ChannelCardProps) {
+  const { userRole } = useAppStore();
   const config = channelTypeConfig[channel.type];
   const Icon = config.icon;
   const isConfirmingDelete = deleteConfirmId === channel.id;
@@ -1531,128 +1532,130 @@ function ChannelCard({
           defaultValue={[]}
         >
           {/* ── Credentials ── */}
-          <AccordionItem value={`${channel.id}-credentials`}>
-            <AccordionTrigger
-              className={cn(
-                "text-sm font-medium hover:no-underline py-3",
-                rtl && "font-arabic"
-              )}
-            >
-              <div
+          {userRole !== "demo" && (
+            <AccordionItem value={`${channel.id}-credentials`}>
+              <AccordionTrigger
                 className={cn(
-                  "flex items-center gap-2",
-                  ""
+                  "text-sm font-medium hover:no-underline py-3",
+                  rtl && "font-arabic"
                 )}
               >
-                <Key
+                <div
                   className={cn(
-                    "w-4 h-4",
-                    sectionAccents.credentials.iconColor
-                  )}
-                />
-                <span>{t(locale, "channels.credentials")}</span>
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    "text-[10px] px-1.5 py-0",
-                    sectionAccents.credentials.badgeBg,
-                    sectionAccents.credentials.badgeText,
-                    sectionAccents.credentials.badgeBorder,
-                    "border"
+                    "flex items-center gap-2",
+                    ""
                   )}
                 >
-                  {channel.credentials.length}
-                </Badge>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-2">
-                {channel.credentials.map((cred, idx) => {
-                  const isRevealed = revealedCreds.has(idx);
-                  const isProtected = channel.type === "whatsapp" && cred.key.trim().toLowerCase() === "evolution_api";
-                  return (
-                    <div
-                      key={idx}
-                      className={cn(
-                        "flex items-center gap-2 group",
-                        ""
-                      )}
-                    >
-                      <Input
-                        value={cred.key}
-                        onChange={(e) =>
-                          onUpdateCredential(
-                            channel.id,
-                            idx,
-                            "key",
-                            e.target.value
-                          )
-                        }
-                        disabled={isProtected}
+                  <Key
+                    className={cn(
+                      "w-4 h-4",
+                      sectionAccents.credentials.iconColor
+                    )}
+                  />
+                  <span>{t(locale, "channels.credentials")}</span>
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "text-[10px] px-1.5 py-0",
+                      sectionAccents.credentials.badgeBg,
+                      sectionAccents.credentials.badgeText,
+                      sectionAccents.credentials.badgeBorder,
+                      "border"
+                    )}
+                  >
+                    {channel.credentials.length}
+                  </Badge>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2">
+                  {channel.credentials.map((cred, idx) => {
+                    const isRevealed = revealedCreds.has(idx);
+                    const isProtected = channel.type === "whatsapp" && cred.key.trim().toLowerCase() === "evolution_api";
+                    return (
+                      <div
+                        key={idx}
                         className={cn(
-                          "flex-1 font-mono text-xs h-8 bg-terracotta-50/30 dark:bg-terracotta-900/10 border-terracotta-200/50 dark:border-terracotta-800/30 focus:border-terracotta-400",
-                          rtl && "text-right",
-                          isProtected && "opacity-60 cursor-not-allowed bg-muted/50"
+                          "flex items-center gap-2 group",
+                          ""
                         )}
-                      />
-                      <span className="text-muted-foreground text-xs font-bold">
-                        =
-                      </span>
-                      <Input
-                        value={maskValue(cred.value, isRevealed)}
-                        onChange={(e) =>
-                          onUpdateCredential(
-                            channel.id,
-                            idx,
-                            "value",
-                            e.target.value
-                          )
-                        }
-                        className={cn(
-                          "flex-1 font-mono text-xs h-8 bg-terracotta-50/30 dark:bg-terracotta-900/10 border-terracotta-200/50 dark:border-terracotta-800/30 focus:border-terracotta-400",
-                          rtl && "text-right"
-                        )}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 h-7 w-7 text-muted-foreground hover:text-terracotta-600 transition-colors"
-                        onClick={() => toggleReveal(idx)}
-                        title={isRevealed ? "Hide" : "Reveal"}
                       >
-                        {isRevealed ? (
-                          <EyeOff className="w-3.5 h-3.5" />
-                        ) : (
-                          <Eye className="w-3.5 h-3.5" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 h-7 w-7 text-muted-foreground hover:text-destructive transition-colors"
-                        onClick={() => onRemoveCredential(channel.id, idx)}
-                        disabled={isProtected || channel.credentials.length <= 1}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  );
-                })}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onAddCredential(channel.id)}
-                  className={cn(
-                    "gap-1.5 text-xs h-7 border-dashed border-terracotta-300 dark:border-terracotta-700 text-terracotta-600 dark:text-terracotta-400 hover:bg-terracotta-50 dark:hover:bg-terracotta-900/20",
-                    rtl && "font-arabic"
-                  )}
-                >
-                  <Plus className="w-3 h-3" />
-                  {t(locale, "channels.addCredential")}
-                </Button>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
+                        <Input
+                          value={cred.key}
+                          onChange={(e) =>
+                            onUpdateCredential(
+                              channel.id,
+                              idx,
+                              "key",
+                              e.target.value
+                            )
+                          }
+                          disabled={isProtected}
+                          className={cn(
+                            "flex-1 font-mono text-xs h-8 bg-terracotta-50/30 dark:bg-terracotta-900/10 border-terracotta-200/50 dark:border-terracotta-800/30 focus:border-terracotta-400",
+                            rtl && "text-right",
+                            isProtected && "opacity-60 cursor-not-allowed bg-muted/50"
+                          )}
+                        />
+                        <span className="text-muted-foreground text-xs font-bold">
+                          =
+                        </span>
+                        <Input
+                          value={maskValue(cred.value, isRevealed)}
+                          onChange={(e) =>
+                            onUpdateCredential(
+                              channel.id,
+                              idx,
+                              "value",
+                              e.target.value
+                            )
+                          }
+                          className={cn(
+                            "flex-1 font-mono text-xs h-8 bg-terracotta-50/30 dark:bg-terracotta-900/10 border-terracotta-200/50 dark:border-terracotta-800/30 focus:border-terracotta-400",
+                            rtl && "text-right"
+                          )}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 h-7 w-7 text-muted-foreground hover:text-terracotta-600 transition-colors"
+                          onClick={() => toggleReveal(idx)}
+                          title={isRevealed ? "Hide" : "Reveal"}
+                        >
+                          {isRevealed ? (
+                            <EyeOff className="w-3.5 h-3.5" />
+                          ) : (
+                            <Eye className="w-3.5 h-3.5" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 h-7 w-7 text-muted-foreground hover:text-destructive transition-colors"
+                          onClick={() => onRemoveCredential(channel.id, idx)}
+                          disabled={isProtected || channel.credentials.length <= 1}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onAddCredential(channel.id)}
+                    className={cn(
+                      "gap-1.5 text-xs h-7 border-dashed border-terracotta-300 dark:border-terracotta-700 text-terracotta-600 dark:text-terracotta-400 hover:bg-terracotta-50 dark:hover:bg-terracotta-900/20",
+                      rtl && "font-arabic"
+                    )}
+                  >
+                    <Plus className="w-3 h-3" />
+                    {t(locale, "channels.addCredential")}
+                  </Button>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
 
           {/* ── Variables ── */}
           <AccordionItem value={`${channel.id}-variables`}>

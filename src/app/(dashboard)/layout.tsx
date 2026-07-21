@@ -60,6 +60,18 @@ export default function DashboardLayout({
       "flex flex-col",
       rtl && "font-arabic"
     )} dir={dir}>
+      {userRole === "demo" && (
+        <div className="sticky top-0 z-50 bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-amber-700 dark:text-amber-300 text-xs sm:text-sm font-medium text-center flex items-center justify-center gap-2 shadow-sm backdrop-blur-md shrink-0">
+          <span className="bg-amber-600 text-white px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider shrink-0">
+            [DEMO MODE]
+          </span>
+          <span>
+            {rtl
+              ? "وضع العرض التوضيحي (معاينة فقط): جميع عمليات الحفظ والإضافة والتعديل والحذف للقراءة فقط."
+              : "Demo Mode (Preview Only): All save, create, edit, and delete operations are read-only."}
+          </span>
+        </div>
+      )}
       <div className="flex flex-1 min-h-0">
         {/* Desktop Sidebar */}
         <div className="hidden md:block" dir={dir}>
