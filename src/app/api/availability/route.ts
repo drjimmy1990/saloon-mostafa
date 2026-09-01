@@ -144,8 +144,16 @@ export async function GET(req: NextRequest) {
     const duration = service.durationMinutes || 30;
     const [startH, startM] = effectiveSchedule.startTime.split(":").map(Number);
     const [endH, endM] = effectiveSchedule.endTime.split(":").map(Number);
-    const scheduleStart = startH * 60 + (startM || 0);
-    const scheduleEnd = endH * 60 + (endM || 0);
+    let scheduleStart = startH * 60 + (startM || 0);
+    let scheduleEnd = endH * 60 + (endM || 0);
+
+    // Defensive normalization if start and end times were entered in reverse
+    if (scheduleStart > scheduleEnd) {
+      console.warn(`[availability] Inverted schedule detected for staff ${staffId}: ${effectiveSchedule.startTime} - ${effectiveSchedule.endTime}. Normalizing.`);
+      const temp = scheduleStart;
+      scheduleStart = scheduleEnd;
+      scheduleEnd = temp;
+    }
 
     // Parse existing bookings into minute ranges — only for the requested date
     const bookedRanges: Array<{ start: number; end: number }> = [];
