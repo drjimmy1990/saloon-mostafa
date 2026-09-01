@@ -404,10 +404,20 @@ export function StaffSection() {
     setSavingSchedule(true);
 
     try {
+      // Normalize any inverted start/end times before saving
+      const normalizedSchedule = schedule.map((entry) => {
+        let start = entry.startTime;
+        let end = entry.endTime;
+        if (start > end && !entry.isOff) {
+          return { ...entry, startTime: end, endTime: start };
+        }
+        return entry;
+      });
+
       await fetch("/api/staff/schedule", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ staff_id: scheduleStaffId, schedule }),
+        body: JSON.stringify({ staff_id: scheduleStaffId, schedule: normalizedSchedule }),
       });
       setScheduleDialogOpen(false);
     } catch (err) {
@@ -763,22 +773,34 @@ export function StaffSection() {
                   {dayNames[entry.dayOfWeek]}
                 </div>
 
-                <div className="flex items-center gap-2 flex-1" dir="ltr">
-                  <Input
-                    type="time"
-                    value={entry.startTime}
-                    onChange={(e) => updateScheduleEntry(entry.dayOfWeek, "startTime", e.target.value)}
-                    className="w-28 h-8 text-sm"
-                    disabled={entry.isOff}
-                  />
+                <div className="flex items-center gap-3 flex-1 flex-wrap" dir={rtl ? "rtl" : "ltr"}>
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn("text-xs text-muted-foreground whitespace-nowrap", rtl && "font-arabic")}>
+                      {rtl ? "من:" : "From:"}
+                    </span>
+                    <Input
+                      type="time"
+                      value={entry.startTime}
+                      onChange={(e) => updateScheduleEntry(entry.dayOfWeek, "startTime", e.target.value)}
+                      className="w-28 h-8 text-sm text-center"
+                      disabled={entry.isOff}
+                      dir="ltr"
+                    />
+                  </div>
                   <span className="text-muted-foreground text-sm">—</span>
-                  <Input
-                    type="time"
-                    value={entry.endTime}
-                    onChange={(e) => updateScheduleEntry(entry.dayOfWeek, "endTime", e.target.value)}
-                    className="w-28 h-8 text-sm"
-                    disabled={entry.isOff}
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn("text-xs text-muted-foreground whitespace-nowrap", rtl && "font-arabic")}>
+                      {rtl ? "إلى:" : "To:"}
+                    </span>
+                    <Input
+                      type="time"
+                      value={entry.endTime}
+                      onChange={(e) => updateScheduleEntry(entry.dayOfWeek, "endTime", e.target.value)}
+                      className="w-28 h-8 text-sm text-center"
+                      disabled={entry.isOff}
+                      dir="ltr"
+                    />
+                  </div>
                 </div>
 
                 <label className="flex items-center gap-2 cursor-pointer shrink-0">

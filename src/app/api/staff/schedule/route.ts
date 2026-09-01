@@ -43,13 +43,23 @@ export async function PUT(req: NextRequest) {
   }
 
   const entries = body.schedule.map(
-    (s: { dayOfWeek: number; startTime: string; endTime: string; isOff: boolean }) => ({
-      staff_id: body.staff_id,
-      dayOfWeek: s.dayOfWeek,
-      startTime: s.startTime || "09:00",
-      endTime: s.endTime || "18:00",
-      isOff: s.isOff ?? false,
-    })
+    (s: { dayOfWeek: number; startTime: string; endTime: string; isOff: boolean }) => {
+      let start = s.startTime || "09:00";
+      let end = s.endTime || "18:00";
+      // If start time is after end time and not day off, normalize order
+      if (start > end && !s.isOff) {
+        const temp = start;
+        start = end;
+        end = temp;
+      }
+      return {
+        staff_id: body.staff_id,
+        dayOfWeek: s.dayOfWeek,
+        startTime: start,
+        endTime: end,
+        isOff: s.isOff ?? false,
+      };
+    }
   );
 
   const { data, error } = await supabase
