@@ -520,7 +520,7 @@ export function SettingsSection() {
   };
 
   return (
-    <div className="space-y-6" dir={rtl ? "rtl" : "ltr"}>
+    <div className="space-y-6 max-w-5xl mx-auto" dir={rtl ? "rtl" : "ltr"}>
       {/* Header */}
       <div className="space-y-1">
         <h2 className={cn("text-2xl font-bold tracking-tight", rtl && "font-arabic")}>
@@ -549,65 +549,68 @@ export function SettingsSection() {
         </div>
       )}
 
-      <Tabs defaultValue="hours" className="space-y-6">
-        <TabsList className="bg-muted/70 p-1.5 rounded-xl h-auto flex flex-wrap gap-1.5 border border-border/50 shadow-xs">
-          <TabsTrigger
-            value="hours"
-            className={cn(
-              "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
-              rtl && "font-arabic"
-            )}
-          >
-            <Clock className="w-4 h-4 text-primary" />
-            {rtl ? "مواعيد العمل والفروع" : "Working Hours"}
-          </TabsTrigger>
-          <TabsTrigger
-            value="general"
-            className={cn(
-              "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
-              rtl && "font-arabic"
-            )}
-          >
-            <Settings className="w-4 h-4 text-primary" />
-            {rtl ? "الإعدادات والتواصل" : "General & Contact"}
-          </TabsTrigger>
-          {userRole !== "demo" && (
+      <Tabs defaultValue="hours" dir={rtl ? "rtl" : "ltr"} className="space-y-6">
+        {/* Navigation Tabs Bar - Centered */}
+        <div className="flex items-center justify-center w-full">
+          <TabsList className="bg-muted/80 p-1.5 rounded-xl h-auto inline-flex flex-wrap items-center justify-center gap-1.5 border border-border/50 shadow-xs mx-auto">
             <TabsTrigger
-              value="team"
+              value="hours"
               className={cn(
                 "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
                 rtl && "font-arabic"
               )}
             >
-              <Users className="w-4 h-4 text-primary" />
-              {rtl ? "فريق العمل" : "Team"}
+              <Clock className="w-4 h-4 text-primary" />
+              {rtl ? "مواعيد العمل والفروع" : "Working Hours"}
             </TabsTrigger>
-          )}
-          <TabsTrigger
-            value="hero"
-            className={cn(
-              "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
-              rtl && "font-arabic"
+            <TabsTrigger
+              value="general"
+              className={cn(
+                "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
+                rtl && "font-arabic"
+              )}
+            >
+              <Settings className="w-4 h-4 text-primary" />
+              {rtl ? "الإعدادات والتواصل" : "General & Contact"}
+            </TabsTrigger>
+            {userRole !== "demo" && (
+              <TabsTrigger
+                value="team"
+                className={cn(
+                  "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
+                  rtl && "font-arabic"
+                )}
+              >
+                <Users className="w-4 h-4 text-primary" />
+                {rtl ? "فريق العمل" : "Team"}
+              </TabsTrigger>
             )}
-          >
-            <ImageIcon className="w-4 h-4 text-primary" />
-            {rtl ? "صور الموقع" : "Hero Images"}
-          </TabsTrigger>
-          <TabsTrigger
-            value="security"
-            className={cn(
-              "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
-              rtl && "font-arabic"
-            )}
-          >
-            <Lock className="w-4 h-4 text-primary" />
-            {rtl ? "الأمان وكلمة المرور" : "Security"}
-          </TabsTrigger>
-        </TabsList>
+            <TabsTrigger
+              value="hero"
+              className={cn(
+                "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
+                rtl && "font-arabic"
+              )}
+            >
+              <ImageIcon className="w-4 h-4 text-primary" />
+              {rtl ? "صور الموقع" : "Hero Images"}
+            </TabsTrigger>
+            <TabsTrigger
+              value="security"
+              className={cn(
+                "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
+                rtl && "font-arabic"
+              )}
+            >
+              <Lock className="w-4 h-4 text-primary" />
+              {rtl ? "الأمان وكلمة المرور" : "Security"}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* TAB 1: Branch Working Hours & Booking */}
         <TabsContent value="hours" className="space-y-6 outline-none">
-          <div className="max-w-4xl mx-auto space-y-6">
+          <div className="space-y-6">
             {/* Branch Schedule Card */}
             <Card className="shadow-sm border-primary/20">
               <CardHeader>
@@ -1019,7 +1022,7 @@ export function SettingsSection() {
         {/* TAB 3: Team Management */}
         {userRole !== "demo" && (
           <TabsContent value="team" className="outline-none">
-            <div className="max-w-4xl mx-auto">
+            <div className="space-y-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0">
                   <div>
@@ -1076,7 +1079,7 @@ export function SettingsSection() {
 
         {/* TAB 4: Hero Section Images */}
         <TabsContent value="hero" className="outline-none">
-          <div className="max-w-4xl mx-auto">
+          <div className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
