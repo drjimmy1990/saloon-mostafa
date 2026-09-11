@@ -36,22 +36,34 @@ export async function POST(req: NextRequest) {
   const supabase = getServiceRoleClient();
   const body = await req.json();
 
-  const { data, error } = await supabase
+  const insertPayload: Record<string, any> = {
+    name: body.name,
+    nameAr: body.nameAr || "",
+    address: body.address || "",
+    phone: body.phone || "",
+    isActive: body.isActive ?? true,
+    whatsapp: body.whatsapp || "",
+    email: body.email || "",
+    instagramUrl: body.instagramUrl || "",
+    facebookUrl: body.facebookUrl || "",
+    googleMapsUrl: body.googleMapsUrl || "",
+  };
+  if (body.workingHours !== undefined) {
+    insertPayload.workingHours = body.workingHours;
+  }
+
+  let { data, error } = await supabase
     .from("Branch")
-    .insert({
-      name: body.name,
-      nameAr: body.nameAr || "",
-      address: body.address || "",
-      phone: body.phone || "",
-      isActive: body.isActive ?? true,
-      whatsapp: body.whatsapp || "",
-      email: body.email || "",
-      instagramUrl: body.instagramUrl || "",
-      facebookUrl: body.facebookUrl || "",
-      googleMapsUrl: body.googleMapsUrl || "",
-    })
+    .insert(insertPayload)
     .select()
     .single();
+
+  if (error && insertPayload.workingHours !== undefined && error.message?.includes("workingHours")) {
+    delete insertPayload.workingHours;
+    const retry = await supabase.from("Branch").insert(insertPayload).select().single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -72,23 +84,40 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Missing id" }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  const updatePayload: Record<string, any> = {
+    name: body.name,
+    nameAr: body.nameAr,
+    address: body.address,
+    phone: body.phone,
+    isActive: body.isActive,
+    whatsapp: body.whatsapp,
+    email: body.email,
+    instagramUrl: body.instagramUrl,
+    facebookUrl: body.facebookUrl,
+    googleMapsUrl: body.googleMapsUrl,
+  };
+  if (body.workingHours !== undefined) {
+    updatePayload.workingHours = body.workingHours;
+  }
+
+  let { data, error } = await supabase
     .from("Branch")
-    .update({
-      name: body.name,
-      nameAr: body.nameAr,
-      address: body.address,
-      phone: body.phone,
-      isActive: body.isActive,
-      whatsapp: body.whatsapp,
-      email: body.email,
-      instagramUrl: body.instagramUrl,
-      facebookUrl: body.facebookUrl,
-      googleMapsUrl: body.googleMapsUrl,
-    })
+    .update(updatePayload)
     .eq("id", body.id)
     .select()
     .single();
+
+  if (error && updatePayload.workingHours !== undefined && error.message?.includes("workingHours")) {
+    delete updatePayload.workingHours;
+    const retry = await supabase
+      .from("Branch")
+      .update(updatePayload)
+      .eq("id", body.id)
+      .select()
+      .single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

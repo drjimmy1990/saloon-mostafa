@@ -4,13 +4,14 @@ import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { t, isRTL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Settings, Save, Users, Trash2, Plus, Globe, Clock, Image as ImageIcon, Upload, Loader2 } from "lucide-react";
+import { Settings, Save, Users, Trash2, Plus, Globe, Clock, Image as ImageIcon, Upload, Loader2, Building2, Copy, Check, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { uploadImage } from "@/lib/storage";
 import {
@@ -21,6 +22,64 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+export interface DaySchedule {
+  dayOfWeek: number; // 0=Sunday to 6=Saturday
+  dayNameAr: string;
+  dayNameEn: string;
+  isOpen: boolean;
+  open: string;
+  close: string;
+}
+
+export interface BranchItem {
+  id: string;
+  name: string;
+  nameAr?: string;
+  address?: string;
+  phone?: string;
+  isActive?: boolean;
+  workingHours?: DaySchedule[] | Record<string, any>;
+}
+
+export const DEFAULT_DAYS_SCHEDULE: DaySchedule[] = [
+  { dayOfWeek: 6, dayNameAr: "السبت", dayNameEn: "Saturday", isOpen: true, open: "13:00", close: "22:00" },
+  { dayOfWeek: 0, dayNameAr: "الأحد", dayNameEn: "Sunday", isOpen: true, open: "13:00", close: "22:00" },
+  { dayOfWeek: 1, dayNameAr: "الإثنين", dayNameEn: "Monday", isOpen: true, open: "13:00", close: "22:00" },
+  { dayOfWeek: 2, dayNameAr: "الثلاثاء", dayNameEn: "Tuesday", isOpen: true, open: "13:00", close: "22:00" },
+  { dayOfWeek: 3, dayNameAr: "الأربعاء", dayNameEn: "Wednesday", isOpen: true, open: "13:00", close: "22:00" },
+  { dayOfWeek: 4, dayNameAr: "الخميس", dayNameEn: "Thursday", isOpen: true, open: "13:00", close: "22:00" },
+  { dayOfWeek: 5, dayNameAr: "الجمعة", dayNameEn: "Friday", isOpen: true, open: "13:00", close: "22:00" },
+];
+
+function normalizeSchedule(raw: any): DaySchedule[] {
+  if (Array.isArray(raw) && raw.length === 7) {
+    return raw.map((d, idx) => ({
+      ...DEFAULT_DAYS_SCHEDULE[idx],
+      ...d,
+    }));
+  }
+  if (raw && typeof raw === "object") {
+    return DEFAULT_DAYS_SCHEDULE.map((def) => {
+      const match = raw[def.dayOfWeek] || raw[String(def.dayOfWeek)];
+      if (match) {
+        return { ...def, ...match };
+      }
+      return def;
+    });
+  }
+  return DEFAULT_DAYS_SCHEDULE;
+}
+
+function formatTime12h(timeStr: string): string {
+  if (!timeStr) return "";
+  const [hStr, mStr] = timeStr.split(":");
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr || "0", 10);
+  const period = h >= 12 ? "م" : "ص";
+  const displayH = h % 12 === 0 ? 12 : h % 12;
+  return m === 0 ? `${displayH}:00 ${period}` : `${displayH}:${m.toString().padStart(2, "0")} ${period}`;
+}
 
 interface SystemSetting {
   key: string;
@@ -63,6 +122,13 @@ export function SettingsSection() {
   const [password, setPassword] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
+  // Branch Working Hours State
+  const [branches, setBranches] = useState<BranchItem[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
+  const [branchSchedules, setBranchSchedules] = useState<Record<string, DaySchedule[]>>({});
+  const [copiedDay, setCopiedDay] = useState<number | null>(null);
+  const [isLoadingBranches, setIsLoadingBranches] = useState(false);
+
   // Users State
   const [users, setUsers] = useState<AppUserRole[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
@@ -95,30 +161,182 @@ export function SettingsSection() {
   }, []);
 
   const fetchSettings = async () => {
+    setIsLoadingBranches(true);
     try {
-      const res = await fetch("/api/settings");
-      if (res.ok) {
-        const data = await res.json();
-        setSalonAddress(data.salon_address || "");
-        setSalonPhone(data.salon_phone || "");
-        setWhatsappNumber(data.whatsapp_number || "");
-        setWhatsappNotification(data.order_notification_whatsapp || "");
-        setDeliveryFee(data.delivery_fee || "2");
-        setWorkingHoursWeekdays(data.working_hours_weekdays || "");
-        setWorkingHoursFriday(data.working_hours_friday || "");
-        setInstagramUrl(data.instagram_url || "");
-        setFacebookUrl(data.facebook_url || "");
-        setTiktokUrl(data.tiktok_url || "");
-        setGoogleMapsUrl(data.google_maps_url || "");
-        setBookingStartTime(data.booking_start_time || "09:00");
-        setBookingEndTime(data.booking_end_time || "20:00");
-        setHeroImage1(data.hero_image_1 || "");
-        setHeroImage2(data.hero_image_2 || "");
-        setHeroImage3(data.hero_image_3 || "");
+      const [settingsRes, branchesRes] = await Promise.all([
+        fetch("/api/settings"),
+        fetch("/api/branches"),
+      ]);
+
+      let parsedBranchSchedules: Record<string, DaySchedule[]> = {};
+      let settingsData: Record<string, string> = {};
+
+      if (settingsRes.ok) {
+        settingsData = await settingsRes.json();
+        setSalonAddress(settingsData.salon_address || "");
+        setSalonPhone(settingsData.salon_phone || "");
+        setWhatsappNumber(settingsData.whatsapp_number || "");
+        setWhatsappNotification(settingsData.order_notification_whatsapp || "");
+        setDeliveryFee(settingsData.delivery_fee || "2");
+        setWorkingHoursWeekdays(settingsData.working_hours_weekdays || "");
+        setWorkingHoursFriday(settingsData.working_hours_friday || "");
+        setInstagramUrl(settingsData.instagram_url || "");
+        setFacebookUrl(settingsData.facebook_url || "");
+        setTiktokUrl(settingsData.tiktok_url || "");
+        setGoogleMapsUrl(settingsData.google_maps_url || "");
+        setBookingStartTime(settingsData.booking_start_time || "09:00");
+        setBookingEndTime(settingsData.booking_end_time || "20:00");
+        setHeroImage1(settingsData.hero_image_1 || "");
+        setHeroImage2(settingsData.hero_image_2 || "");
+        setHeroImage3(settingsData.hero_image_3 || "");
+
+        if (settingsData.branch_working_hours) {
+          try {
+            const rawParsed = JSON.parse(settingsData.branch_working_hours);
+            Object.keys(rawParsed).forEach((bId) => {
+              parsedBranchSchedules[bId] = normalizeSchedule(rawParsed[bId]);
+            });
+          } catch (e) {
+            console.error("Error parsing branch_working_hours:", e);
+          }
+        }
+      }
+
+      if (branchesRes.ok) {
+        const branchesData: BranchItem[] = await branchesRes.json();
+        setBranches(branchesData);
+        if (branchesData.length > 0) {
+          setSelectedBranchId((prev) => (prev ? prev : branchesData[0].id));
+        }
+        const mergedSchedules: Record<string, DaySchedule[]> = {};
+        branchesData.forEach((b) => {
+          if (b.workingHours) {
+            mergedSchedules[b.id] = normalizeSchedule(b.workingHours);
+          } else if (parsedBranchSchedules[b.id]) {
+            mergedSchedules[b.id] = parsedBranchSchedules[b.id];
+          } else {
+            mergedSchedules[b.id] = [...DEFAULT_DAYS_SCHEDULE];
+          }
+        });
+        setBranchSchedules(mergedSchedules);
       }
     } catch (err) {
-      console.error("Failed to fetch settings", err);
+      console.error("Failed to fetch settings and branches", err);
+    } finally {
+      setIsLoadingBranches(false);
     }
+  };
+
+  const handleDayChange = (
+    branchId: string,
+    dayOfWeek: number,
+    field: "isOpen" | "open" | "close",
+    value: any
+  ) => {
+    setBranchSchedules((prev) => {
+      const current = prev[branchId] ? [...prev[branchId]] : [...DEFAULT_DAYS_SCHEDULE];
+      const idx = current.findIndex((d) => d.dayOfWeek === dayOfWeek);
+      if (idx !== -1) {
+        current[idx] = { ...current[idx], [field]: value };
+      }
+      return { ...prev, [branchId]: current };
+    });
+  };
+
+  const handleCopyHoursToAllDays = (branchId: string, sourceDay: DaySchedule) => {
+    setBranchSchedules((prev) => {
+      const current = prev[branchId] ? [...prev[branchId]] : [...DEFAULT_DAYS_SCHEDULE];
+      const updated = current.map((d) => ({
+        ...d,
+        isOpen: sourceDay.isOpen,
+        open: sourceDay.open,
+        close: sourceDay.close,
+      }));
+      return { ...prev, [branchId]: updated };
+    });
+    setCopiedDay(sourceDay.dayOfWeek);
+    setTimeout(() => setCopiedDay(null), 2000);
+    toast.success(
+      rtl
+        ? `تم نسخ توقيت يوم ${sourceDay.dayNameAr} لجميع أيام الفرع`
+        : `Copied ${sourceDay.dayNameEn} hours to all days of branch`
+    );
+  };
+
+  const handleAutoGenerateSummaries = () => {
+    const activeList = branches.filter((b) => b.isActive !== false);
+    if (activeList.length === 0) return;
+
+    const weekdayParts: string[] = [];
+    const fridayParts: string[] = [];
+    let minOpenHour = "23:59";
+    let maxCloseHour = "00:00";
+
+    for (const b of activeList) {
+      const sched = branchSchedules[b.id] || DEFAULT_DAYS_SCHEDULE;
+      const bTitle = b.nameAr || b.name;
+
+      const weekdays = sched.filter((d) => d.dayOfWeek !== 5);
+      const openWeekdays = weekdays.filter((d) => d.isOpen);
+
+      if (openWeekdays.length === 0) {
+        weekdayParts.push(`${bTitle}: مغلق طوال الأسبوع`);
+      } else {
+        const first = openWeekdays[0];
+        weekdayParts.push(
+          `${bTitle}: ${formatTime12h(first.open)} - ${formatTime12h(first.close)}`
+        );
+        openWeekdays.forEach((d) => {
+          if (d.open < minOpenHour) minOpenHour = d.open;
+          if (d.close > maxCloseHour) maxCloseHour = d.close;
+        });
+      }
+
+      const fri = sched.find((d) => d.dayOfWeek === 5) || {
+        isOpen: false,
+        open: "14:00",
+        close: "22:00",
+      };
+      if (!fri.isOpen) {
+        fridayParts.push(`${bTitle}: مغلق`);
+      } else {
+        fridayParts.push(
+          `${bTitle}: ${formatTime12h(fri.open)} - ${formatTime12h(fri.close)}`
+        );
+        if (fri.open < minOpenHour) minOpenHour = fri.open;
+        if (fri.close > maxCloseHour) maxCloseHour = fri.close;
+      }
+    }
+
+    const firstW = weekdayParts[0]?.split(": ")[1];
+    const allWSame =
+      weekdayParts.length > 1 &&
+      weekdayParts.every((p) => p.split(": ")[1] === firstW);
+    const summaryWeekdays = allWSame
+      ? `السبت - الخميس: ${firstW}`
+      : weekdayParts.join(" | ");
+
+    const firstF = fridayParts[0]?.split(": ")[1];
+    const allFSame =
+      fridayParts.length > 1 &&
+      fridayParts.every((p) => p.split(": ")[1] === firstF);
+    const summaryFriday = allFSame
+      ? firstF === "مغلق"
+        ? "الجمعة: مغلق"
+        : `الجمعة: ${firstF}`
+      : fridayParts.join(" | ");
+
+    setWorkingHoursWeekdays(summaryWeekdays);
+    setWorkingHoursFriday(summaryFriday);
+
+    if (minOpenHour !== "23:59") setBookingStartTime(minOpenHour);
+    if (maxCloseHour !== "00:00") setBookingEndTime(maxCloseHour);
+
+    toast.success(
+      rtl
+        ? "تم تحديث ملخص أوقات العمل تلقائياً"
+        : "Working hours summary updated automatically"
+    );
   };
 
   const fetchUsers = async () => {
@@ -155,14 +373,30 @@ export function SettingsSection() {
         hero_image_1: heroImage1,
         hero_image_2: heroImage2,
         hero_image_3: heroImage3,
+        branch_working_hours: JSON.stringify(branchSchedules),
       };
-      const res = await fetch("/api/settings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        toast.success(rtl ? "تم حفظ الإعدادات بنجاح" : "Settings saved successfully");
+      const [settingsRes] = await Promise.all([
+        fetch("/api/settings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }),
+        ...branches.map((b) =>
+          fetch("/api/branches", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: b.id,
+              name: b.name,
+              nameAr: b.nameAr,
+              workingHours: branchSchedules[b.id] || DEFAULT_DAYS_SCHEDULE,
+            }),
+          }).catch((err) => console.error("Failed to update branch working hours:", b.id, err))
+        ),
+      ]);
+
+      if (settingsRes.ok) {
+        toast.success(rtl ? "تم حفظ الإعدادات ومواعيد الفروع بنجاح" : "Settings and branch schedules saved successfully");
       } else {
         toast.error(rtl ? "فشل في حفظ الإعدادات" : "Failed to save settings");
       }
@@ -471,39 +705,279 @@ export function SettingsSection() {
           </CardContent>
         </Card>
 
-        {/* Working Hours & Booking Card */}
-        <Card>
+        {/* Working Hours & Booking Card (Customized per branch and per day) */}
+        <Card className="lg:col-span-2 shadow-sm border-primary/20">
           <CardHeader>
-            <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
-              <Clock className="w-5 h-5 text-primary" />
-              {rtl ? "أوقات العمل والحجز" : "Working Hours & Booking"}
-            </CardTitle>
-            <CardDescription className={cn(rtl && "font-arabic")}>
-              {rtl ? "تظهر في الموقع وصفحة الحجز" : "Displayed on website and booking page"}
-            </CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
+                  <Clock className="w-5 h-5 text-primary" />
+                  {rtl ? "مواعيد العمل وأوقات الحجز حسب الفروع" : "Branch Working Hours & Booking"}
+                </CardTitle>
+                <CardDescription className={cn("mt-1", rtl && "font-arabic")}>
+                  {rtl
+                    ? "تخصيص أوقات العمل لكل يوم في الأسبوع ولكل فرع، مع مزامنة نصوص ملخص البوت والموقع"
+                    : "Customize working hours for each day and branch, and sync summary text for bot & storefront"}
+                </CardDescription>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAutoGenerateSummaries}
+                disabled={userRole === "demo"}
+                className={cn("gap-1.5 shrink-0 self-start sm:self-auto border-primary/30 hover:bg-primary/10", rtl && "font-arabic")}
+                title={rtl ? "توليد ملخص أوتوماتيكي بناءً على مواعيد الفرع المحدد" : "Auto-generate text summary from branch hours"}
+              >
+                <Sparkles className="w-4 h-4 text-primary" />
+                {rtl ? "تحديث ملخص البوت تلقائياً" : "Auto-generate Bot Summary"}
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className={cn(rtl && "font-arabic")}>{rtl ? "أوقات العمل (أيام الأسبوع)" : "Weekday Hours"}</Label>
-              <Input value={workingHoursWeekdays} onChange={(e) => setWorkingHoursWeekdays(e.target.value)} placeholder="السبت - الخميس: 10:00 ص - 8:00 م" className={cn(rtl && "font-arabic text-right")} dir={rtl ? "rtl" : "ltr"} disabled={userRole === "demo"} />
-            </div>
-            <div className="space-y-2">
-              <Label className={cn(rtl && "font-arabic")}>{rtl ? "أوقات العمل (الجمعة)" : "Friday Hours"}</Label>
-              <Input value={workingHoursFriday} onChange={(e) => setWorkingHoursFriday(e.target.value)} placeholder="الجمعة: مغلق" className={cn(rtl && "font-arabic text-right")} dir={rtl ? "rtl" : "ltr"} disabled={userRole === "demo"} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className={cn(rtl && "font-arabic")}>{rtl ? "بداية أوقات الحجز" : "Booking Start"}</Label>
-                <Input type="time" value={bookingStartTime} onChange={(e) => setBookingStartTime(e.target.value)} dir="ltr" disabled={userRole === "demo"} />
+          <CardContent className="space-y-6">
+            {/* Branch Selector Tabs */}
+            {branches.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 p-2 bg-muted/50 rounded-xl border border-border/50">
+                <span className={cn("text-xs font-semibold px-2 text-muted-foreground flex items-center gap-1.5", rtl && "font-arabic")}>
+                  <Building2 className="w-4 h-4 text-primary" />
+                  {rtl ? "اختر الفرع لتعديل مواعيده:" : "Select Branch:"}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {branches.map((branch) => {
+                    const isSelected = (selectedBranchId || branches[0]?.id) === branch.id;
+                    return (
+                      <Button
+                        key={branch.id}
+                        type="button"
+                        size="sm"
+                        variant={isSelected ? "default" : "outline"}
+                        onClick={() => setSelectedBranchId(branch.id)}
+                        className={cn("h-8 gap-1.5 text-xs font-medium transition-all", rtl && "font-arabic")}
+                      >
+                        <Building2 className="w-3.5 h-3.5" />
+                        {branch.nameAr || branch.name}
+                      </Button>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label className={cn(rtl && "font-arabic")}>{rtl ? "نهاية أوقات الحجز" : "Booking End"}</Label>
-                <Input type="time" value={bookingEndTime} onChange={(e) => setBookingEndTime(e.target.value)} dir="ltr" disabled={userRole === "demo"} />
+            )}
+
+            {/* Days Table for Selected Branch */}
+            {isLoadingBranches ? (
+              <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <span className={cn("text-sm", rtl && "font-arabic")}>{rtl ? "جارِ تحميل بيانات الفروع ومواعيدها..." : "Loading schedules..."}</span>
+              </div>
+            ) : (
+              (() => {
+                const activeBranchId = selectedBranchId || branches[0]?.id || "";
+                const schedule = branchSchedules[activeBranchId] || DEFAULT_DAYS_SCHEDULE;
+                const activeBranch = branches.find((b) => b.id === activeBranchId);
+
+                return (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className={cn("text-sm font-semibold flex items-center gap-2", rtl && "font-arabic")}>
+                        <span>{rtl ? "جدول أيام الأسبوع لـ:" : "Weekly schedule for:"}</span>
+                        <span className="text-primary font-bold">{activeBranch?.nameAr || activeBranch?.name || (rtl ? "الفرع الحالي" : "Current Branch")}</span>
+                      </h4>
+                      <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
+                        {rtl ? "ملاحظة: يمكنك إغلاق أي يوم (إجازة) أو تعديل أوقات الفتح والإغلاق" : "Toggle open/close or edit hours"}
+                      </p>
+                    </div>
+
+                    <div className="border rounded-xl divide-y overflow-hidden bg-card">
+                      {schedule.map((day) => {
+                        const isCopied = copiedDay === day.dayOfWeek;
+                        return (
+                          <div
+                            key={day.dayOfWeek}
+                            className={cn(
+                              "flex flex-col sm:flex-row sm:items-center justify-between p-3.5 gap-3 transition-colors",
+                              !day.isOpen && "bg-muted/30 opacity-80"
+                            )}
+                          >
+                            {/* Day info & Toggle */}
+                            <div className="flex items-center justify-between sm:justify-start gap-4 min-w-[180px]">
+                              <div className="flex items-center gap-3">
+                                <Switch
+                                  id={`switch-day-${day.dayOfWeek}`}
+                                  checked={day.isOpen}
+                                  onCheckedChange={(checked) =>
+                                    handleDayChange(activeBranchId, day.dayOfWeek, "isOpen", checked)
+                                  }
+                                  disabled={userRole === "demo"}
+                                />
+                                <Label
+                                  htmlFor={`switch-day-${day.dayOfWeek}`}
+                                  className={cn("text-sm font-semibold cursor-pointer select-none", rtl && "font-arabic")}
+                                >
+                                  {rtl ? day.dayNameAr : day.dayNameEn}
+                                </Label>
+                              </div>
+                              <span
+                                className={cn(
+                                  "text-xs px-2 py-0.5 rounded-full font-medium sm:hidden",
+                                  day.isOpen
+                                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                                    : "bg-rose-500/15 text-rose-700 dark:text-rose-400"
+                                )}
+                              >
+                                {day.isOpen ? (rtl ? "مفتوح" : "Open") : (rtl ? "مغلق" : "Closed")}
+                              </span>
+                            </div>
+
+                            {/* Hours Controls */}
+                            {day.isOpen ? (
+                              <div className="flex flex-wrap items-center gap-3 flex-1 sm:justify-end">
+                                <div className="flex items-center gap-2">
+                                  <span className={cn("text-xs text-muted-foreground whitespace-nowrap", rtl && "font-arabic")}>
+                                    {rtl ? "من:" : "From:"}
+                                  </span>
+                                  <Input
+                                    type="time"
+                                    value={day.open}
+                                    onChange={(e) =>
+                                      handleDayChange(activeBranchId, day.dayOfWeek, "open", e.target.value)
+                                    }
+                                    className="w-32 h-8 text-xs text-center"
+                                    dir="ltr"
+                                    disabled={userRole === "demo"}
+                                  />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className={cn("text-xs text-muted-foreground whitespace-nowrap", rtl && "font-arabic")}>
+                                    {rtl ? "إلى:" : "To:"}
+                                  </span>
+                                  <Input
+                                    type="time"
+                                    value={day.close}
+                                    onChange={(e) =>
+                                      handleDayChange(activeBranchId, day.dayOfWeek, "close", e.target.value)
+                                    }
+                                    className="w-32 h-8 text-xs text-center"
+                                    dir="ltr"
+                                    disabled={userRole === "demo"}
+                                  />
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCopyHoursToAllDays(activeBranchId, day)}
+                                  disabled={userRole === "demo"}
+                                  title={rtl ? "تطبيق هذه الساعات على باقي الأيام" : "Copy hours to all other days"}
+                                  className={cn("h-8 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground", rtl && "font-arabic")}
+                                >
+                                  {isCopied ? (
+                                    <>
+                                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">{rtl ? "تم النسخ!" : "Copied!"}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="w-3.5 h-3.5" />
+                                      <span>{rtl ? "نسخ للكل" : "Copy to all"}</span>
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center sm:justify-end flex-1 text-xs text-muted-foreground py-1">
+                                <span className={cn("italic", rtl && "font-arabic")}>
+                                  {rtl ? "يوم عطلة / إجازة رسمية للفرع" : "Closed / Day off for this branch"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()
+            )}
+
+            {/* Summaries & Global Booking Range */}
+            <div className="pt-4 border-t space-y-4">
+              <div>
+                <h4 className={cn("text-sm font-semibold flex items-center gap-2 mb-1", rtl && "font-arabic")}>
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  {rtl ? "ملخص نصوص مواعيد العمل (للبوت وموقع الويب)" : "Summary Text for Bot & Storefront"}
+                </h4>
+                <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
+                  {rtl
+                    ? "هذه النصوص يقرأها بوت الواتساب n8n وموقع الويب مباشرة. يمكنك تعديلها يدوياً أو النقر على 'تحديث ملخص البوت تلقائياً' بالأعلى."
+                    : "Used directly by the WhatsApp n8n bot and storefront footer. Can be edited manually or auto-generated."}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>{rtl ? "ملخص أيام الأسبوع (Weekdays)" : "Weekday Hours Summary"}</Label>
+                  <Input
+                    value={workingHoursWeekdays}
+                    onChange={(e) => setWorkingHoursWeekdays(e.target.value)}
+                    placeholder="السبت - الخميس: 01:00 م - 10:00 م"
+                    className={cn(rtl && "font-arabic text-right")}
+                    dir={rtl ? "rtl" : "ltr"}
+                    disabled={userRole === "demo"}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>{rtl ? "ملخص يوم الجمعة (Friday)" : "Friday Hours Summary"}</Label>
+                  <Input
+                    value={workingHoursFriday}
+                    onChange={(e) => setWorkingHoursFriday(e.target.value)}
+                    placeholder="الجمعة: 01:00 م - 10:00 م (أو مغلق)"
+                    className={cn(rtl && "font-arabic text-right")}
+                    dir={rtl ? "rtl" : "ltr"}
+                    disabled={userRole === "demo"}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>{rtl ? "بداية نافذة الحجز العامة" : "Global Booking Start"}</Label>
+                  <Input
+                    type="time"
+                    value={bookingStartTime}
+                    onChange={(e) => setBookingStartTime(e.target.value)}
+                    dir="ltr"
+                    disabled={userRole === "demo"}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>{rtl ? "نهاية نافذة الحجز العامة" : "Global Booking End"}</Label>
+                  <Input
+                    type="time"
+                    value={bookingEndTime}
+                    onChange={(e) => setBookingEndTime(e.target.value)}
+                    dir="ltr"
+                    disabled={userRole === "demo"}
+                  />
+                </div>
               </div>
             </div>
-            <Button onClick={handleSaveSettings} disabled={isSavingSettings || userRole === "demo"} className={cn("w-full gap-2", rtl && "font-arabic")}>
-              <Save className="w-4 h-4" />
-              {rtl ? "حفظ" : "Save"}
+
+            <Button
+              onClick={handleSaveSettings}
+              disabled={isSavingSettings || userRole === "demo"}
+              className={cn("w-full gap-2 shadow-sm", rtl && "font-arabic")}
+            >
+              {isSavingSettings ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  {rtl ? "جارِ الحفظ والمزامنة..." : "Saving..."}
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  {rtl ? "حفظ مواعيد العمل والإعدادات" : "Save Working Hours & Settings"}
+                </>
+              )}
             </Button>
           </CardContent>
         </Card>
