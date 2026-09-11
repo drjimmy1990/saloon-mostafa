@@ -799,8 +799,8 @@ export function SettingsSection() {
                             )}
                           >
                             {/* Day info & Toggle */}
-                            <div className="flex items-center justify-between sm:justify-start gap-4 min-w-[180px]">
-                              <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3.5 min-w-[200px]">
+                              <div dir="ltr" className="shrink-0">
                                 <Switch
                                   id={`switch-day-${day.dayOfWeek}`}
                                   checked={day.isOpen}
@@ -809,22 +809,22 @@ export function SettingsSection() {
                                   }
                                   disabled={userRole === "demo"}
                                 />
-                                <Label
-                                  htmlFor={`switch-day-${day.dayOfWeek}`}
-                                  className={cn("text-sm font-semibold cursor-pointer select-none", rtl && "font-arabic")}
-                                >
-                                  {rtl ? day.dayNameAr : day.dayNameEn}
-                                </Label>
                               </div>
+                              <Label
+                                htmlFor={`switch-day-${day.dayOfWeek}`}
+                                className={cn("text-sm font-semibold cursor-pointer select-none min-w-[55px]", rtl && "font-arabic")}
+                              >
+                                {rtl ? day.dayNameAr : day.dayNameEn}
+                              </Label>
                               <span
                                 className={cn(
-                                  "text-xs px-2 py-0.5 rounded-full font-medium sm:hidden",
+                                  "text-[11px] px-2.5 py-0.5 rounded-md font-medium shrink-0 transition-colors",
                                   day.isOpen
-                                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
-                                    : "bg-rose-500/15 text-rose-700 dark:text-rose-400"
+                                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                                    : "bg-muted text-muted-foreground border border-border/50"
                                 )}
                               >
-                                {day.isOpen ? (rtl ? "مفتوح" : "Open") : (rtl ? "مغلق" : "Closed")}
+                                {day.isOpen ? (rtl ? "مفتوح" : "Open") : (rtl ? "إجازة" : "Closed")}
                               </span>
                             </div>
 
