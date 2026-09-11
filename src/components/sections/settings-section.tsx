@@ -4,7 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { t, isRTL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Settings, Save, Users, Trash2, Plus, Globe, Clock, Image as ImageIcon, Upload, Loader2, Building2, Copy, Check, Sparkles } from "lucide-react";
+import { Settings, Save, Users, Trash2, Plus, Globe, Clock, Image as ImageIcon, Upload, Loader2, Building2, Copy, Check, Sparkles, Lock } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -548,686 +549,769 @@ export function SettingsSection() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Change Password */}
-        <Card>
-          <CardHeader>
-            <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
-              <Settings className="w-5 h-5 text-primary" />
-              {rtl ? "تغيير كلمة المرور" : "Change Password"}
-            </CardTitle>
-            <CardDescription className={cn(rtl && "font-arabic")}>
-              {rtl ? "تحديث كلمة المرور الخاصة بحسابك" : "Update the password for your account"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="password" className={cn(rtl && "font-arabic")}>
-                {rtl ? "كلمة المرور الجديدة" : "New Password"}
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••"
-                dir="ltr"
-                disabled={userRole === "demo"}
-              />
-            </div>
-            <Button
-              onClick={handleUpdatePassword}
-              disabled={isUpdatingPassword || userRole === "demo"}
-              className={cn("w-full gap-2", rtl && "font-arabic")}
-            >
-              <Save className="w-4 h-4" />
-              {rtl ? "تحديث كلمة المرور" : "Update Password"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* General Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
-              <Settings className="w-5 h-5 text-primary" />
-              {rtl ? "الإعدادات العامة" : "General Settings"}
-            </CardTitle>
-            <CardDescription className={cn(rtl && "font-arabic")}>
-              {rtl ? "تفاصيل الصالون وإعدادات الإشعارات" : "Salon details and notification settings"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="address" className={cn(rtl && "font-arabic")}>
-                {rtl ? "عنوان الصالون التفصيلي" : "Salon Address"}
-              </Label>
-              <Input
-                id="address"
-                value={salonAddress}
-                onChange={(e) => setSalonAddress(e.target.value)}
-                placeholder={rtl ? "شارع مكة، عمّان..." : "123 Main St..."}
-                className={cn(rtl && "font-arabic text-right")}
-                dir={rtl ? "rtl" : "ltr"}
-                disabled={userRole === "demo"}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp" className={cn(rtl && "font-arabic")}>
-                {rtl ? "رقم واتساب لإشعارات الطلبات" : "WhatsApp Number for Order Notifications"}
-              </Label>
-              <Input
-                id="whatsapp"
-                value={whatsappNotification}
-                onChange={(e) => setWhatsappNotification(e.target.value)}
-                placeholder="962790000000"
-                dir="ltr"
-                disabled={userRole === "demo"}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="deliveryFee" className={cn(rtl && "font-arabic")}>
-                {rtl ? "رسوم التوصيل (ر.س)" : "Delivery Fee (SAR)"}
-              </Label>
-              <Input
-                id="deliveryFee"
-                type="number"
-                step="0.5"
-                min="0"
-                value={deliveryFee}
-                onChange={(e) => setDeliveryFee(e.target.value)}
-                placeholder="2"
-                dir="ltr"
-                disabled={userRole === "demo"}
-              />
-              <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
-                {rtl ? "رسوم التوصيل التي تظهر في صفحة الدفع بالموقع" : "Delivery fee shown on website checkout"}
-              </p>
-            </div>
-            <Button
-              onClick={handleSaveSettings}
-              disabled={isSavingSettings || userRole === "demo"}
-              className={cn("w-full gap-2", rtl && "font-arabic")}
-            >
-              <Save className="w-4 h-4" />
-              {rtl ? "حفظ الإعدادات" : "Save Settings"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Contact Info Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
-              <Globe className="w-5 h-5 text-primary" />
-              {rtl ? "معلومات التواصل والسوشال" : "Contact & Social Media"}
-            </CardTitle>
-            <CardDescription className={cn(rtl && "font-arabic")}>
-              {rtl ? "أرقام الهاتف وروابط السوشال ميديا" : "Phone numbers and social media links"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className={cn(rtl && "font-arabic")}>{rtl ? "رقم الهاتف" : "Phone Number"}</Label>
-                <Input value={salonPhone} onChange={(e) => setSalonPhone(e.target.value)} placeholder="962786753791" dir="ltr" disabled={userRole === "demo"} />
-              </div>
-              <div className="space-y-2">
-                <Label className={cn(rtl && "font-arabic")}>{rtl ? "رقم واتساب" : "WhatsApp Number"}</Label>
-                <Input value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="962786753791" dir="ltr" disabled={userRole === "demo"} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط انستغرام" : "Instagram URL"}</Label>
-                <Input value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} placeholder="https://instagram.com/..." dir="ltr" disabled={userRole === "demo"} />
-              </div>
-              <div className="space-y-2">
-                <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط فيسبوك" : "Facebook URL"}</Label>
-                <Input value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} placeholder="https://facebook.com/..." dir="ltr" disabled={userRole === "demo"} />
-              </div>
-              <div className="space-y-2">
-                <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط تيك توك" : "TikTok URL"}</Label>
-                <Input value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://tiktok.com/..." dir="ltr" disabled={userRole === "demo"} />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط خريطة Google Maps" : "Google Maps Embed URL"}</Label>
-              <Input value={googleMapsUrl} onChange={(e) => setGoogleMapsUrl(e.target.value)} placeholder="https://www.google.com/maps/embed?pb=..." dir="ltr" disabled={userRole === "demo"} />
-              <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
-                {rtl ? "انسخي رابط التضمين من Google Maps" : "Paste the embed URL from Google Maps"}
-              </p>
-            </div>
-            <Button onClick={handleSaveSettings} disabled={isSavingSettings || userRole === "demo"} className={cn("w-full gap-2", rtl && "font-arabic")}>
-              <Save className="w-4 h-4" />
-              {rtl ? "حفظ" : "Save"}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Working Hours & Booking Card (Customized per branch and per day) */}
-        <Card className="lg:col-span-2 shadow-sm border-primary/20">
-          <CardHeader>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
-                  <Clock className="w-5 h-5 text-primary" />
-                  {rtl ? "مواعيد العمل وأوقات الحجز حسب الفروع" : "Branch Working Hours & Booking"}
-                </CardTitle>
-                <CardDescription className={cn("mt-1", rtl && "font-arabic")}>
-                  {rtl
-                    ? "تخصيص أوقات العمل لكل يوم في الأسبوع ولكل فرع، مع مزامنة نصوص ملخص البوت والموقع"
-                    : "Customize working hours for each day and branch, and sync summary text for bot & storefront"}
-                </CardDescription>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAutoGenerateSummaries}
-                disabled={userRole === "demo"}
-                className={cn("gap-1.5 shrink-0 self-start sm:self-auto border-primary/30 hover:bg-primary/10", rtl && "font-arabic")}
-                title={rtl ? "توليد ملخص أوتوماتيكي بناءً على مواعيد الفرع المحدد" : "Auto-generate text summary from branch hours"}
-              >
-                <Sparkles className="w-4 h-4 text-primary" />
-                {rtl ? "تحديث ملخص البوت تلقائياً" : "Auto-generate Bot Summary"}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Branch Selector Tabs */}
-            {branches.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 p-2 bg-muted/50 rounded-xl border border-border/50">
-                <span className={cn("text-xs font-semibold px-2 text-muted-foreground flex items-center gap-1.5", rtl && "font-arabic")}>
-                  <Building2 className="w-4 h-4 text-primary" />
-                  {rtl ? "اختر الفرع لتعديل مواعيده:" : "Select Branch:"}
-                </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {branches.map((branch) => {
-                    const isSelected = (selectedBranchId || branches[0]?.id) === branch.id;
-                    return (
-                      <Button
-                        key={branch.id}
-                        type="button"
-                        size="sm"
-                        variant={isSelected ? "default" : "outline"}
-                        onClick={() => setSelectedBranchId(branch.id)}
-                        className={cn("h-8 gap-1.5 text-xs font-medium transition-all", rtl && "font-arabic")}
-                      >
-                        <Building2 className="w-3.5 h-3.5" />
-                        {branch.nameAr || branch.name}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
+      <Tabs defaultValue="hours" className="space-y-6">
+        <TabsList className="bg-muted/70 p-1.5 rounded-xl h-auto flex flex-wrap gap-1.5 border border-border/50 shadow-xs">
+          <TabsTrigger
+            value="hours"
+            className={cn(
+              "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
+              rtl && "font-arabic"
             )}
+          >
+            <Clock className="w-4 h-4 text-primary" />
+            {rtl ? "مواعيد العمل والفروع" : "Working Hours"}
+          </TabsTrigger>
+          <TabsTrigger
+            value="general"
+            className={cn(
+              "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
+              rtl && "font-arabic"
+            )}
+          >
+            <Settings className="w-4 h-4 text-primary" />
+            {rtl ? "الإعدادات والتواصل" : "General & Contact"}
+          </TabsTrigger>
+          {userRole !== "demo" && (
+            <TabsTrigger
+              value="team"
+              className={cn(
+                "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
+                rtl && "font-arabic"
+              )}
+            >
+              <Users className="w-4 h-4 text-primary" />
+              {rtl ? "فريق العمل" : "Team"}
+            </TabsTrigger>
+          )}
+          <TabsTrigger
+            value="hero"
+            className={cn(
+              "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
+              rtl && "font-arabic"
+            )}
+          >
+            <ImageIcon className="w-4 h-4 text-primary" />
+            {rtl ? "صور الموقع" : "Hero Images"}
+          </TabsTrigger>
+          <TabsTrigger
+            value="security"
+            className={cn(
+              "rounded-lg px-4 py-2.5 text-xs sm:text-sm font-semibold gap-2 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all",
+              rtl && "font-arabic"
+            )}
+          >
+            <Lock className="w-4 h-4 text-primary" />
+            {rtl ? "الأمان وكلمة المرور" : "Security"}
+          </TabsTrigger>
+        </TabsList>
 
-            {/* Days Table for Selected Branch */}
-            {isLoadingBranches ? (
-              <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className={cn("text-sm", rtl && "font-arabic")}>{rtl ? "جارِ تحميل بيانات الفروع ومواعيدها..." : "Loading schedules..."}</span>
-              </div>
-            ) : (
-              (() => {
-                const activeBranchId = selectedBranchId || branches[0]?.id || "";
-                const schedule = branchSchedules[activeBranchId] || DEFAULT_DAYS_SCHEDULE;
-                const activeBranch = branches.find((b) => b.id === activeBranchId);
-
-                return (
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className={cn("text-sm font-semibold flex items-center gap-2", rtl && "font-arabic")}>
-                        <span>{rtl ? "جدول أيام الأسبوع لـ:" : "Weekly schedule for:"}</span>
-                        <span className="text-primary font-bold">{activeBranch?.nameAr || activeBranch?.name || (rtl ? "الفرع الحالي" : "Current Branch")}</span>
-                      </h4>
-                      <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
-                        {rtl ? "ملاحظة: يمكنك إغلاق أي يوم (إجازة) أو تعديل أوقات الفتح والإغلاق" : "Toggle open/close or edit hours"}
-                      </p>
-                    </div>
-
-                    <div className="border rounded-xl divide-y overflow-hidden bg-card">
-                      {schedule.map((day) => {
-                        const isCopied = copiedDay === day.dayOfWeek;
+        {/* TAB 1: Branch Working Hours & Booking */}
+        <TabsContent value="hours" className="space-y-6 outline-none">
+          <div className="max-w-4xl mx-auto space-y-6">
+            {/* Branch Schedule Card */}
+            <Card className="shadow-sm border-primary/20">
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
+                      <Clock className="w-5 h-5 text-primary" />
+                      {rtl ? "مواعيد وساعات العمل بالفروع" : "Branch Working Hours"}
+                    </CardTitle>
+                    <CardDescription className={cn("mt-1", rtl && "font-arabic")}>
+                      {rtl
+                        ? "تخصيص ساعات الفتح والإغلاق وأيام الإجازات لكل فرع على حدة"
+                        : "Customize open/close hours and days off for each branch"}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Branch Selection Pills */}
+                {branches.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 p-2 bg-muted/40 rounded-xl border border-border/60">
+                    <span className={cn("text-xs font-semibold px-2 text-muted-foreground flex items-center gap-1.5", rtl && "font-arabic")}>
+                      <Building2 className="w-4 h-4 text-primary" />
+                      {rtl ? "اختر الفرع:" : "Select Branch:"}
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {branches.map((branch) => {
+                        const isSelected = (selectedBranchId || branches[0]?.id) === branch.id;
                         return (
-                          <div
-                            key={day.dayOfWeek}
-                            className={cn(
-                              "flex flex-col sm:flex-row sm:items-center justify-between p-3.5 gap-3 transition-colors",
-                              !day.isOpen && "bg-muted/30 opacity-80"
-                            )}
+                          <Button
+                            key={branch.id}
+                            type="button"
+                            size="sm"
+                            variant={isSelected ? "default" : "outline"}
+                            onClick={() => setSelectedBranchId(branch.id)}
+                            className={cn("h-8 gap-1.5 text-xs font-medium transition-all shadow-xs", rtl && "font-arabic")}
                           >
-                            {/* Day info & Toggle */}
-                            <div className="flex items-center gap-3.5 min-w-[200px]">
-                              <div dir="ltr" className="shrink-0">
-                                <Switch
-                                  id={`switch-day-${day.dayOfWeek}`}
-                                  checked={day.isOpen}
-                                  onCheckedChange={(checked) =>
-                                    handleDayChange(activeBranchId, day.dayOfWeek, "isOpen", checked)
-                                  }
-                                  disabled={userRole === "demo"}
-                                />
-                              </div>
-                              <Label
-                                htmlFor={`switch-day-${day.dayOfWeek}`}
-                                className={cn("text-sm font-semibold cursor-pointer select-none min-w-[55px]", rtl && "font-arabic")}
-                              >
-                                {rtl ? day.dayNameAr : day.dayNameEn}
-                              </Label>
-                              <span
-                                className={cn(
-                                  "text-[11px] px-2.5 py-0.5 rounded-md font-medium shrink-0 transition-colors",
-                                  day.isOpen
-                                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
-                                    : "bg-muted text-muted-foreground border border-border/50"
-                                )}
-                              >
-                                {day.isOpen ? (rtl ? "مفتوح" : "Open") : (rtl ? "إجازة" : "Closed")}
-                              </span>
-                            </div>
-
-                            {/* Hours Controls */}
-                            {day.isOpen ? (
-                              <div className="flex flex-wrap items-center gap-3 flex-1 sm:justify-end">
-                                <div className="flex items-center gap-2">
-                                  <span className={cn("text-xs text-muted-foreground whitespace-nowrap", rtl && "font-arabic")}>
-                                    {rtl ? "من:" : "From:"}
-                                  </span>
-                                  <Input
-                                    type="time"
-                                    value={day.open}
-                                    onChange={(e) =>
-                                      handleDayChange(activeBranchId, day.dayOfWeek, "open", e.target.value)
-                                    }
-                                    className="w-32 h-8 text-xs text-center"
-                                    dir="ltr"
-                                    disabled={userRole === "demo"}
-                                  />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className={cn("text-xs text-muted-foreground whitespace-nowrap", rtl && "font-arabic")}>
-                                    {rtl ? "إلى:" : "To:"}
-                                  </span>
-                                  <Input
-                                    type="time"
-                                    value={day.close}
-                                    onChange={(e) =>
-                                      handleDayChange(activeBranchId, day.dayOfWeek, "close", e.target.value)
-                                    }
-                                    className="w-32 h-8 text-xs text-center"
-                                    dir="ltr"
-                                    disabled={userRole === "demo"}
-                                  />
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleCopyHoursToAllDays(activeBranchId, day)}
-                                  disabled={userRole === "demo"}
-                                  title={rtl ? "تطبيق هذه الساعات على باقي الأيام" : "Copy hours to all other days"}
-                                  className={cn("h-8 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-foreground", rtl && "font-arabic")}
-                                >
-                                  {isCopied ? (
-                                    <>
-                                      <Check className="w-3.5 h-3.5 text-emerald-500" />
-                                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">{rtl ? "تم النسخ!" : "Copied!"}</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Copy className="w-3.5 h-3.5" />
-                                      <span>{rtl ? "نسخ للكل" : "Copy to all"}</span>
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center sm:justify-end flex-1 text-xs text-muted-foreground py-1">
-                                <span className={cn("italic", rtl && "font-arabic")}>
-                                  {rtl ? "يوم عطلة / إجازة رسمية للفرع" : "Closed / Day off for this branch"}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                            <Building2 className="w-3.5 h-3.5" />
+                            {branch.nameAr || branch.name}
+                          </Button>
                         );
                       })}
                     </div>
                   </div>
-                );
-              })()
-            )}
+                )}
 
-            {/* Summaries & Global Booking Range */}
-            <div className="pt-4 border-t space-y-4">
-              <div>
-                <h4 className={cn("text-sm font-semibold flex items-center gap-2 mb-1", rtl && "font-arabic")}>
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  {rtl ? "ملخص نصوص مواعيد العمل (للبوت وموقع الويب)" : "Summary Text for Bot & Storefront"}
-                </h4>
-                <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
-                  {rtl
-                    ? "هذه النصوص يقرأها بوت الواتساب n8n وموقع الويب مباشرة. يمكنك تعديلها يدوياً أو النقر على 'تحديث ملخص البوت تلقائياً' بالأعلى."
-                    : "Used directly by the WhatsApp n8n bot and storefront footer. Can be edited manually or auto-generated."}
-                </p>
-              </div>
+                {/* Days Table for Selected Branch */}
+                {isLoadingBranches ? (
+                  <div className="flex items-center justify-center py-8 text-muted-foreground gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <span className={cn("text-sm", rtl && "font-arabic")}>{rtl ? "جارِ تحميل بيانات الفروع ومواعيدها..." : "Loading schedules..."}</span>
+                  </div>
+                ) : (
+                  (() => {
+                    const activeBranchId = selectedBranchId || branches[0]?.id || "";
+                    const schedule = branchSchedules[activeBranchId] || DEFAULT_DAYS_SCHEDULE;
+                    const activeBranch = branches.find((b) => b.id === activeBranchId);
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className={cn(rtl && "font-arabic")}>{rtl ? "ملخص أيام الأسبوع (Weekdays)" : "Weekday Hours Summary"}</Label>
-                  <Input
-                    value={workingHoursWeekdays}
-                    onChange={(e) => setWorkingHoursWeekdays(e.target.value)}
-                    placeholder="السبت - الخميس: 01:00 م - 10:00 م"
-                    className={cn(rtl && "font-arabic text-right")}
-                    dir={rtl ? "rtl" : "ltr"}
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className={cn("text-sm font-semibold flex items-center gap-2", rtl && "font-arabic")}>
+                            <span>{rtl ? "جدول أيام الأسبوع لـ:" : "Weekly schedule for:"}</span>
+                            <span className="text-primary font-bold">{activeBranch?.nameAr || activeBranch?.name || (rtl ? "الفرع الحالي" : "Current Branch")}</span>
+                          </h4>
+                          <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
+                            {rtl ? "ملاحظة: يمكنك إغلاق أي يوم (إجازة) أو تعديل أوقات الفتح والإغلاق" : "Toggle open/close or edit hours"}
+                          </p>
+                        </div>
+
+                        <div className="border rounded-xl divide-y overflow-hidden bg-card">
+                          {schedule.map((day) => {
+                            const isCopied = copiedDay === day.dayOfWeek;
+                            return (
+                              <div
+                                key={day.dayOfWeek}
+                                className={cn(
+                                  "flex flex-col sm:flex-row sm:items-center justify-between p-3.5 gap-3 transition-colors",
+                                  !day.isOpen && "bg-muted/20 opacity-75"
+                                )}
+                              >
+                                {/* Right side: Switch + Day name + Badge */}
+                                <div className="flex items-center gap-3.5 min-w-[200px]">
+                                  <div dir="ltr" className="shrink-0">
+                                    <Switch
+                                      id={`switch-day-${day.dayOfWeek}`}
+                                      checked={day.isOpen}
+                                      onCheckedChange={(checked) =>
+                                        handleDayChange(activeBranchId, day.dayOfWeek, "isOpen", checked)
+                                      }
+                                      disabled={userRole === "demo"}
+                                    />
+                                  </div>
+                                  <Label
+                                    htmlFor={`switch-day-${day.dayOfWeek}`}
+                                    className={cn("text-sm font-semibold cursor-pointer select-none min-w-[60px]", rtl && "font-arabic")}
+                                  >
+                                    {rtl ? day.dayNameAr : day.dayNameEn}
+                                  </Label>
+                                  <span
+                                    className={cn(
+                                      "text-[11px] px-2.5 py-0.5 rounded-md font-medium shrink-0 transition-colors",
+                                      day.isOpen
+                                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20"
+                                        : "bg-muted text-muted-foreground border border-border/50"
+                                    )}
+                                  >
+                                    {day.isOpen ? (rtl ? "مفتوح" : "Open") : (rtl ? "إجازة" : "Closed")}
+                                  </span>
+                                </div>
+
+                                {/* Left side: Hours Controls */}
+                                {day.isOpen ? (
+                                  <div className="flex flex-wrap items-center gap-3 sm:justify-end flex-1">
+                                    <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded-lg border border-border/40">
+                                      <span className={cn("text-xs text-muted-foreground whitespace-nowrap", rtl && "font-arabic")}>
+                                        {rtl ? "من:" : "From:"}
+                                      </span>
+                                      <Input
+                                        type="time"
+                                        value={day.open}
+                                        onChange={(e) =>
+                                          handleDayChange(activeBranchId, day.dayOfWeek, "open", e.target.value)
+                                        }
+                                        className="w-28 h-7 text-xs text-center bg-background"
+                                        dir="ltr"
+                                        disabled={userRole === "demo"}
+                                      />
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded-lg border border-border/40">
+                                      <span className={cn("text-xs text-muted-foreground whitespace-nowrap", rtl && "font-arabic")}>
+                                        {rtl ? "إلى:" : "To:"}
+                                      </span>
+                                      <Input
+                                        type="time"
+                                        value={day.close}
+                                        onChange={(e) =>
+                                          handleDayChange(activeBranchId, day.dayOfWeek, "close", e.target.value)
+                                        }
+                                        className="w-28 h-7 text-xs text-center bg-background"
+                                        dir="ltr"
+                                        disabled={userRole === "demo"}
+                                      />
+                                    </div>
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleCopyHoursToAllDays(activeBranchId, day)}
+                                      disabled={userRole === "demo"}
+                                      title={rtl ? "تطبيق هذه الساعات على باقي الأيام" : "Copy hours to all other days"}
+                                      className={cn("h-7 px-2 text-xs gap-1 text-muted-foreground hover:text-foreground hover:bg-muted", rtl && "font-arabic")}
+                                    >
+                                      {isCopied ? (
+                                        <>
+                                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                          <span className="text-emerald-600 dark:text-emerald-400 font-medium">{rtl ? "تم النسخ!" : "Copied!"}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy className="w-3.5 h-3.5" />
+                                          <span>{rtl ? "نسخ للكل" : "Copy"}</span>
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center sm:justify-end flex-1 text-xs text-muted-foreground py-1">
+                                    <span className={cn("italic", rtl && "font-arabic")}>
+                                      {rtl ? "يوم عطلة / إجازة رسمية للفرع" : "Closed / Day off for this branch"}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Bot & Website Summaries Card */}
+            <Card className="shadow-sm border-primary/20">
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
+                      <Sparkles className="w-5 h-5 text-primary" />
+                      {rtl ? "ملخص نصوص مواعيد العمل (للبوت وموقع الويب)" : "Summary Text for Bot & Storefront"}
+                    </CardTitle>
+                    <CardDescription className={cn("mt-1", rtl && "font-arabic")}>
+                      {rtl
+                        ? "هذه النصوص يقرأها بوت الواتساب n8n وتظهر بتذييل الموقع. يمكنك تحديثها تلقائياً أو تعديلها يدوياً."
+                        : "Used directly by WhatsApp n8n bot and storefront footer."}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAutoGenerateSummaries}
                     disabled={userRole === "demo"}
-                  />
+                    className={cn("gap-1.5 shrink-0 border-primary/30 hover:bg-primary/10", rtl && "font-arabic")}
+                    title={rtl ? "توليد ملخص أوتوماتيكي بناءً على مواعيد الفرع المحدد" : "Auto-generate text summary from branch hours"}
+                  >
+                    <Sparkles className="w-4 h-4 text-primary" />
+                    {rtl ? "تحديث الملخص تلقائياً" : "Auto-generate Summary"}
+                  </Button>
                 </div>
-                <div className="space-y-2">
-                  <Label className={cn(rtl && "font-arabic")}>{rtl ? "ملخص يوم الجمعة (Friday)" : "Friday Hours Summary"}</Label>
-                  <Input
-                    value={workingHoursFriday}
-                    onChange={(e) => setWorkingHoursFriday(e.target.value)}
-                    placeholder="الجمعة: 01:00 م - 10:00 م (أو مغلق)"
-                    className={cn(rtl && "font-arabic text-right")}
-                    dir={rtl ? "rtl" : "ltr"}
-                    disabled={userRole === "demo"}
-                  />
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className={cn(rtl && "font-arabic")}>{rtl ? "ملخص أيام الأسبوع (Weekdays)" : "Weekday Hours Summary"}</Label>
+                    <Input
+                      value={workingHoursWeekdays}
+                      onChange={(e) => setWorkingHoursWeekdays(e.target.value)}
+                      placeholder="السبت - الخميس: 01:00 م - 10:00 م"
+                      className={cn(rtl && "font-arabic text-right")}
+                      dir={rtl ? "rtl" : "ltr"}
+                      disabled={userRole === "demo"}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className={cn(rtl && "font-arabic")}>{rtl ? "ملخص يوم الجمعة (Friday)" : "Friday Hours Summary"}</Label>
+                    <Input
+                      value={workingHoursFriday}
+                      onChange={(e) => setWorkingHoursFriday(e.target.value)}
+                      placeholder="الجمعة: 01:00 م - 10:00 م (أو مغلق)"
+                      className={cn(rtl && "font-arabic text-right")}
+                      dir={rtl ? "rtl" : "ltr"}
+                      disabled={userRole === "demo"}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div className="space-y-2">
-                  <Label className={cn(rtl && "font-arabic")}>{rtl ? "بداية نافذة الحجز العامة" : "Global Booking Start"}</Label>
-                  <Input
-                    type="time"
-                    value={bookingStartTime}
-                    onChange={(e) => setBookingStartTime(e.target.value)}
-                    dir="ltr"
-                    disabled={userRole === "demo"}
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+                  <div className="space-y-2">
+                    <Label className={cn(rtl && "font-arabic")}>{rtl ? "بداية نافذة الحجز العامة" : "Global Booking Start"}</Label>
+                    <Input
+                      type="time"
+                      value={bookingStartTime}
+                      onChange={(e) => setBookingStartTime(e.target.value)}
+                      dir="ltr"
+                      disabled={userRole === "demo"}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className={cn(rtl && "font-arabic")}>{rtl ? "نهاية نافذة الحجز العامة" : "Global Booking End"}</Label>
+                    <Input
+                      type="time"
+                      value={bookingEndTime}
+                      onChange={(e) => setBookingEndTime(e.target.value)}
+                      dir="ltr"
+                      disabled={userRole === "demo"}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className={cn(rtl && "font-arabic")}>{rtl ? "نهاية نافذة الحجز العامة" : "Global Booking End"}</Label>
-                  <Input
-                    type="time"
-                    value={bookingEndTime}
-                    onChange={(e) => setBookingEndTime(e.target.value)}
-                    dir="ltr"
-                    disabled={userRole === "demo"}
-                  />
-                </div>
-              </div>
-            </div>
 
-            <Button
-              onClick={handleSaveSettings}
-              disabled={isSavingSettings || userRole === "demo"}
-              className={cn("w-full gap-2 shadow-sm", rtl && "font-arabic")}
-            >
-              {isSavingSettings ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {rtl ? "جارِ الحفظ والمزامنة..." : "Saving..."}
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  {rtl ? "حفظ مواعيد العمل والإعدادات" : "Save Working Hours & Settings"}
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+                <Button
+                  onClick={handleSaveSettings}
+                  disabled={isSavingSettings || userRole === "demo"}
+                  className={cn("w-full gap-2 shadow-sm", rtl && "font-arabic")}
+                >
+                  {isSavingSettings ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      {rtl ? "جارِ الحفظ والمزامنة..." : "Saving..."}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      {rtl ? "حفظ مواعيد العمل والإعدادات" : "Save Working Hours & Settings"}
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-        {/* Team Management */}
-        {userRole !== "demo" && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div>
+        {/* TAB 2: General Settings & Contact Info */}
+        <TabsContent value="general" className="outline-none">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* General Settings Card */}
+            <Card>
+              <CardHeader>
                 <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
-                  <Users className="w-5 h-5 text-primary" />
-                  {rtl ? "إدارة فريق العمل" : "Team Management"}
+                  <Settings className="w-5 h-5 text-primary" />
+                  {rtl ? "الإعدادات العامة" : "General Settings"}
                 </CardTitle>
                 <CardDescription className={cn(rtl && "font-arabic")}>
-                  {rtl ? "صلاحيات الوصول للوحة التحكم" : "Dashboard access permissions"}
+                  {rtl ? "تفاصيل الصالون وإعدادات الإشعارات" : "Salon details and notification settings"}
                 </CardDescription>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => openUserDialog()} className={cn("gap-1.5", rtl && "font-arabic")}>
-                <Plus className="w-4 h-4" />
-                {rtl ? "إضافة عضو" : "Add Member"}
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {isLoadingUsers ? (
-                <div className="text-center py-8 text-muted-foreground">Loading...</div>
-              ) : users.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground text-sm">
-                  {rtl ? "لا يوجد أعضاء في الفريق" : "No team members found"}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="address" className={cn(rtl && "font-arabic")}>
+                    {rtl ? "عنوان الصالون التفصيلي" : "Salon Address"}
+                  </Label>
+                  <Input
+                    id="address"
+                    value={salonAddress}
+                    onChange={(e) => setSalonAddress(e.target.value)}
+                    placeholder={rtl ? "شارع مكة، عمّان..." : "123 Main St..."}
+                    className={cn(rtl && "font-arabic text-right")}
+                    dir={rtl ? "rtl" : "ltr"}
+                    disabled={userRole === "demo"}
+                  />
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {users.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
-                      <div>
-                        <p className="font-medium text-sm">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                        <span className={cn("inline-block mt-1 px-2 py-0.5 text-[10px] font-medium rounded-full",
-                          user.role === 'admin' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                        )}>
-                          {user.role.toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => openUserDialog(user)} className="h-8 w-8">
-                          <Settings className="w-4 h-4 text-muted-foreground" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.id)} className="h-8 w-8 hover:bg-red-50 hover:text-red-600">
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
+                <div className="space-y-2">
+                  <Label htmlFor="whatsapp" className={cn(rtl && "font-arabic")}>
+                    {rtl ? "رقم واتساب لإشعارات الطلبات" : "WhatsApp Number for Order Notifications"}
+                  </Label>
+                  <Input
+                    id="whatsapp"
+                    value={whatsappNotification}
+                    onChange={(e) => setWhatsappNotification(e.target.value)}
+                    placeholder="962790000000"
+                    dir="ltr"
+                    disabled={userRole === "demo"}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryFee" className={cn(rtl && "font-arabic")}>
+                    {rtl ? "رسوم التوصيل (ر.س)" : "Delivery Fee (SAR)"}
+                  </Label>
+                  <Input
+                    id="deliveryFee"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    value={deliveryFee}
+                    onChange={(e) => setDeliveryFee(e.target.value)}
+                    placeholder="2"
+                    dir="ltr"
+                    disabled={userRole === "demo"}
+                  />
+                  <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
+                    {rtl ? "رسوم التوصيل التي تظهر في صفحة الدفع بالموقع" : "Delivery fee shown on website checkout"}
+                  </p>
+                </div>
+                <Button
+                  onClick={handleSaveSettings}
+                  disabled={isSavingSettings || userRole === "demo"}
+                  className={cn("w-full gap-2", rtl && "font-arabic")}
+                >
+                  <Save className="w-4 h-4" />
+                  {rtl ? "حفظ الإعدادات العامة" : "Save General Settings"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Contact Info Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
+                  <Globe className="w-5 h-5 text-primary" />
+                  {rtl ? "معلومات التواصل والسوشال" : "Contact & Social Media"}
+                </CardTitle>
+                <CardDescription className={cn(rtl && "font-arabic")}>
+                  {rtl ? "أرقام الهاتف وروابط السوشال ميديا" : "Phone numbers and social media links"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className={cn(rtl && "font-arabic")}>{rtl ? "رقم الهاتف" : "Phone Number"}</Label>
+                    <Input value={salonPhone} onChange={(e) => setSalonPhone(e.target.value)} placeholder="962786753791" dir="ltr" disabled={userRole === "demo"} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className={cn(rtl && "font-arabic")}>{rtl ? "رقم واتساب" : "WhatsApp Number"}</Label>
+                    <Input value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="962786753791" dir="ltr" disabled={userRole === "demo"} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط انستغرام" : "Instagram URL"}</Label>
+                    <Input value={instagramUrl} onChange={(e) => setInstagramUrl(e.target.value)} placeholder="https://instagram.com/..." dir="ltr" disabled={userRole === "demo"} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط فيسبوك" : "Facebook URL"}</Label>
+                    <Input value={facebookUrl} onChange={(e) => setFacebookUrl(e.target.value)} placeholder="https://facebook.com/..." dir="ltr" disabled={userRole === "demo"} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط تيك توك" : "TikTok URL"}</Label>
+                    <Input value={tiktokUrl} onChange={(e) => setTiktokUrl(e.target.value)} placeholder="https://tiktok.com/..." dir="ltr" disabled={userRole === "demo"} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>{rtl ? "رابط خريطة Google Maps" : "Google Maps Embed URL"}</Label>
+                  <Input value={googleMapsUrl} onChange={(e) => setGoogleMapsUrl(e.target.value)} placeholder="https://www.google.com/maps/embed?pb=..." dir="ltr" disabled={userRole === "demo"} />
+                  <p className={cn("text-xs text-muted-foreground", rtl && "font-arabic")}>
+                    {rtl ? "انسخي رابط التضمين من Google Maps" : "Paste the embed URL from Google Maps"}
+                  </p>
+                </div>
+                <Button onClick={handleSaveSettings} disabled={isSavingSettings || userRole === "demo"} className={cn("w-full gap-2", rtl && "font-arabic")}>
+                  <Save className="w-4 h-4" />
+                  {rtl ? "حفظ بيانات التواصل" : "Save Contact Info"}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* TAB 3: Team Management */}
+        {userRole !== "demo" && (
+          <TabsContent value="team" className="outline-none">
+            <div className="max-w-4xl mx-auto">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <div>
+                    <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
+                      <Users className="w-5 h-5 text-primary" />
+                      {rtl ? "إدارة فريق العمل" : "Team Management"}
+                    </CardTitle>
+                    <CardDescription className={cn(rtl && "font-arabic")}>
+                      {rtl ? "صلاحيات الوصول للوحة التحكم" : "Dashboard access permissions"}
+                    </CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => openUserDialog()} className={cn("gap-1.5", rtl && "font-arabic")}>
+                    <Plus className="w-4 h-4" />
+                    {rtl ? "إضافة عضو" : "Add Member"}
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingUsers ? (
+                    <div className="text-center py-8 text-muted-foreground">Loading...</div>
+                  ) : users.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      {rtl ? "لا يوجد أعضاء في الفريق" : "No team members found"}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  ) : (
+                    <div className="space-y-3">
+                      {users.map((user) => (
+                        <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg bg-card">
+                          <div>
+                            <p className="font-medium text-sm">{user.name}</p>
+                            <p className="text-xs text-muted-foreground">{user.email}</p>
+                            <span className={cn("inline-block mt-1 px-2 py-0.5 text-[10px] font-medium rounded-full",
+                              user.role === 'admin' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                            )}>
+                              {user.role.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => openUserDialog(user)} className="h-8 w-8">
+                              <Settings className="w-4 h-4 text-muted-foreground" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.id)} className="h-8 w-8 hover:bg-red-50 hover:text-red-600">
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
         )}
 
-        {/* Hero Section Images */}
-        <Card>
-          <CardHeader>
-            <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
-              <ImageIcon className="w-5 h-5 text-primary" />
-              {rtl ? "صور قسم الواجهة الرئيسي" : "Hero Section Images"}
-            </CardTitle>
-            <CardDescription className={cn(rtl && "font-arabic")}>
-              {rtl
-                ? "تعديل الروابط الخاصة بالـ 3 صور المعروضة في واجهة الموقع الرئيسي"
-                : "Manage the URLs of the 3 images displayed in the website Hero section"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className={cn(rtl && "font-arabic")}>
-                {rtl ? "رابط الصورة الأولى (يسار علوي)" : "Image 1 URL (Top Left)"}
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  value={heroImage1}
-                  onChange={(e) => setHeroImage1(e.target.value)}
-                  placeholder="/images/hero/hero_salon_1.png"
-                  dir="ltr"
-                  className="flex-1"
-                  disabled={userRole === "demo"}
-                />
-                <input
-                  type="file"
-                  id="hero-upload-1"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, 1)}
-                  className="hidden"
-                  disabled={isUploading1 || userRole === "demo"}
-                />
-                <Button
-                  asChild
-                  variant="outline"
-                  className={cn("gap-2 shrink-0 cursor-pointer", (isUploading1 || userRole === "demo") && "opacity-50 pointer-events-none")}
-                >
-                  <label htmlFor="hero-upload-1" className="flex items-center gap-2 cursor-pointer">
-                    {isUploading1 ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                    ) : (
-                      <Upload className="w-4 h-4" />
-                    )}
-                    {rtl ? "رفع" : "Upload"}
-                  </label>
-                </Button>
-              </div>
-              {heroImage1 && (
-                <div className="mt-2 relative w-24 h-24 rounded-lg overflow-hidden border bg-muted group">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={heroImage1}
-                    alt="Preview 1"
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setHeroImage1("")}
-                    disabled={userRole === "demo"}
-                    className={cn("absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200", userRole === "demo" && "pointer-events-none hidden")}
-                  >
-                    <Trash2 className="w-5 h-5 text-white" />
-                  </button>
+        {/* TAB 4: Hero Section Images */}
+        <TabsContent value="hero" className="outline-none">
+          <div className="max-w-4xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
+                  <ImageIcon className="w-5 h-5 text-primary" />
+                  {rtl ? "صور قسم الواجهة الرئيسي" : "Hero Section Images"}
+                </CardTitle>
+                <CardDescription className={cn(rtl && "font-arabic")}>
+                  {rtl
+                    ? "تعديل الروابط الخاصة بالـ 3 صور المعروضة في واجهة الموقع الرئيسي"
+                    : "Manage the URLs of the 3 images displayed in the website Hero section"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>
+                    {rtl ? "رابط الصورة الأولى (يسار علوي)" : "Image 1 URL (Top Left)"}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={heroImage1}
+                      onChange={(e) => setHeroImage1(e.target.value)}
+                      placeholder="/images/hero/hero_salon_1.png"
+                      dir="ltr"
+                      className="flex-1"
+                      disabled={userRole === "demo"}
+                    />
+                    <input
+                      type="file"
+                      id="hero-upload-1"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, 1)}
+                      className="hidden"
+                      disabled={isUploading1 || userRole === "demo"}
+                    />
+                    <Button
+                      asChild
+                      variant="outline"
+                      className={cn("gap-2 shrink-0 cursor-pointer", (isUploading1 || userRole === "demo") && "opacity-50 pointer-events-none")}
+                    >
+                      <label htmlFor="hero-upload-1" className="flex items-center gap-2 cursor-pointer">
+                        {isUploading1 ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
+                        {rtl ? "رفع" : "Upload"}
+                      </label>
+                    </Button>
+                  </div>
+                  {heroImage1 && (
+                    <div className="mt-2 relative w-24 h-24 rounded-lg overflow-hidden border bg-muted group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={heroImage1}
+                        alt="Preview 1"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setHeroImage1("")}
+                        disabled={userRole === "demo"}
+                        className={cn("absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200", userRole === "demo" && "pointer-events-none hidden")}
+                      >
+                        <Trash2 className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <Label className={cn(rtl && "font-arabic")}>
-                {rtl ? "رابط الصورة الثانية (عمود أيمن / الموبايل)" : "Image 2 URL (Right / Mobile)"}
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  value={heroImage2}
-                  onChange={(e) => setHeroImage2(e.target.value)}
-                  placeholder="/images/hero/hero_salon_2.png"
-                  dir="ltr"
-                  className="flex-1"
-                  disabled={userRole === "demo"}
-                />
-                <input
-                  type="file"
-                  id="hero-upload-2"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, 2)}
-                  className="hidden"
-                  disabled={isUploading2 || userRole === "demo"}
-                />
-                <Button
-                  asChild
-                  variant="outline"
-                  className={cn("gap-2 shrink-0 cursor-pointer", (isUploading2 || userRole === "demo") && "opacity-50 pointer-events-none")}
-                >
-                  <label htmlFor="hero-upload-2" className="flex items-center gap-2 cursor-pointer">
-                    {isUploading2 ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                    ) : (
-                      <Upload className="w-4 h-4" />
-                    )}
-                    {rtl ? "رفع" : "Upload"}
-                  </label>
-                </Button>
-              </div>
-              {heroImage2 && (
-                <div className="mt-2 relative w-24 h-24 rounded-lg overflow-hidden border bg-muted group">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={heroImage2}
-                    alt="Preview 2"
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setHeroImage2("")}
-                    disabled={userRole === "demo"}
-                    className={cn("absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200", userRole === "demo" && "pointer-events-none hidden")}
-                  >
-                    <Trash2 className="w-5 h-5 text-white" />
-                  </button>
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>
+                    {rtl ? "رابط الصورة الثانية (عمود أيمن / الموبايل)" : "Image 2 URL (Right / Mobile)"}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={heroImage2}
+                      onChange={(e) => setHeroImage2(e.target.value)}
+                      placeholder="/images/hero/hero_salon_2.png"
+                      dir="ltr"
+                      className="flex-1"
+                      disabled={userRole === "demo"}
+                    />
+                    <input
+                      type="file"
+                      id="hero-upload-2"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, 2)}
+                      className="hidden"
+                      disabled={isUploading2 || userRole === "demo"}
+                    />
+                    <Button
+                      asChild
+                      variant="outline"
+                      className={cn("gap-2 shrink-0 cursor-pointer", (isUploading2 || userRole === "demo") && "opacity-50 pointer-events-none")}
+                    >
+                      <label htmlFor="hero-upload-2" className="flex items-center gap-2 cursor-pointer">
+                        {isUploading2 ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
+                        {rtl ? "رفع" : "Upload"}
+                      </label>
+                    </Button>
+                  </div>
+                  {heroImage2 && (
+                    <div className="mt-2 relative w-24 h-24 rounded-lg overflow-hidden border bg-muted group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={heroImage2}
+                        alt="Preview 2"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setHeroImage2("")}
+                        disabled={userRole === "demo"}
+                        className={cn("absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200", userRole === "demo" && "pointer-events-none hidden")}
+                      >
+                        <Trash2 className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <Label className={cn(rtl && "font-arabic")}>
-                {rtl ? "رابط الصورة الثالثة (يسار سفلي)" : "Image 3 URL (Bottom Left)"}
-              </Label>
-              <div className="flex gap-2">
-                <Input
-                  value={heroImage3}
-                  onChange={(e) => setHeroImage3(e.target.value)}
-                  placeholder="/images/hero/hero_salon_3.png"
-                  dir="ltr"
-                  className="flex-1"
-                  disabled={userRole === "demo"}
-                />
-                <input
-                  type="file"
-                  id="hero-upload-3"
-                  accept="image/*"
-                  onChange={(e) => handleImageUpload(e, 3)}
-                  className="hidden"
-                  disabled={isUploading3 || userRole === "demo"}
-                />
-                <Button
-                  asChild
-                  variant="outline"
-                  className={cn("gap-2 shrink-0 cursor-pointer", (isUploading3 || userRole === "demo") && "opacity-50 pointer-events-none")}
-                >
-                  <label htmlFor="hero-upload-3" className="flex items-center gap-2 cursor-pointer">
-                    {isUploading3 ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                    ) : (
-                      <Upload className="w-4 h-4" />
-                    )}
-                    {rtl ? "رفع" : "Upload"}
-                  </label>
-                </Button>
-              </div>
-              {heroImage3 && (
-                <div className="mt-2 relative w-24 h-24 rounded-lg overflow-hidden border bg-muted group">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={heroImage3}
-                    alt="Preview 3"
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setHeroImage3("")}
-                    disabled={userRole === "demo"}
-                    className={cn("absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200", userRole === "demo" && "pointer-events-none hidden")}
-                  >
-                    <Trash2 className="w-5 h-5 text-white" />
-                  </button>
+                <div className="space-y-2">
+                  <Label className={cn(rtl && "font-arabic")}>
+                    {rtl ? "رابط الصورة الثالثة (يسار سفلي)" : "Image 3 URL (Bottom Left)"}
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={heroImage3}
+                      onChange={(e) => setHeroImage3(e.target.value)}
+                      placeholder="/images/hero/hero_salon_3.png"
+                      dir="ltr"
+                      className="flex-1"
+                      disabled={userRole === "demo"}
+                    />
+                    <input
+                      type="file"
+                      id="hero-upload-3"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, 3)}
+                      className="hidden"
+                      disabled={isUploading3 || userRole === "demo"}
+                    />
+                    <Button
+                      asChild
+                      variant="outline"
+                      className={cn("gap-2 shrink-0 cursor-pointer", (isUploading3 || userRole === "demo") && "opacity-50 pointer-events-none")}
+                    >
+                      <label htmlFor="hero-upload-3" className="flex items-center gap-2 cursor-pointer">
+                        {isUploading3 ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        ) : (
+                          <Upload className="w-4 h-4" />
+                        )}
+                        {rtl ? "رفع" : "Upload"}
+                      </label>
+                    </Button>
+                  </div>
+                  {heroImage3 && (
+                    <div className="mt-2 relative w-24 h-24 rounded-lg overflow-hidden border bg-muted group">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={heroImage3}
+                        alt="Preview 3"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setHeroImage3("")}
+                        disabled={userRole === "demo"}
+                        className={cn("absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200", userRole === "demo" && "pointer-events-none hidden")}
+                      >
+                        <Trash2 className="w-5 h-5 text-white" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            <Button
-              onClick={handleSaveSettings}
-              disabled={isSavingSettings || userRole === "demo"}
-              className={cn("w-full gap-2", rtl && "font-arabic")}
-            >
-              <Save className="w-4 h-4" />
-              {rtl ? "حفظ الصور" : "Save Images"}
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+
+                <Button
+                  onClick={handleSaveSettings}
+                  disabled={isSavingSettings || userRole === "demo"}
+                  className={cn("w-full gap-2", rtl && "font-arabic")}
+                >
+                  <Save className="w-4 h-4" />
+                  {rtl ? "حفظ الصور" : "Save Images"}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* TAB 5: Security & Password */}
+        <TabsContent value="security" className="outline-none">
+          <div className="max-w-xl mx-auto">
+            <Card>
+              <CardHeader>
+                <CardTitle className={cn("flex items-center gap-2", rtl && "font-arabic")}>
+                  <Lock className="w-5 h-5 text-primary" />
+                  {rtl ? "تغيير كلمة المرور" : "Change Password"}
+                </CardTitle>
+                <CardDescription className={cn(rtl && "font-arabic")}>
+                  {rtl ? "تحديث كلمة المرور الخاصة بحسابك" : "Update the password for your account"}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="password" className={cn(rtl && "font-arabic")}>
+                    {rtl ? "كلمة المرور الجديدة" : "New Password"}
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••"
+                    dir="ltr"
+                    disabled={userRole === "demo"}
+                  />
+                </div>
+                <Button
+                  onClick={handleUpdatePassword}
+                  disabled={isUpdatingPassword || userRole === "demo"}
+                  className={cn("w-full gap-2", rtl && "font-arabic")}
+                >
+                  <Save className="w-4 h-4" />
+                  {rtl ? "تحديث كلمة المرور" : "Update Password"}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Add/Edit User Dialog */}
       {userRole !== "demo" && (
