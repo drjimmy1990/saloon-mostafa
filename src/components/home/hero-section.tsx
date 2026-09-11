@@ -26,25 +26,24 @@ function CountUp({ target, suffix = "" }: { target: number; suffix: string }) {
   return <>{count}{suffix}</>;
 }
 
-export function HeroSection() {
-  const [images, setImages] = useState({
-    hero_image_1: "/images/hero/hero_salon_1.png",
-    hero_image_2: "/images/hero/hero_salon_2.png",
-    hero_image_3: "/images/hero/hero_salon_3.png",
-  });
+interface HeroImages {
+  hero_image_1: string;
+  hero_image_2: string;
+  hero_image_3: string;
+}
 
-  useEffect(() => {
-    fetch("/api/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        setImages({
-          hero_image_1: data.hero_image_1 || "/images/hero/hero_salon_1.png",
-          hero_image_2: data.hero_image_2 || "/images/hero/hero_salon_2.png",
-          hero_image_3: data.hero_image_3 || "/images/hero/hero_salon_3.png",
-        });
-      })
-      .catch((err) => console.error("Failed to load settings in HeroSection:", err));
-  }, []);
+interface HeroSectionProps {
+  initialImages?: HeroImages;
+}
+
+const DEFAULT_HERO_IMAGES: HeroImages = {
+  hero_image_1: "/images/hero/hero_salon_1.png",
+  hero_image_2: "/images/hero/hero_salon_2.png",
+  hero_image_3: "/images/hero/hero_salon_3.png",
+};
+
+export function HeroSection({ initialImages }: HeroSectionProps = {}) {
+  const images = initialImages || DEFAULT_HERO_IMAGES;
 
   return (
     <section className="relative overflow-hidden min-h-[90vh] md:min-h-[85vh] flex items-center gradient-mesh">
