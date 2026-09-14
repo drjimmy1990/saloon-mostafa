@@ -315,6 +315,23 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // 1b. Check for staff weekly schedule (day off)
+      const dateObj = new Date(targetDateString + "T00:00:00");
+      const dayOfWeek = dateObj.getDay();
+      const { data: schedule } = await supabase
+        .from('StaffSchedule')
+        .select('startTime, endTime, isOff')
+        .eq('staff_id', targetStaffId)
+        .eq('dayOfWeek', dayOfWeek)
+        .single();
+
+      if (schedule && schedule.isOff) {
+        return NextResponse.json(
+          { error: 'العاملة في يوم عطلة (إجازة أسبوعية)' },
+          { status: 409 }
+        );
+      }
+
       // 2. Check for time-based overlap.
       // Queue mode intentionally skips overlap: each service is either time-
       // based OR queue/slot-based (single mode per service), and queue

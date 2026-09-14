@@ -377,7 +377,7 @@ export function BookingsSection() {
   const [dateTo, setDateTo] = useState("");
 
   const [channels, setChannels] = useState<{ id: string; name: string; type: string }[]>([]);
-  const [staffList, setStaffList] = useState<{ id: string; name: string }[]>([]);
+  const [staffList, setStaffList] = useState<{ id: string; name: string; branchId?: string | null }[]>([]);
   const [branchList, setBranchList] = useState<{ id: string; name: string }[]>([]);
   const [serviceList, setServiceList] = useState<{ id: string; name: string; durationMinutes?: number; durationMode?: string }[]>([]);
 
@@ -395,6 +395,11 @@ export function BookingsSection() {
   const [mbSlotNumber, setMbSlotNumber] = useState<number | "">("");
   const [mbLocation, setMbLocation] = useState("salon");
   const [mbNotes, setMbNotes] = useState("");
+  const [mbSlotsLoading, setMbSlotsLoading] = useState(false);
+  const [mbStaffBlocked, setMbStaffBlocked] = useState(false);
+  const [mbBlockedMessage, setMbBlockedMessage] = useState<string | null>(null);
+  const [mbAvailableSlots, setMbAvailableSlots] = useState<{ time: string; booked: boolean }[]>([]);
+  const [mbStaffSchedule, setMbStaffSchedule] = useState<{ startTime: string; endTime: string } | null>(null);
 
   // ─── Edit Booking Dialog State ────────────────────────────────────────
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -411,6 +416,11 @@ export function BookingsSection() {
   const [ebLocation, setEbLocation] = useState("salon");
   const [ebNotes, setEbNotes] = useState("");
   const [ebStatus, setEbStatus] = useState<BookingStatus>("pending");
+  const [ebSlotsLoading, setEbSlotsLoading] = useState(false);
+  const [ebStaffBlocked, setEbStaffBlocked] = useState(false);
+  const [ebBlockedMessage, setEbBlockedMessage] = useState<string | null>(null);
+  const [ebAvailableSlots, setEbAvailableSlots] = useState<{ time: string; booked: boolean }[]>([]);
+  const [ebStaffSchedule, setEbStaffSchedule] = useState<{ startTime: string; endTime: string } | null>(null);
 
   // ─── Delete Confirmation State ────────────────────────────────────────
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -434,6 +444,123 @@ export function BookingsSection() {
       .then(data => setServiceList(Array.isArray(data) ? data.filter((p: { type?: string }) => p.type === 'service') : []))
       .catch(console.error);
   }, []);
+
+  // Fetch availability for Manual Booking when staff, service, or date changes
+  useEffect(() => {
+    if (!manualDialogOpen) return;
+    if (!mbStaffId || mbStaffId === "none" || !mbServiceId || !mbDate) {
+      setMbAvailableSlots([]);
+      setMbStaffBlocked(false);
+      setMbBlockedMessage(null);
+      setMbStaffSchedule(null);
+      return;
+    }
+
+    let isMounted = true;
+    setMbSlotsLoading(true);
+    setMbStaffBlocked(false);
+    setMbBlockedMessage(null);
+
+    fetch(`/api/availability?staffId=${mbStaffId}&serviceId=${mbServiceId}&date=${mbDate}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!isMounted) return;
+        if (d.blocked) {
+          setMbStaffBlocked(true);
+          setMbBlockedMessage(d.message || (rtl ? "العاملة غير متاحة في هذا اليوم" : "Staff is unavailable on this date"));
+          setMbAvailableSlots([]);
+          setMbStaffSchedule(d.staffSchedule || null);
+          setMbTime("");
+        } else {
+          setMbStaffBlocked(false);
+          setMbBlockedMessage(null);
+          const slots: { time: string; booked: boolean }[] = d.slots || [];
+          setMbAvailableSlots(slots);
+          setMbStaffSchedule(d.staffSchedule || null);
+
+          // If queue mode, populate slotNumber if empty
+          if (d.mode === "queue" && d.nextQueueNumber && mbSlotNumber === "") {
+            setMbSlotNumber(d.nextQueueNumber);
+          }
+
+          // If current mbTime is booked or not in slots, reset it
+          if (mbTime) {
+            const match = slots.find((s) => s.time === mbTime);
+            if (!match || match.booked) {
+              setMbTime("");
+            }
+          }
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch availability", err);
+      })
+      .finally(() => {
+        if (isMounted) setMbSlotsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [manualDialogOpen, mbStaffId, mbServiceId, mbDate, mbSlotNumber, mbTime, rtl]);
+
+  // Fetch availability for Edit Booking when staff, service, or date changes
+  useEffect(() => {
+    if (!editDialogOpen) return;
+    if (!ebStaffId || ebStaffId === "none" || !ebServiceId || !ebDate) {
+      setEbAvailableSlots([]);
+      setEbStaffBlocked(false);
+      setEbBlockedMessage(null);
+      setEbStaffSchedule(null);
+      return;
+    }
+
+    let isMounted = true;
+    setEbSlotsLoading(true);
+    setEbStaffBlocked(false);
+    setEbBlockedMessage(null);
+
+    const excludeParam = selectedBooking?.id ? `&excludeBookingId=${selectedBooking.id}` : "";
+    fetch(`/api/availability?staffId=${ebStaffId}&serviceId=${ebServiceId}&date=${ebDate}${excludeParam}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!isMounted) return;
+        if (d.blocked) {
+          setEbStaffBlocked(true);
+          setEbBlockedMessage(d.message || (rtl ? "العاملة غير متاحة في هذا اليوم" : "Staff is unavailable on this date"));
+          setEbAvailableSlots([]);
+          setEbStaffSchedule(d.staffSchedule || null);
+          setEbTime("");
+        } else {
+          setEbStaffBlocked(false);
+          setEbBlockedMessage(null);
+          const slots: { time: string; booked: boolean }[] = d.slots || [];
+          setEbAvailableSlots(slots);
+          setEbStaffSchedule(d.staffSchedule || null);
+
+          if (d.mode === "queue" && d.nextQueueNumber && ebSlotNumber === "") {
+            setEbSlotNumber(d.nextQueueNumber);
+          }
+
+          if (ebTime) {
+            const match = slots.find((s) => s.time === ebTime);
+            if (!match || match.booked) {
+              setEbTime("");
+            }
+          }
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch availability", err);
+      })
+      .finally(() => {
+        if (isMounted) setEbSlotsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [editDialogOpen, ebStaffId, ebServiceId, ebDate, ebSlotNumber, ebTime, selectedBooking?.id, rtl]);
 
   // ─── Pagination ──────────────────────────────────────────────────────────
   const [page, setPage] = useState(1);
@@ -520,6 +647,7 @@ export function BookingsSection() {
   };
 
   const handleManualBookingSave = async () => {
+    if (mbStaffBlocked) return;
     if (!mbClientName || !mbClientPhone || !mbServiceId || !mbDate || !mbStaffId || mbStaffId === "none") return;
     const selectedService = serviceList.find(s => s.id === mbServiceId);
     const isQueueMode = selectedService?.durationMode === "queue";
@@ -564,6 +692,10 @@ export function BookingsSection() {
         setMbSlotNumber('');
         setMbLocation('salon'); setMbNotes('');
         setMbError(null);
+        setMbAvailableSlots([]);
+        setMbStaffBlocked(false);
+        setMbBlockedMessage(null);
+        setMbStaffSchedule(null);
         fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
       }
     } catch (err) {
@@ -617,11 +749,16 @@ export function BookingsSection() {
     setEbNotes(booking.notes || "");
     setEbStatus(booking.status || "pending");
     setEbError(null);
+    setEbAvailableSlots([]);
+    setEbStaffBlocked(false);
+    setEbBlockedMessage(null);
+    setEbStaffSchedule(null);
     setEditDialogOpen(true);
   };
 
   const handleEditBookingSave = async () => {
     if (!selectedBooking) return;
+    if (ebStaffBlocked) return;
     if (!ebClientName || !ebClientPhone || !ebServiceId || !ebDate || !ebStaffId || ebStaffId === "none") return;
     const selectedService = serviceList.find(s => s.id === ebServiceId);
     const isQueueMode = selectedService?.durationMode === "queue";
@@ -659,6 +796,10 @@ export function BookingsSection() {
         toast.success(rtl ? "تم تعديل الحجز بنجاح" : "Booking updated successfully");
         setEditDialogOpen(false);
         setEbError(null);
+        setEbAvailableSlots([]);
+        setEbStaffBlocked(false);
+        setEbBlockedMessage(null);
+        setEbStaffSchedule(null);
         fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
       }
     } catch (err) {
@@ -1726,6 +1867,15 @@ export function BookingsSection() {
             </Alert>
           )}
 
+          {mbStaffBlocked && mbBlockedMessage && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className={cn(rtl && "font-arabic text-right")}>
+                {mbBlockedMessage}
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1747,7 +1897,16 @@ export function BookingsSection() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.selectStaff")}</Label>
-                <Select value={mbStaffId} onValueChange={setMbStaffId}>
+                <Select
+                  value={mbStaffId}
+                  onValueChange={(val) => {
+                    setMbStaffId(val);
+                    const st = staffList.find((s) => s.id === val);
+                    if (st?.branchId && !mbBranchId) {
+                      setMbBranchId(st.branchId);
+                    }
+                  }}
+                >
                   <SelectTrigger className={cn(rtl && "font-arabic")}><SelectValue placeholder={t(locale, "bookings.selectStaff")} /></SelectTrigger>
                   <SelectContent>
                     {staffList.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -1780,19 +1939,63 @@ export function BookingsSection() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.bookingTime")}</Label>
-                  <Select value={mbTime} onValueChange={setMbTime}>
+                  <div className="flex items-center justify-between">
+                    <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.bookingTime")}</Label>
+                    {mbSlotsLoading && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        {rtl ? "تحميل..." : "Loading..."}
+                      </span>
+                    )}
+                  </div>
+                  <Select
+                    value={mbTime}
+                    onValueChange={setMbTime}
+                    disabled={!mbStaffId || !mbDate || mbStaffBlocked || mbSlotsLoading}
+                  >
                     <SelectTrigger className="font-sans animate-none" dir="ltr">
-                      <SelectValue placeholder="--:--" />
+                      <SelectValue
+                        placeholder={
+                          mbSlotsLoading
+                            ? (rtl ? "جاري التحميل..." : "Loading...")
+                            : mbStaffBlocked
+                            ? (rtl ? "العاملة غير متاحة" : "Staff unavailable")
+                            : !mbStaffId || !mbDate
+                            ? (rtl ? "اختر العاملة والتاريخ أولاً" : "Select staff & date first")
+                            : "--:--"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {generateTimeSlots(mbDurationMinutes).map((slot) => (
-                        <SelectItem key={slot} value={slot}>
-                          {formatTimeLabel(slot)}
-                        </SelectItem>
-                      ))}
+                      {mbAvailableSlots.length === 0 ? (
+                        <div className="py-2 px-3 text-xs text-muted-foreground text-center">
+                          {mbStaffBlocked
+                            ? (rtl ? "العاملة غير متاحة في هذا اليوم" : "Staff unavailable on this date")
+                            : mbSlotsLoading
+                            ? (rtl ? "جاري تحميل المواعيد..." : "Loading slots...")
+                            : (rtl ? "لا توجد مواعيد متاحة" : "No slots available")}
+                        </div>
+                      ) : (
+                        mbAvailableSlots.map((slot) => (
+                          <SelectItem
+                            key={slot.time}
+                            value={slot.time}
+                            disabled={slot.booked}
+                            className={cn(slot.booked && "opacity-50 line-through text-muted-foreground")}
+                          >
+                            {formatTimeLabel(slot.time)} {slot.booked ? (rtl ? "(محجوز)" : "(Booked)") : ""}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
+                  {mbStaffSchedule && !mbStaffBlocked && (
+                    <span className="text-[11px] text-muted-foreground block">
+                      {rtl
+                        ? `ساعات الدوام: ${formatTimeLabel(mbStaffSchedule.startTime)} - ${formatTimeLabel(mbStaffSchedule.endTime)}`
+                        : `Working hours: ${formatTimeLabel(mbStaffSchedule.startTime)} - ${formatTimeLabel(mbStaffSchedule.endTime)}`}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -1819,7 +2022,21 @@ export function BookingsSection() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setManualDialogOpen(false)} className={cn(rtl && "font-arabic")}>{t(locale, "cancel")}</Button>
-            <Button onClick={handleManualBookingSave} disabled={manualSaving || !mbClientName || !mbClientPhone || !mbServiceId || !mbDate || !mbStaffId || mbStaffId === "none" || (mbDurationMode === "queue" ? mbSlotNumber === "" : !mbTime)}>
+            <Button
+              onClick={handleManualBookingSave}
+              disabled={
+                manualSaving ||
+                mbStaffBlocked ||
+                mbSlotsLoading ||
+                !mbClientName ||
+                !mbClientPhone ||
+                !mbServiceId ||
+                !mbDate ||
+                !mbStaffId ||
+                mbStaffId === "none" ||
+                (mbDurationMode === "queue" ? mbSlotNumber === "" : !mbTime)
+              }
+            >
               {manualSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               <span className={cn(rtl && "font-arabic")}>{t(locale, "save")}</span>
             </Button>
@@ -1847,6 +2064,15 @@ export function BookingsSection() {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className={cn(rtl && "font-arabic text-right")}>
                 {ebError}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {ebStaffBlocked && ebBlockedMessage && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className={cn(rtl && "font-arabic text-right")}>
+                {ebBlockedMessage}
               </AlertDescription>
             </Alert>
           )}
@@ -1887,7 +2113,16 @@ export function BookingsSection() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.selectStaff")}</Label>
-                <Select value={ebStaffId} onValueChange={setEbStaffId}>
+                <Select
+                  value={ebStaffId}
+                  onValueChange={(val) => {
+                    setEbStaffId(val);
+                    const st = staffList.find((s) => s.id === val);
+                    if (st?.branchId && !ebBranchId) {
+                      setEbBranchId(st.branchId);
+                    }
+                  }}
+                >
                   <SelectTrigger className={cn(rtl && "font-arabic")}><SelectValue placeholder={t(locale, "bookings.selectStaff")} /></SelectTrigger>
                   <SelectContent>
                     {staffList.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -1920,19 +2155,63 @@ export function BookingsSection() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.bookingTime")}</Label>
-                  <Select value={ebTime} onValueChange={setEbTime}>
+                  <div className="flex items-center justify-between">
+                    <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.bookingTime")}</Label>
+                    {ebSlotsLoading && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        {rtl ? "تحميل..." : "Loading..."}
+                      </span>
+                    )}
+                  </div>
+                  <Select
+                    value={ebTime}
+                    onValueChange={setEbTime}
+                    disabled={!ebStaffId || !ebDate || ebStaffBlocked || ebSlotsLoading}
+                  >
                     <SelectTrigger className="font-sans animate-none" dir="ltr">
-                      <SelectValue placeholder="--:--" />
+                      <SelectValue
+                        placeholder={
+                          ebSlotsLoading
+                            ? (rtl ? "جاري التحميل..." : "Loading...")
+                            : ebStaffBlocked
+                            ? (rtl ? "العاملة غير متاحة" : "Staff unavailable")
+                            : !ebStaffId || !ebDate
+                            ? (rtl ? "اختر العاملة والتاريخ أولاً" : "Select staff & date first")
+                            : "--:--"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
-                      {generateTimeSlots(ebDurationMinutes).map((slot) => (
-                        <SelectItem key={slot} value={slot}>
-                          {formatTimeLabel(slot)}
-                        </SelectItem>
-                      ))}
+                      {ebAvailableSlots.length === 0 ? (
+                        <div className="py-2 px-3 text-xs text-muted-foreground text-center">
+                          {ebStaffBlocked
+                            ? (rtl ? "العاملة غير متاحة في هذا اليوم" : "Staff unavailable on this date")
+                            : ebSlotsLoading
+                            ? (rtl ? "جاري تحميل المواعيد..." : "Loading slots...")
+                            : (rtl ? "لا توجد مواعيد متاحة" : "No slots available")}
+                        </div>
+                      ) : (
+                        ebAvailableSlots.map((slot) => (
+                          <SelectItem
+                            key={slot.time}
+                            value={slot.time}
+                            disabled={slot.booked}
+                            className={cn(slot.booked && "opacity-50 line-through text-muted-foreground")}
+                          >
+                            {formatTimeLabel(slot.time)} {slot.booked ? (rtl ? "(محجوز)" : "(Booked)") : ""}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
+                  {ebStaffSchedule && !ebStaffBlocked && (
+                    <span className="text-[11px] text-muted-foreground block">
+                      {rtl
+                        ? `ساعات الدوام: ${formatTimeLabel(ebStaffSchedule.startTime)} - ${formatTimeLabel(ebStaffSchedule.endTime)}`
+                        : `Working hours: ${formatTimeLabel(ebStaffSchedule.startTime)} - ${formatTimeLabel(ebStaffSchedule.endTime)}`}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -1955,7 +2234,21 @@ export function BookingsSection() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} className={cn(rtl && "font-arabic")}>{t(locale, "cancel")}</Button>
-            <Button onClick={handleEditBookingSave} disabled={editSaving || !ebClientName || !ebClientPhone || !ebServiceId || !ebDate || !ebStaffId || ebStaffId === "none" || (ebDurationMode === "queue" ? ebSlotNumber === "" : !ebTime)}>
+            <Button
+              onClick={handleEditBookingSave}
+              disabled={
+                editSaving ||
+                ebStaffBlocked ||
+                ebSlotsLoading ||
+                !ebClientName ||
+                !ebClientPhone ||
+                !ebServiceId ||
+                !ebDate ||
+                !ebStaffId ||
+                ebStaffId === "none" ||
+                (ebDurationMode === "queue" ? ebSlotNumber === "" : !ebTime)
+              }
+            >
               {editSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               <span className={cn(rtl && "font-arabic")}>{t(locale, "save")}</span>
             </Button>
