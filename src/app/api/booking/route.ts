@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
+import { normalizePhone } from "@/lib/phone";
 import {
   createPaymentIntention,
   isPaymobConfigured,
@@ -33,20 +34,23 @@ export async function POST(req: NextRequest) {
     const time = merged.time as string | null;
     const branchId = merged.branchId as string;
     const staffId = merged.staffId as string;
-    const name = merged.name as string;
-    const phone = merged.phone as string;
+    const name = (merged.name as string)?.trim() || "";
+    const rawPhone = merged.phone as string;
     const notes = merged.notes as string || "";
     const paymentMethod = (merged.paymentMethod as string) || "cash";
     const authUserId = merged.authUserId as string | null;
     const durationMode = (merged.durationMode as string) || "time";
     const durationMinutes = Number(merged.durationMinutes) || 30;
 
-    if (!name || !phone || !serviceId || !date) {
+    if (!name || !rawPhone || !serviceId || !date) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
+
+    const phone = normalizePhone(rawPhone);
+    const last9 = phone.length >= 9 ? phone.slice(-9) : phone;
 
     const supabase = getServiceRoleClient();
 
@@ -96,21 +100,29 @@ export async function POST(req: NextRequest) {
     }
 
     if (!clientId) {
-      const { data: existingClient } = await supabase
+      // Resilient client match: match by normalized phone suffix or platform_user_id
+      const { data: existingClients } = await supabase
         .from("Client")
-        .select("id")
-        .eq("phone", phone)
-        .single();
+        .select("id, name, phone")
+        .or(`phone.ilike.%${last9}%,platform_user_id.ilike.%${last9}%`)
+        .order("createdAt", { ascending: false })
+        .limit(1);
+
+      const existingClient = existingClients?.[0];
 
       if (existingClient) {
         clientId = existingClient.id;
+        // Update client phone to canonical format if it was unnormalized or dirty
+        if (existingClient.phone !== phone) {
+          await supabase.from("Client").update({ phone }).eq("id", existingClient.id);
+        }
       } else {
         const { data: newClient } = await supabase
           .from("Client")
           .insert({
             name,
             phone,
-            platform: "website",
+            platform: (merged.channelType as string) || "website",
             auth_user_id: authUserId || null,
           })
           .select("id")

@@ -10,6 +10,7 @@ import { Check, ChevronLeft, ChevronRight, MapPin, CalendarDays, User, Sparkles,
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/lib/auth-store";
+import { isValidPhone, normalizePhone } from "@/lib/phone";
 
 interface StaffInfo { id: string; name: string; nameAr?: string; avatar?: string; role?: string; }
 interface Service { id: string; name: string; price: number; images: string[]; category?: string; durationMinutes?: number; durationMode?: "time" | "queue"; depositAmount?: number; publishAt?: string | null; staff: StaffInfo[]; }
@@ -42,14 +43,10 @@ function BookingForm() {
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("card");
 
-  // Phone validation: Saudi format 05XXXXXXXX (10 digits) or +9665XXXXXXXX or 9665XXXXXXXX
+  // Phone validation using universal phone validator
   const validatePhone = (value: string): string => {
-    const cleaned = value.replace(/[\s\-()]/g, "");
-    if (!cleaned) return "رقم الهاتف مطلوب";
-    // Saudi mobile: starts with 05 and 10 digits total
-    if (/^05\d{8}$/.test(cleaned)) return "";
-    // With country code: +966 or 966 followed by 5XXXXXXXX
-    if (/^\+?9665\d{8}$/.test(cleaned)) return "";
+    if (!value.trim()) return "رقم الهاتف مطلوب";
+    if (isValidPhone(value)) return "";
     return "رقم هاتف غير صحيح — مثال: 0512345678";
   };
 
@@ -156,7 +153,7 @@ function BookingForm() {
           serviceId: selectedService, serviceSummary: serviceObj?.name || "",
           date: selectedDate, time: isQueueMode ? null : selectedTime,
           branchId: selectedBranch, staffId: selectedStaff,
-          name, phone, notes, depositAmount, paymentMethod,
+          name: name.trim(), phone: normalizePhone(phone), notes, depositAmount, paymentMethod,
           authUserId: user?.id || null,
           durationMode: serviceObj?.durationMode || "time",
           durationMinutes: serviceObj?.durationMinutes || 30,

@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
+import { getPhoneVariants, normalizePhone } from "@/lib/phone";
 
 /**
  * GET /api/booking/lookup?phone=05XXXXXXXX
  * 
  * Lookup customer bookings by phone number.
  * Used by the WhatsApp bot tool: check_my_bookings
+ * Uses multi-variant phone search so numbers with/without +, with 05 or 966,
+ * or leading spaces will always match.
  * Returns active bookings (not cancelled) sorted by date descending.
  */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const phone = searchParams.get("phone");
+    const rawPhone = searchParams.get("phone");
 
-    if (!phone) {
+    if (!rawPhone) {
       return NextResponse.json(
         { error: "phone parameter is required" },
         { status: 400 }
@@ -21,15 +24,22 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = getServiceRoleClient();
+    const normalized = normalizePhone(rawPhone);
+    const last9 = normalized.length >= 9 ? normalized.slice(-9) : normalized;
 
-    // Find client by phone
-    const { data: client } = await supabase
+    // Find all clients matching this phone across any format (+966, 966, 05, spaces, whatsapp JID)
+    const { data: clients, error: clientErr } = await supabase
       .from("Client")
-      .select("id, name, phone")
-      .eq("phone", phone)
-      .single();
+      .select("id, name, phone, platform_user_id")
+      .or(`phone.ilike.%${last9}%,platform_user_id.ilike.%${last9}%`);
 
-    if (!client) {
+    if (clientErr) {
+      console.error("Error finding client by phone:", clientErr);
+    }
+
+    const allClients = clients || [];
+
+    if (allClients.length === 0) {
       return NextResponse.json({
         found: false,
         message: "لا يوجد حجوزات لهذا الرقم",
@@ -37,7 +47,10 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Get active bookings for this client
+    const clientIds = allClients.map((c) => c.id);
+    const primaryClientName = allClients.find((c) => c.name?.trim())?.name?.trim() || "عميلتنا العزيزة";
+
+    // Get active bookings for any of the matched client IDs
     const { data: bookings, error } = await supabase
       .from("Booking")
       .select(`
@@ -53,7 +66,7 @@ export async function GET(req: NextRequest) {
         staff:staff_id (id, name),
         branchId
       `)
-      .eq("client_id", client.id)
+      .in("client_id", clientIds)
       .neq("status", "cancelled")
       .order("bookingDate", { ascending: false })
       .limit(10);
@@ -102,7 +115,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       found: true,
-      customerName: client.name,
+      customerName: primaryClientName,
       bookings: formattedBookings,
     });
   } catch (err) {

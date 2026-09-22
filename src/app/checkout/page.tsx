@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { CreditCard, Banknote, Smartphone } from "lucide-react";
 import { useAuthStore } from "@/lib/auth-store";
+import { isValidPhone, normalizePhone } from "@/lib/phone";
 
 export default function CheckoutPage() {
   const items = useCartStore((s) => s.items);
@@ -26,10 +27,8 @@ export default function CheckoutPage() {
   const [deliveryFee, setDeliveryFee] = useState(2);
 
   const validatePhone = (value: string): string => {
-    const cleaned = value.replace(/[\s\-()]/g, "");
-    if (!cleaned) return "رقم الهاتف مطلوب";
-    if (/^05\d{8}$/.test(cleaned)) return "";
-    if (/^\+?9665\d{8}$/.test(cleaned)) return "";
+    if (!value.trim()) return "رقم الهاتف مطلوب";
+    if (isValidPhone(value)) return "";
     return "رقم هاتف غير صحيح — مثال: 0512345678";
   };
 
@@ -79,11 +78,12 @@ export default function CheckoutPage() {
     if (phoneErr) { toast.error(phoneErr); setPhoneError(phoneErr); return; }
     setLoading(true);
     try {
+      const normalizedPhone = normalizePhone(phone);
       const res = await fetch("/api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerName: name, customerPhone: phone, customerAddress: address,
+          customerName: name.trim(), customerPhone: normalizedPhone, customerAddress: address,
           items: items.map(i => ({ productId: i.productId, name: i.name, price: i.price, qty: i.qty })),
           subtotal, deliveryFee, total, paymentMethod: payment, notes,
           authUserId: user?.id || null,
@@ -103,7 +103,7 @@ export default function CheckoutPage() {
               first_name: name.split(" ")[0] || "NA",
               last_name: name.split(" ").slice(1).join(" ") || ".",
               email: "na@na.com",
-              phone_number: phone,
+              phone_number: normalizedPhone,
             },
           }),
         });

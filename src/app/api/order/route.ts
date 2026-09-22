@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
+import { normalizePhone } from "@/lib/phone";
 
 // The cart (src/lib/cart-store.ts) sends items as { productId, name, price, qty }.
 // Older callers may send { id, quantity }. Accept both; the server is authoritative
@@ -16,10 +17,12 @@ type IncomingItem = {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { customerName, customerPhone, customerAddress, items, paymentMethod, notes, authUserId } = body;
-    if (!customerName || !customerPhone || !items?.length) {
+    const { customerName, customerPhone: rawPhone, customerAddress, items, paymentMethod, notes, authUserId } = body;
+    if (!customerName || !rawPhone || !items?.length) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
+    const customerPhone = normalizePhone(rawPhone);
+    const last9 = customerPhone.length >= 9 ? customerPhone.slice(-9) : customerPhone;
     const supabase = getServiceRoleClient();
 
     // SECURITY (H2): Recompute prices server-side — never trust client totals.
@@ -86,9 +89,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (!clientId) {
-      const { data: existing } = await supabase.from("Client").select("id").eq("phone", customerPhone).single();
-      if (existing) { clientId = existing.id; }
-      else {
+      const { data: existingClients } = await supabase
+        .from("Client")
+        .select("id, phone")
+        .or(`phone.ilike.%${last9}%,platform_user_id.ilike.%${last9}%`)
+        .order("createdAt", { ascending: false })
+        .limit(1);
+
+      const existing = existingClients?.[0];
+      if (existing) {
+        clientId = existing.id;
+        if (existing.phone !== customerPhone) {
+          await supabase.from("Client").update({ phone: customerPhone }).eq("id", existing.id);
+        }
+      } else {
         const { data: nc } = await supabase.from("Client").insert({ name: customerName, phone: customerPhone, platform: "website", auth_user_id: authUserId || null }).select("id").single();
         clientId = nc?.id || null;
       }
