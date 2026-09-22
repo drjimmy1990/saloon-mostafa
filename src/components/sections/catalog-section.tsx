@@ -20,6 +20,8 @@ import {
   ArrowDown,
   ImageIcon,
   User,
+  Calendar,
+  Clock,
 } from "lucide-react";
 import { uploadImage, deleteImage } from "@/lib/storage";
 import {
@@ -448,6 +450,13 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
 
   const handleOpenEdit = (product: Product) => {
     setEditingProduct(product);
+    let formattedPublishAt = "";
+    if (product.publishAt) {
+      const d = new Date(product.publishAt);
+      if (!isNaN(d.getTime())) {
+        formattedPublishAt = d.toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" });
+      }
+    }
     setFormData({
       name: product.name || "",
       description: product.description || "",
@@ -463,7 +472,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
       durationMinutes: product.durationMinutes ?? 30,
       durationMode: product.durationMode ?? 'time',
       depositAmount: product.depositAmount ?? 0,
-      publishAt: product.publishAt || "",
+      publishAt: formattedPublishAt,
     });
     if (isServices) fetchAssignedStaff(product.id);
     setProductDialogOpen(true);
@@ -477,17 +486,22 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
   const handleSaveProduct = async () => {
     // Calculate publishAt date if set
     let publishAtValue: string | null = null;
-    if (formData.publishAt && formData.publishAt !== "") {
-      const days = parseInt(formData.publishAt);
-      if (!isNaN(days)) {
-        const d = new Date();
-        d.setDate(d.getDate() + days);
-        publishAtValue = d.toISOString();
+    if (formData.publishAt && formData.publishAt.trim() !== "") {
+      const raw = formData.publishAt.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+        const saudiMidnight = new Date(`${raw}T00:00:00+03:00`);
+        publishAtValue = !isNaN(saudiMidnight.getTime()) ? saudiMidnight.toISOString() : `${raw}T00:00:00Z`;
       } else {
-        // Already an ISO date string from DB — use as-is if valid
-        const existing = new Date(formData.publishAt);
-        if (!isNaN(existing.getTime())) {
-          publishAtValue = existing.toISOString();
+        const days = parseInt(raw);
+        if (!isNaN(days) && days >= 1 && days <= 365) {
+          const d = new Date();
+          d.setDate(d.getDate() + days);
+          publishAtValue = d.toISOString();
+        } else {
+          const existing = new Date(raw);
+          if (!isNaN(existing.getTime())) {
+            publishAtValue = existing.toISOString();
+          }
         }
       }
     }
@@ -909,6 +923,25 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                       </Badge>
                     )}
                   </div>
+
+                  {/* Future Booking Start Badge if applicable */}
+                  {product.publishAt && new Date(product.publishAt) > new Date() && (
+                    <div className={cn("absolute top-8", rtl ? "right-2" : "left-2")}>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "gap-1 text-[10px] font-medium border shadow-sm",
+                          "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800/50"
+                        )}
+                      >
+                        <Clock className="w-3 h-3" />
+                        {rtl 
+                          ? `يفتح ${new Date(product.publishAt).toLocaleDateString("ar-SA", { month: "short", day: "numeric" })}`
+                          : `Opens ${new Date(product.publishAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+                        }
+                      </Badge>
+                    </div>
+                  )}
 
                   {/* Category Badge */}
                   <div className={cn("absolute top-2", rtl ? "left-2" : "right-2")}>
@@ -1365,24 +1398,77 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className={cn("block", rtl && "text-right font-arabic")}>
-                      {t(locale, "services.publishTiming")}
-                    </Label>
-                    <Select
+                    <div className="flex items-center justify-between">
+                      <Label className={cn("block text-xs font-medium", rtl && "text-right font-arabic")}>
+                        {t(locale, "services.publishTiming")}
+                      </Label>
+                      {formData.publishAt && (
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, publishAt: "" }))}
+                          className={cn("text-[11px] text-muted-foreground hover:text-destructive transition-colors", rtl && "font-arabic")}
+                        >
+                          {rtl ? "إلغاء التقييد (متاح الآن)" : "Clear (Available Now)"}
+                        </button>
+                      )}
+                    </div>
+                    <Input
+                      type="date"
                       value={formData.publishAt}
-                      onValueChange={(v) => setFormData(prev => ({ ...prev, publishAt: v }))}
-                    >
-                      <SelectTrigger className={cn(rtl && "font-arabic")}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PUBLISH_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value || 'now'} value={opt.value || 'now'} className={cn(rtl && "font-arabic")}>
-                            {rtl ? opt.labelAr : opt.labelEn}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      min={new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, publishAt: e.target.value }))}
+                      dir="ltr"
+                      className={cn("h-9", rtl && "font-arabic text-right")}
+                    />
+                    {/* Quick presets */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <Button
+                        type="button"
+                        variant={!formData.publishAt ? "secondary" : "outline"}
+                        size="sm"
+                        className={cn("h-6 px-2 text-[11px]", rtl && "font-arabic", !formData.publishAt && "font-semibold")}
+                        onClick={() => setFormData(prev => ({ ...prev, publishAt: "" }))}
+                      >
+                        {rtl ? "متاح الآن" : "Now"}
+                      </Button>
+                      {[1, 2, 3, 7].map(days => {
+                        const targetD = new Date();
+                        targetD.setDate(targetD.getDate() + days);
+                        const targetStr = targetD.toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" });
+                        const isSelected = formData.publishAt === targetStr;
+                        const label = days === 1 ? (rtl ? "غداً" : "+1d")
+                          : days === 2 ? (rtl ? "بعد يومين" : "+2d")
+                          : days === 3 ? (rtl ? "بعد 3 أيام" : "+3d")
+                          : (rtl ? "بعد أسبوع" : "+1w");
+                        return (
+                          <Button
+                            key={days}
+                            type="button"
+                            variant={isSelected ? "secondary" : "outline"}
+                            size="sm"
+                            className={cn(
+                              "h-6 px-2 text-[11px]",
+                              rtl && "font-arabic",
+                              isSelected && "bg-sage-100 text-sage-800 dark:bg-sage-900/40 border-sage-400 font-semibold"
+                            )}
+                            onClick={() => setFormData(prev => ({ ...prev, publishAt: targetStr }))}
+                          >
+                            {label}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    {formData.publishAt && (
+                      <p className={cn("text-[11px] text-amber-700 dark:text-amber-400 font-arabic flex items-center gap-1 mt-1")}>
+                        <Clock className="w-3 h-3 shrink-0" />
+                        <span>
+                          {rtl
+                            ? `يبدأ قبول الحجوزات: ${new Date(formData.publishAt + "T00:00:00+03:00").toLocaleDateString("ar-SA", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`
+                            : `Booking opens: ${formData.publishAt}`
+                          }
+                        </span>
+                      </p>
+                    )}
                   </div>
                 </div>
               </>

@@ -119,6 +119,11 @@ export interface Booking {
   serviceId?: string;
   staff_id?: string | null;
   branchId?: string;
+  branch?: {
+    id: string;
+    name: string;
+    nameAr?: string;
+  } | null;
   bookingTime?: string | null;
   slotNumber?: number | null;
   queueNumber?: number | null;
@@ -322,6 +327,7 @@ const formatTimeLabel = (time24: string) => {
 };
 
 import { maskPhone, maskName } from "@/lib/demo-mask";
+import { normalizePhone } from "@/lib/phone";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -346,6 +352,7 @@ export function BookingsSection() {
       clientPhone: true,
       serviceSummary: true,
       staff: true,
+      branch: true,
       channelSource: true,
       bookingDate: true,
       createdAt: false,
@@ -367,6 +374,7 @@ export function BookingsSection() {
   const [channelFilter, setChannelFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [staffFilter, setStaffFilter] = useState<string>("all");
+  const [branchFilter, setBranchFilter] = useState<string>("all");
   const [clientTypeFilter, setClientTypeFilter] = useState<string>("all");
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [updateStatusDialogOpen, setUpdateStatusDialogOpen] = useState(false);
@@ -378,7 +386,7 @@ export function BookingsSection() {
 
   const [channels, setChannels] = useState<{ id: string; name: string; type: string }[]>([]);
   const [staffList, setStaffList] = useState<{ id: string; name: string; branchId?: string | null }[]>([]);
-  const [branchList, setBranchList] = useState<{ id: string; name: string }[]>([]);
+  const [branchList, setBranchList] = useState<{ id: string; name: string; nameAr?: string }[]>([]);
   const [serviceList, setServiceList] = useState<{ id: string; name: string; durationMinutes?: number; durationMode?: string }[]>([]);
 
   // ─── Manual Booking Dialog State ──────────────────────────────────────
@@ -571,7 +579,7 @@ export function BookingsSection() {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   // ─── Fetch Data ───────────────────────────────────────────────────────────
-  const fetchBookings = useCallback(async (p: number, limit: number, search: string, channel: string, status: string, staff: string, from: string, to: string) => {
+  const fetchBookings = useCallback(async (p: number, limit: number, search: string, channel: string, status: string, staff: string, branch: string, from: string, to: string) => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams({
@@ -581,6 +589,7 @@ export function BookingsSection() {
         channel,
         status,
         staff,
+        branch,
       });
       if (from) params.set("dateFrom", from);
       if (to) params.set("dateTo", to);
@@ -613,13 +622,13 @@ export function BookingsSection() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
-  }, [channelFilter, statusFilter, staffFilter, clientTypeFilter, dateFrom, dateTo]);
+  }, [channelFilter, statusFilter, staffFilter, branchFilter, clientTypeFilter, dateFrom, dateTo]);
 
   // Fetch on param change
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
-  }, [page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo, fetchBookings]);
+    fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, branchFilter, dateFrom, dateTo);
+  }, [page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, branchFilter, dateFrom, dateTo, fetchBookings]);
 
   const filteredBookings = clientTypeFilter === "all"
     ? bookings
@@ -662,7 +671,7 @@ export function BookingsSection() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientName: mbClientName,
-          clientPhone: mbClientPhone,
+          clientPhone: normalizePhone(mbClientPhone),
           serviceId: mbServiceId,
           serviceSummary: selectedService?.name || '',
           bookingDate: mbDate,
@@ -696,7 +705,7 @@ export function BookingsSection() {
         setMbStaffBlocked(false);
         setMbBlockedMessage(null);
         setMbStaffSchedule(null);
-        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
+        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, branchFilter, dateFrom, dateTo);
       }
     } catch (err) {
       console.error('Failed to create manual booking', err);
@@ -720,7 +729,7 @@ export function BookingsSection() {
       
       if (res.ok) {
         toast.success(rtl ? "تم تحديث حالة الحجز بنجاح" : "Booking status updated successfully");
-        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
+        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, branchFilter, dateFrom, dateTo);
         setUpdateStatusDialogOpen(false);
         setSelectedBooking(null);
       } else {
@@ -773,7 +782,7 @@ export function BookingsSection() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientName: ebClientName,
-          clientPhone: ebClientPhone,
+          clientPhone: normalizePhone(ebClientPhone),
           serviceId: ebServiceId,
           serviceSummary: selectedService?.name || '',
           bookingDate: ebDate,
@@ -800,7 +809,7 @@ export function BookingsSection() {
         setEbStaffBlocked(false);
         setEbBlockedMessage(null);
         setEbStaffSchedule(null);
-        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
+        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, branchFilter, dateFrom, dateTo);
       }
     } catch (err) {
       console.error('Failed to save edited booking', err);
@@ -827,7 +836,7 @@ export function BookingsSection() {
       if (res.ok) {
         toast.success(rtl ? "تم حذف الحجز بنجاح" : "Booking deleted successfully");
         setDeleteDialogOpen(false);
-        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, dateFrom, dateTo);
+        fetchBookings(page, pageSize, debouncedSearch, channelFilter, statusFilter, staffFilter, branchFilter, dateFrom, dateTo);
       } else {
         const errorData = await res.json().catch(() => ({}));
         const errorMessage = errorData.error || (rtl ? "فشل حذف الحجز" : "Failed to delete booking");
@@ -977,6 +986,13 @@ export function BookingsSection() {
                 {rtl ? "العاملة" : "Staff"}
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
+                checked={visibleColumns.branch}
+                onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, branch: !!checked }))}
+                className={cn(rtl && "font-arabic justify-start text-right")}
+              >
+                {rtl ? "الفرع" : "Branch"}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
                 checked={visibleColumns.channelSource}
                 onCheckedChange={(checked) => setVisibleColumns(prev => ({ ...prev, channelSource: !!checked }))}
                 className={cn(rtl && "font-arabic justify-start text-right")}
@@ -1111,6 +1127,22 @@ export function BookingsSection() {
             </SelectContent>
           </Select>
 
+          <Select value={branchFilter} onValueChange={setBranchFilter}>
+            <SelectTrigger className={cn("w-full sm:w-[180px]", rtl && "font-arabic")}>
+              <SelectValue placeholder={t(locale, "bookings.allBranches")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className={rtl ? "font-arabic" : ""}>
+                {t(locale, "bookings.allBranches")}
+              </SelectItem>
+              {branchList.map((b) => (
+                <SelectItem key={b.id} value={b.id} className={rtl ? "font-arabic" : ""}>
+                  {rtl ? (b.nameAr || b.name) : b.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <Select value={clientTypeFilter} onValueChange={setClientTypeFilter}>
             <SelectTrigger className={cn("w-full sm:w-[180px]", rtl && "font-arabic")}>
               <SelectValue placeholder={rtl ? "الكل" : "All Types"} />
@@ -1240,6 +1272,11 @@ export function BookingsSection() {
                       {rtl ? "العاملة" : "Staff"}
                     </TableHead>
                   )}
+                  {visibleColumns.branch && (
+                    <TableHead className={cn(rtl && "text-right font-arabic")}>
+                      {rtl ? "الفرع" : "Branch"}
+                    </TableHead>
+                  )}
                   {visibleColumns.channelSource && (
                     <TableHead className={cn(rtl && "text-right font-arabic")}>
                       {t(locale, "bookings.channelSource")}
@@ -1359,6 +1396,24 @@ export function BookingsSection() {
                             <Users className="w-3.5 h-3.5 text-muted-foreground" />
                             <span className="text-sm">{booking.staff?.name || (rtl ? 'غير محدد' : 'Unassigned')}</span>
                           </div>
+                        </TableCell>
+                      )}
+                      {visibleColumns.branch && (
+                        <TableCell
+                          className={cn(
+                            rtl && "text-right font-arabic"
+                          )}
+                        >
+                          {booking.branch?.name || booking.branch?.nameAr ? (
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span className="text-sm font-medium">
+                                {rtl ? (booking.branch.nameAr || booking.branch.name) : booking.branch.name}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
                         </TableCell>
                       )}
                       {visibleColumns.channelSource && (

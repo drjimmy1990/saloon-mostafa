@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
 import { getAuthUser } from '@/lib/auth';
+import { normalizePhone } from '@/lib/phone';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
     const channel = searchParams.get('channel') || 'all';
     const status = searchParams.get('status') || 'all';
     const staffFilter = searchParams.get('staff') || 'all';
+    const branchFilter = searchParams.get('branch') || searchParams.get('branchId') || 'all';
     const dateFrom = searchParams.get('dateFrom') || '';
     const dateTo = searchParams.get('dateTo') || '';
 
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from('Booking')
-      .select(`*, ${clientSelect}, staff:Staff!Booking_staff_id_fkey(id, name)`, { count: 'exact' });
+      .select(`*, ${clientSelect}, staff:Staff!Booking_staff_id_fkey(id, name), branch:Branch(id, name, nameAr)`, { count: 'exact' });
 
     if (channel !== 'all') {
       if (isChannelUUID) {
@@ -72,8 +74,15 @@ export async function GET(request: NextRequest) {
     if (staffFilter !== 'all') {
       query = query.eq('staff_id', staffFilter);
     }
+    if (branchFilter !== 'all') {
+      query = query.eq('branchId', branchFilter);
+    }
     if (search) {
-      query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`, { referencedTable: 'Client' });
+      const cleanDigits = search.replace(/\D/g, '');
+      const phoneFilter = cleanDigits.length >= 7
+        ? `phone.ilike.%${cleanDigits.slice(-9)}%`
+        : `phone.ilike.%${search}%`;
+      query = query.or(`name.ilike.%${search}%,${phoneFilter}`, { referencedTable: 'Client' });
     }
     if (dateFrom) {
       query = query.gte('bookingDate', `${dateFrom}T00:00:00Z`);
@@ -90,10 +99,16 @@ export async function GET(request: NextRequest) {
 
     const filtered = bookings || [];
 
-    // Stats query (unfiltered totals)
-    const { data: allBookings, error: statsError } = await supabase
+    // Stats query (filtered by branch if selected)
+    let statsQuery = supabase
       .from('Booking')
       .select('status');
+
+    if (branchFilter !== 'all') {
+      statsQuery = statsQuery.eq('branchId', branchFilter);
+    }
+
+    const { data: allBookings, error: statsError } = await statsQuery;
 
     if (statsError) throw statsError;
 
@@ -163,19 +178,26 @@ export async function POST(request: NextRequest) {
     // Auto-create client if clientName + clientPhone provided but no client_id
     let clientId = body.client_id;
     if (!clientId && body.clientName && body.clientPhone) {
-      // Try to find existing client by phone
+      const canonicalPhone = normalizePhone(body.clientPhone);
+      const last9 = canonicalPhone.slice(-9);
+
+      // Try to find existing client by phone or last 9 digits
       const { data: existing } = await supabase
         .from('Client')
-        .select('id')
-        .eq('phone', body.clientPhone)
+        .select('id, phone')
+        .or(`phone.ilike.%${last9}%,platform_user_id.ilike.%${last9}%`)
+        .limit(1)
         .maybeSingle();
 
       if (existing) {
         clientId = existing.id;
+        if (existing.phone !== canonicalPhone) {
+          await supabase.from('Client').update({ phone: canonicalPhone }).eq('id', existing.id);
+        }
       } else {
         const { data: newClient, error: clientErr } = await supabase
           .from('Client')
-          .insert({ name: body.clientName, phone: body.clientPhone, address: '', notes: '' })
+          .insert({ name: body.clientName, phone: canonicalPhone, address: '', notes: '' })
           .select('id')
           .single();
         if (clientErr) throw clientErr;

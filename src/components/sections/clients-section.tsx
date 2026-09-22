@@ -92,6 +92,7 @@ export interface Client {
 }
 
 import { maskPhone, maskName, maskText } from "@/lib/demo-mask";
+import { normalizePhone } from "@/lib/phone";
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -225,7 +226,7 @@ export function ClientsSection() {
     try {
       const payload = {
         name: formName,
-        phone: formPhone,
+        phone: formPhone ? normalizePhone(formPhone) : '',
         address: formAddress,
         notes: formNotes,
       };

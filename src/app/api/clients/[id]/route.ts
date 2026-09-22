@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
 import { getAuthUser } from '@/lib/auth';
+import { normalizePhone } from '@/lib/phone';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -35,10 +36,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const updateData: any = {};
     if (body.name !== undefined) updateData.name = body.name;
-    if (body.phone !== undefined) updateData.phone = body.phone;
+    if (body.phone !== undefined) updateData.phone = body.phone ? normalizePhone(body.phone) : '';
     if (body.address !== undefined) updateData.address = body.address;
     if (body.notes !== undefined) updateData.notes = body.notes;
-    if (body.platform_user_id !== undefined) updateData.platform_user_id = body.platform_user_id;
+    if (body.platform_user_id !== undefined) updateData.platform_user_id = body.platform_user_id ? normalizePhone(body.platform_user_id) : '';
     if (body.platform !== undefined) updateData.platform = body.platform;
     if (body.status !== undefined) updateData.status = body.status;
     if (body.ai_enabled !== undefined) updateData.ai_enabled = body.ai_enabled;

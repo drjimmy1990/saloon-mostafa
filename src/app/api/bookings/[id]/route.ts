@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
 import { getAuthUser } from '@/lib/auth';
+import { normalizePhone } from '@/lib/phone';
 
 const parseAsUTC = (dateStr: string) => {
   if (!dateStr) return 0;
@@ -164,14 +165,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const currentClient = existingBooking.client;
     let targetClientId = existingBooking.client_id;
     const clientName = body.clientName;
-    const clientPhone = body.clientPhone;
+    const rawClientPhone = body.clientPhone;
+    const clientPhone = rawClientPhone !== undefined ? normalizePhone(rawClientPhone) : undefined;
 
     if (clientPhone !== undefined && currentClient && clientPhone !== currentClient.phone) {
-      // Query if there's an existing client with that new phone
+      const last9 = clientPhone.slice(-9);
+      // Query if there's an existing client with that new phone or last 9 digits
       const { data: existingClient, error: clientFetchErr } = await supabase
         .from('Client')
         .select('*')
-        .eq('phone', clientPhone)
+        .or(`phone.ilike.%${last9}%,platform_user_id.ilike.%${last9}%`)
+        .limit(1)
         .maybeSingle();
 
       if (clientFetchErr) throw clientFetchErr;
@@ -179,11 +183,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       if (existingClient) {
         // If found, link the booking to their client_id
         targetClientId = existingClient.id;
-        // and update their name if clientName is provided
-        if (clientName !== undefined) {
+        // and update their name or standardize phone if needed
+        const clientUpdate: any = {};
+        if (clientName !== undefined) clientUpdate.name = clientName;
+        if (existingClient.phone !== clientPhone) clientUpdate.phone = clientPhone;
+        if (Object.keys(clientUpdate).length > 0) {
           const { error: updateErr } = await supabase
             .from('Client')
-            .update({ name: clientName })
+            .update(clientUpdate)
             .eq('id', existingClient.id);
           if (updateErr) throw updateErr;
         }

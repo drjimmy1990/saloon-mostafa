@@ -55,6 +55,12 @@ interface ScheduleBooking {
     id: string;
     name: string;
   } | null;
+  branchId?: string;
+  branch?: {
+    id: string;
+    name: string;
+    nameAr?: string;
+  } | null;
   serviceSummary: string;
   channelType: string;
   bookingDate: string;
@@ -64,6 +70,12 @@ interface ScheduleBooking {
   notes?: string;
   createdAt?: string;
   slotNumber?: number;
+}
+
+interface Branch {
+  id: string;
+  name: string;
+  nameAr?: string;
 }
 
 interface StaffMember {
@@ -90,18 +102,25 @@ export function ScheduleSection() {
   // State
   const [bookings, setBookings] = useState<ScheduleBooking[]>([]);
   const [staffList, setStaffList] = useState<StaffMember[]>([]);
+  const [branchList, setBranchList] = useState<Branch[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [staffFilter, setStaffFilter] = useState<string>("all");
+  const [branchFilter, setBranchFilter] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const now = new Date();
     return now.toISOString().split("T")[0];
   });
 
-  // Fetch staff list
+  // Fetch staff list and branches
   useEffect(() => {
     fetch("/api/staff")
       .then((r) => r.json())
       .then((data) => setStaffList(Array.isArray(data) ? data : []))
+      .catch(console.error);
+
+    fetch("/api/branches")
+      .then((r) => r.json())
+      .then((data) => setBranchList(Array.isArray(data) ? data : []))
       .catch(console.error);
   }, []);
 
@@ -116,6 +135,7 @@ export function ScheduleSection() {
         channel: "all",
         status: "confirmed",
         staff: staffFilter,
+        branch: branchFilter,
         dateFrom: selectedDate,
         dateTo: selectedDate,
       });
@@ -127,7 +147,7 @@ export function ScheduleSection() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDate, staffFilter]);
+  }, [selectedDate, staffFilter, branchFilter]);
 
   useEffect(() => {
     fetchSchedule();
@@ -303,11 +323,33 @@ export function ScheduleSection() {
 
             <Separator orientation="vertical" className="hidden sm:block h-10" />
 
+            {/* Branch filter */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
+              <Select value={branchFilter} onValueChange={setBranchFilter}>
+                <SelectTrigger className={cn("w-full sm:w-[170px]", rtl && "font-arabic")}>
+                  <SelectValue placeholder={t(locale, "schedule.allBranches")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className={rtl ? "font-arabic" : ""}>
+                    {t(locale, "schedule.allBranches")}
+                  </SelectItem>
+                  {branchList.map((b) => (
+                    <SelectItem key={b.id} value={b.id} className={rtl ? "font-arabic" : ""}>
+                      {rtl ? (b.nameAr || b.name) : b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Separator orientation="vertical" className="hidden sm:block h-10" />
+
             {/* Staff filter */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
               <Select value={staffFilter} onValueChange={setStaffFilter}>
-                <SelectTrigger className={cn("w-full sm:w-[200px]", rtl && "font-arabic")}>
+                <SelectTrigger className={cn("w-full sm:w-[170px]", rtl && "font-arabic")}>
                   <SelectValue placeholder={t(locale, "schedule.allStaff")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -576,6 +618,20 @@ function BookingCard({
           {booking.serviceSummary || "—"}
         </span>
       </div>
+
+      {/* Branch badge */}
+      {(booking.branch?.name || booking.branch?.nameAr) && (
+        <Badge
+          variant="outline"
+          className={cn(
+            "hidden md:flex items-center gap-1 text-[10px] font-normal shrink-0 bg-slate-50 dark:bg-slate-900/30 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800",
+            rtl && "font-arabic"
+          )}
+        >
+          <MapPin className="w-3 h-3 text-primary shrink-0" />
+          <span>{rtl ? (booking.branch.nameAr || booking.branch.name) : booking.branch.name}</span>
+        </Badge>
+      )}
 
       {/* Channel badge */}
       <Badge

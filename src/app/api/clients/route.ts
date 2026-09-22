@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
 import { getAuthUser } from '@/lib/auth';
+import { normalizePhone } from '@/lib/phone';
 
 // GET /api/clients?page=1&limit=10&ai_enabled=true&search=john
 export async function GET(request: NextRequest) {
@@ -25,7 +26,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,platform_user_id.ilike.%${search}%`);
+      const cleanDigits = search.replace(/\D/g, '');
+      const phoneFilter = cleanDigits.length >= 7
+        ? `phone.ilike.%${cleanDigits.slice(-9)}%,platform_user_id.ilike.%${cleanDigits.slice(-9)}%`
+        : `phone.ilike.%${search}%,platform_user_id.ilike.%${search}%`;
+      query = query.or(`name.ilike.%${search}%,${phoneFilter}`);
     }
 
     if (paginated) {
@@ -66,15 +71,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const supabase = getServiceRoleClient();
     
-    const phone = body.phone || '';
-    const platform_user_id = body.platform_user_id || phone;
+    const rawPhone = body.phone || '';
+    const phone = rawPhone ? normalizePhone(rawPhone) : '';
+    const platform_user_id = body.platform_user_id 
+      ? normalizePhone(body.platform_user_id) 
+      : phone;
 
     // Check if client already exists by phone or platform_user_id
     if (phone || platform_user_id) {
+      const searchTarget = phone || platform_user_id;
+      const last9 = searchTarget.slice(-9);
       const { data: existingClients, error: searchError } = await supabase
         .from('Client')
-        .select('id')
-        .or(`phone.eq.${phone},platform_user_id.eq.${platform_user_id}`)
+        .select('id, phone')
+        .or(`phone.ilike.%${last9}%,platform_user_id.ilike.%${last9}%`)
         .limit(1);
 
       if (!searchError && existingClients && existingClients.length > 0) {
@@ -82,6 +92,8 @@ export async function POST(request: NextRequest) {
         const existingId = existingClients[0].id;
         const updateData: any = {};
         if (body.ai_enabled !== undefined) updateData.ai_enabled = body.ai_enabled;
+        if (body.name) updateData.name = body.name;
+        if (phone && existingClients[0].phone !== phone) updateData.phone = phone;
         
         const { data: updatedClient, error: updateError } = await supabase
           .from('Client')
