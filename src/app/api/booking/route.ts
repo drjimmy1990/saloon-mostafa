@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
 import { normalizePhone } from "@/lib/phone";
+import { parseServiceNotice, getEarliestBookingDate, formatDisplayDate, getSaudiToday } from "@/lib/booking-notice";
 import {
   createPaymentIntention,
   isPaymobConfigured,
@@ -63,16 +64,36 @@ export async function POST(req: NextRequest) {
 
     const depositAmount = service?.depositAmount ? Number(service.depositAmount) : 0;
 
-    // Check if chosen appointment date is before booking availability start date
+    // Check if chosen appointment date is before booking availability start date / rolling notice
     if (service?.publishAt) {
-      // Convert publishAt to YYYY-MM-DD in Saudi timezone for date-only comparison
-      const availabilityStartDate = new Date(service.publishAt)
-        .toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" }); // 'sv-SE' gives YYYY-MM-DD
-      if (date < availabilityStartDate) {
-        const openDate = new Date(service.publishAt)
-          .toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh", year: "numeric", month: "long", day: "numeric" });
+      const earliestBookingDate = getEarliestBookingDate(service.publishAt);
+      if (date < earliestBookingDate) {
+        const notice = parseServiceNotice(service.publishAt);
+        const formattedOpen = formatDisplayDate(earliestBookingDate, "ar");
+        const msg = notice.noticeHours > 0
+          ? `لا يمكن حجز هذه الخدمة إلا بحجز مسبق قبل ${notice.labelAr} (أقرب موعد متاح: ${formattedOpen})`
+          : `لا يمكن حجز موعد قبل ${formattedOpen}`;
         return NextResponse.json(
-          { error: `لا يمكن حجز موعد قبل ${openDate}` },
+          { error: msg },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate that the appointment date and time hasn't already passed
+    const saudiToday = getSaudiToday();
+    if (date < saudiToday) {
+      return NextResponse.json(
+        { error: "لا يمكن حجز موعد في تاريخ سابق" },
+        { status: 400 }
+      );
+    }
+
+    if (time) {
+      const slotMs = new Date(`${date}T${time}:00+03:00`).getTime();
+      if (slotMs <= Date.now()) {
+        return NextResponse.json(
+          { error: "هذا الوقت قد مضى بالفعل، يرجى اختيار موعد قادم" },
           { status: 400 }
         );
       }

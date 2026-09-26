@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
+import { parseServiceNotice, getEarliestBookingDate, formatDisplayDate, getSaudiToday } from "@/lib/booking-notice";
 
 // GET /api/availability?staffId=xxx&serviceId=xxx&date=2026-05-10
 export async function GET(req: NextRequest) {
@@ -29,23 +30,28 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Service not found" }, { status: 404 });
     }
 
-    // 1b. Check if requested date is before the booking availability start date
-    if (service.publishAt) {
-      // Compare date strings (YYYY-MM-DD) in Saudi timezone
-      const availabilityStartDate = new Date(service.publishAt)
-        .toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" }); // 'sv-SE' gives YYYY-MM-DD
-      if (date < availabilityStartDate) {
-        const openDate = new Date(service.publishAt)
-          .toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh", year: "numeric", month: "long", day: "numeric" });
-        return NextResponse.json({
-          mode: service.durationMode,
-          slots: [],
-          blocked: false,
-          bookingNotYetOpen: true,
-          availabilityStartDate,
-          message: `المواعيد تبدأ من ${openDate}`,
-        });
-      }
+    // 1b. Check if requested date is in the past or before the booking availability start date / rolling notice
+    const saudiToday = getSaudiToday();
+    const earliestBookingDate = getEarliestBookingDate(service.publishAt);
+    const minAllowedDate = earliestBookingDate > saudiToday ? earliestBookingDate : saudiToday;
+
+    if (date < minAllowedDate) {
+      const notice = parseServiceNotice(service.publishAt);
+      const isPastDate = date < saudiToday;
+      const formattedOpen = formatDisplayDate(minAllowedDate, "ar");
+      const message = isPastDate
+        ? "لا يمكن حجز موعد في تاريخ سابق"
+        : (notice.noticeHours > 0
+            ? `هذه الخدمة تتطلب حجزاً مسبقاً قبل ${notice.labelAr}. المواعيد المتاحة تبدأ من ${formattedOpen}`
+            : `المواعيد تبدأ من ${formattedOpen}`);
+      return NextResponse.json({
+        mode: service.durationMode,
+        slots: [],
+        blocked: false,
+        bookingNotYetOpen: true,
+        availabilityStartDate: minAllowedDate,
+        message,
+      });
     }
 
     // If queue mode, just return the next queue number
@@ -188,6 +194,12 @@ export async function GET(req: NextRequest) {
     // Generate slots at intervals matching service duration
     const interval = duration;
     const slots: Array<{ time: string; booked: boolean }> = [];
+
+    // Check notice period and passed time for individual slot times
+    const notice = parseServiceNotice(service.publishAt);
+    const nowMs = Date.now();
+    const minSlotTimeMs = nowMs + (notice.noticeHours * 3600 * 1000);
+
     for (let t = scheduleStart; t + duration <= scheduleEnd; t += interval) {
       const slotEnd = t + duration;
 
@@ -198,9 +210,16 @@ export async function GET(req: NextRequest) {
 
       const h = Math.floor(t / 60);
       const m = t % 60;
+      const timeStr = `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+
+      // Accurate slot time in Saudi Arabia timezone (UTC+3)
+      const slotMs = new Date(`${date}T${timeStr}:00+03:00`).getTime();
+      const hasPassed = slotMs <= nowMs;
+      const isBeforeNotice = slotMs < minSlotTimeMs;
+
       slots.push({
-        time: `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`,
-        booked: hasOverlap,
+        time: timeStr,
+        booked: hasOverlap || hasPassed || isBeforeNotice,
       });
     }
 
