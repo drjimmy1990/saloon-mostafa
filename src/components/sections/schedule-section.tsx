@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { t, isRTL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { getSaudiToday, addDaysToDateString } from "@/lib/booking-notice";
 import {
   CalendarDays,
   Clock,
@@ -106,10 +107,7 @@ export function ScheduleSection() {
   const [isLoading, setIsLoading] = useState(true);
   const [staffFilter, setStaffFilter] = useState<string>("all");
   const [branchFilter, setBranchFilter] = useState<string>("all");
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    const now = new Date();
-    return now.toISOString().split("T")[0];
-  });
+  const [selectedDate, setSelectedDate] = useState<string>(() => getSaudiToday());
 
   // Fetch staff list and branches
   useEffect(() => {
@@ -155,30 +153,32 @@ export function ScheduleSection() {
 
   // Date navigation
   const goToPrevDay = () => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() - 1);
-    setSelectedDate(d.toISOString().split("T")[0]);
+    setSelectedDate((prev) => addDaysToDateString(prev, -1));
   };
 
   const goToNextDay = () => {
-    const d = new Date(selectedDate);
-    d.setDate(d.getDate() + 1);
-    setSelectedDate(d.toISOString().split("T")[0]);
+    setSelectedDate((prev) => addDaysToDateString(prev, 1));
   };
 
   const goToToday = () => {
-    setSelectedDate(new Date().toISOString().split("T")[0]);
+    setSelectedDate(getSaudiToday());
   };
 
-  const isToday = selectedDate === new Date().toISOString().split("T")[0];
+  const isToday = selectedDate === getSaudiToday();
 
-  // Format the selected date for display
+  // Format the selected date for display without timezone shifting
   const displayDate = useMemo(() => {
-    const d = new Date(selectedDate + "T00:00:00");
-    const dayName = rtl
-      ? d.toLocaleDateString("ar-SA", { weekday: "long", timeZone: "UTC" })
-      : d.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
-    const dateStr = d.toLocaleDateString(rtl ? "ar-SA" : "en-US", {
+    if (!selectedDate || !selectedDate.includes("-")) {
+      return { dayName: "", dateStr: "" };
+    }
+    const [y, m, d] = selectedDate.split("-").map(Number);
+    // Setting 12:00:00 UTC guarantees zero day-shift regardless of browser local timezone
+    const dateObj = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    const dayName = dateObj.toLocaleDateString(rtl ? "ar-SA" : "en-US", {
+      weekday: "long",
+      timeZone: "UTC",
+    });
+    const dateStr = dateObj.toLocaleDateString(rtl ? "ar-SA" : "en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",

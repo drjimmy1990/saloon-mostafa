@@ -24,6 +24,7 @@ import {
   Clock,
 } from "lucide-react";
 import { uploadImage, deleteImage } from "@/lib/storage";
+import { parseServiceNotice, formatServiceNoticeTimestamp, getSaudiToday } from "@/lib/booking-notice";
 import {
   Card,
   CardContent,
@@ -118,6 +119,7 @@ interface ProductFormData {
   durationMinutes: number;
   durationMode: 'time' | 'queue';
   depositAmount: number;
+  noticeHours: number;
   publishAt: string;
 }
 
@@ -240,6 +242,7 @@ const emptyProductFormData: ProductFormData = {
   durationMinutes: 30,
   durationMode: 'time',
   depositAmount: 0,
+  noticeHours: 0,
   publishAt: "",
 };
 
@@ -450,12 +453,10 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
 
   const handleOpenEdit = (product: Product) => {
     setEditingProduct(product);
+    const noticeInfo = parseServiceNotice(product.publishAt);
     let formattedPublishAt = "";
-    if (product.publishAt) {
-      const d = new Date(product.publishAt);
-      if (!isNaN(d.getTime())) {
-        formattedPublishAt = d.toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" });
-      }
+    if (noticeInfo.absoluteStartDate) {
+      formattedPublishAt = noticeInfo.absoluteStartDate;
     }
     setFormData({
       name: product.name || "",
@@ -472,6 +473,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
       durationMinutes: product.durationMinutes ?? 30,
       durationMode: product.durationMode ?? 'time',
       depositAmount: product.depositAmount ?? 0,
+      noticeHours: noticeInfo.noticeHours,
       publishAt: formattedPublishAt,
     });
     if (isServices) fetchAssignedStaff(product.id);
@@ -484,25 +486,15 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
   };
 
   const handleSaveProduct = async () => {
-    // Calculate publishAt date if set
+    // Calculate publishAt date or rolling notice if set
     let publishAtValue: string | null = null;
-    if (formData.publishAt && formData.publishAt.trim() !== "") {
+    if (formData.noticeHours > 0) {
+      publishAtValue = formatServiceNoticeTimestamp(formData.noticeHours);
+    } else if (formData.publishAt && formData.publishAt.trim() !== "") {
       const raw = formData.publishAt.trim();
       if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
         const saudiMidnight = new Date(`${raw}T00:00:00+03:00`);
         publishAtValue = !isNaN(saudiMidnight.getTime()) ? saudiMidnight.toISOString() : `${raw}T00:00:00Z`;
-      } else {
-        const days = parseInt(raw);
-        if (!isNaN(days) && days >= 1 && days <= 365) {
-          const d = new Date();
-          d.setDate(d.getDate() + days);
-          publishAtValue = d.toISOString();
-        } else {
-          const existing = new Date(raw);
-          if (!isNaN(existing.getTime())) {
-            publishAtValue = existing.toISOString();
-          }
-        }
       }
     }
 
@@ -924,24 +916,44 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                     )}
                   </div>
 
-                  {/* Future Booking Start Badge if applicable */}
-                  {product.publishAt && new Date(product.publishAt) > new Date() && (
-                    <div className={cn("absolute top-8", rtl ? "right-2" : "left-2")}>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "gap-1 text-[10px] font-medium border shadow-sm",
-                          "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800/50"
-                        )}
-                      >
-                        <Clock className="w-3 h-3" />
-                        {rtl 
-                          ? `يفتح ${new Date(product.publishAt).toLocaleDateString("ar-SA", { month: "short", day: "numeric" })}`
-                          : `Opens ${new Date(product.publishAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
-                        }
-                      </Badge>
-                    </div>
-                  )}
+                  {/* Advance Notice / Future Start Badge if applicable */}
+                  {(() => {
+                    if (!product.publishAt) return null;
+                    const notice = parseServiceNotice(product.publishAt);
+                    if (notice.noticeHours > 0) {
+                      return (
+                        <div className={cn("absolute top-8", rtl ? "right-2" : "left-2")}>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "gap-1 text-[10px] font-medium border shadow-sm",
+                              "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800/50"
+                            )}
+                          >
+                            <Clock className="w-3 h-3" />
+                            {rtl ? `حجز مسبق ${notice.labelAr}` : `Notice: ${notice.labelEn}`}
+                          </Badge>
+                        </div>
+                      );
+                    }
+                    if (notice.absoluteStartDate && notice.absoluteStartDate > getSaudiToday()) {
+                      return (
+                        <div className={cn("absolute top-8", rtl ? "right-2" : "left-2")}>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "gap-1 text-[10px] font-medium border shadow-sm",
+                              "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800/50"
+                            )}
+                          >
+                            <Calendar className="w-3 h-3" />
+                            {rtl ? `يفتح ${notice.absoluteStartDate}` : `Opens ${notice.absoluteStartDate}`}
+                          </Badge>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   {/* Category Badge */}
                   <div className={cn("absolute top-2", rtl ? "left-2" : "right-2")}>
@@ -1381,8 +1393,8 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                   </div>
                 </div>
 
-                {/* Deposit & Publish Timing */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Deposit & Advance Notice Timing */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label className={cn("block", rtl && "text-right font-arabic")}>
                       {t(locale, "services.deposit")}
@@ -1400,75 +1412,59 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className={cn("block text-xs font-medium", rtl && "text-right font-arabic")}>
-                        {t(locale, "services.publishTiming")}
+                        {rtl ? "مدة الحجز المسبق الأدنى (الإشعار المسبق)" : "Minimum Advance Notice"}
                       </Label>
-                      {formData.publishAt && (
+                      {formData.noticeHours > 0 && (
                         <button
                           type="button"
-                          onClick={() => setFormData(prev => ({ ...prev, publishAt: "" }))}
+                          onClick={() => setFormData(prev => ({ ...prev, noticeHours: 0 }))}
                           className={cn("text-[11px] text-muted-foreground hover:text-destructive transition-colors", rtl && "font-arabic")}
                         >
                           {rtl ? "إلغاء التقييد (متاح الآن)" : "Clear (Available Now)"}
                         </button>
                       )}
                     </div>
-                    <Input
-                      type="date"
-                      value={formData.publishAt}
-                      min={new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" })}
-                      onChange={(e) => setFormData(prev => ({ ...prev, publishAt: e.target.value }))}
-                      dir="ltr"
-                      className={cn("h-9", rtl && "font-arabic text-right")}
-                    />
                     {/* Quick presets */}
                     <div className="flex flex-wrap gap-1.5 pt-1">
-                      <Button
-                        type="button"
-                        variant={!formData.publishAt ? "secondary" : "outline"}
-                        size="sm"
-                        className={cn("h-6 px-2 text-[11px]", rtl && "font-arabic", !formData.publishAt && "font-semibold")}
-                        onClick={() => setFormData(prev => ({ ...prev, publishAt: "" }))}
-                      >
-                        {rtl ? "متاح الآن" : "Now"}
-                      </Button>
-                      {[1, 2, 3, 7].map(days => {
-                        const targetD = new Date();
-                        targetD.setDate(targetD.getDate() + days);
-                        const targetStr = targetD.toLocaleDateString("sv-SE", { timeZone: "Asia/Riyadh" });
-                        const isSelected = formData.publishAt === targetStr;
-                        const label = days === 1 ? (rtl ? "غداً" : "+1d")
-                          : days === 2 ? (rtl ? "بعد يومين" : "+2d")
-                          : days === 3 ? (rtl ? "بعد 3 أيام" : "+3d")
-                          : (rtl ? "بعد أسبوع" : "+1w");
+                      {[
+                        { hours: 0, labelAr: "متاح الآن", labelEn: "Now" },
+                        { hours: 24, labelAr: "بعد 24 ساعة (يوم)", labelEn: "24h (1d)" },
+                        { hours: 48, labelAr: "بعد 48 ساعة (يومين)", labelEn: "48h (2d)" },
+                        { hours: 72, labelAr: "بعد 3 أيام", labelEn: "3 days" },
+                        { hours: 168, labelAr: "بعد أسبوع", labelEn: "1 week" },
+                      ].map(opt => {
+                        const isSelected = formData.noticeHours === opt.hours;
                         return (
                           <Button
-                            key={days}
+                            key={opt.hours}
                             type="button"
                             variant={isSelected ? "secondary" : "outline"}
                             size="sm"
                             className={cn(
-                              "h-6 px-2 text-[11px]",
+                              "h-7 px-2.5 text-[11px]",
                               rtl && "font-arabic",
-                              isSelected && "bg-sage-100 text-sage-800 dark:bg-sage-900/40 border-sage-400 font-semibold"
+                              isSelected && "bg-sage-100 text-sage-800 dark:bg-sage-900/40 border-sage-400 font-semibold ring-1 ring-sage-400"
                             )}
-                            onClick={() => setFormData(prev => ({ ...prev, publishAt: targetStr }))}
+                            onClick={() => setFormData(prev => ({ ...prev, noticeHours: opt.hours }))}
                           >
-                            {label}
+                            {rtl ? opt.labelAr : opt.labelEn}
                           </Button>
                         );
                       })}
                     </div>
-                    {formData.publishAt && (
-                      <p className={cn("text-[11px] text-amber-700 dark:text-amber-400 font-arabic flex items-center gap-1 mt-1")}>
-                        <Clock className="w-3 h-3 shrink-0" />
-                        <span>
-                          {rtl
-                            ? `يبدأ قبول الحجوزات: ${new Date(formData.publishAt + "T00:00:00+03:00").toLocaleDateString("ar-SA", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`
-                            : `Booking opens: ${formData.publishAt}`
-                          }
-                        </span>
-                      </p>
-                    )}
+                    {/* Explanatory helper */}
+                    <p className={cn("text-[11px] font-arabic flex items-start gap-1 mt-1.5 leading-relaxed", 
+                      formData.noticeHours > 0 ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400")}>
+                      <Clock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <span>
+                        {formData.noticeHours === 0 && (rtl ? "✅ الخدمة متاحة للحجز الفوري لنفس اليوم." : "Available for same-day booking.")}
+                        {formData.noticeHours === 24 && (rtl ? "⏳ لا يمكن للعميل حجز موعد لنفس اليوم. أقرب موعد متاح سيكون بعد 24 ساعة (يبدأ من الغد)." : "Client cannot book today. Earliest slot is after 24 hours (starts tomorrow).")}
+                        {formData.noticeHours === 48 && (rtl ? "⏳ لا يمكن للعميل حجز موعد لليوم أو الغد. أقرب موعد متاح سيكون بعد 48 ساعة (يبدأ بعد يومين)." : "Client cannot book today or tomorrow. Earliest slot is after 48 hours (after 2 days).")}
+                        {formData.noticeHours === 72 && (rtl ? "⏳ السلوتات والمواعيد تظهر للعميل بعد 3 أيام من تاريخ اليوم." : "Slots start after 3 days from booking time.")}
+                        {formData.noticeHours === 168 && (rtl ? "⏳ السلوتات والمواعيد تظهر للعميل بعد أسبوع (7 أيام) من تاريخ اليوم." : "Slots start after 1 week from booking time.")}
+                        {formData.noticeHours > 0 && ![24, 48, 72, 168].includes(formData.noticeHours) && (rtl ? `⏳ يتطلب حجز مسبق قبل ${formData.noticeHours} ساعة.` : `Notice: ${formData.noticeHours} hours.`)}
+                      </span>
+                    </p>
                   </div>
                 </div>
               </>
