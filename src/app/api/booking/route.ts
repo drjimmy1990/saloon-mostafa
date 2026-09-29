@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
     const durationMode = (merged.durationMode as string) || "time";
     const durationMinutes = Number(merged.durationMinutes) || 30;
 
+    // Support multi-person / group bookings (default: 1)
+    const rawPersons = merged.personsCount ?? merged.quantity ?? merged.guestCount ?? 1;
+    const personsCount = Math.max(1, parseInt(String(rawPersons), 10) || 1);
+
     if (!name || !rawPhone || !serviceId || !date) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -62,7 +66,8 @@ export async function POST(req: NextRequest) {
       .eq("id", serviceId)
       .single();
 
-    const depositAmount = service?.depositAmount ? Number(service.depositAmount) : 0;
+    const unitDeposit = service?.depositAmount ? Number(service.depositAmount) : 0;
+    const depositAmount = unitDeposit * personsCount;
 
     // Check if chosen appointment date is before booking availability start date / rolling notice
     if (service?.publishAt) {
@@ -158,7 +163,8 @@ export async function POST(req: NextRequest) {
       time && durationMode !== "queue"
         ? `${date}T${time}:00Z`
         : `${date}T00:00:00Z`;
-    const duration = durationMinutes || 30;
+    const singleDuration = durationMinutes || 30;
+    const duration = durationMode === "queue" ? singleDuration : singleDuration * personsCount;
     // Calculate end time manually to avoid timezone shifts
     const [timeH, timeM] = (time || "00:00").split(":").map(Number);
     const endMinutes = timeH * 60 + timeM + duration;
@@ -211,7 +217,9 @@ export async function POST(req: NextRequest) {
 
         if (hasConflict) {
           return NextResponse.json(
-            { error: "هذا الوقت محجوز بالفعل. يرجى اختيار وقت آخر." },
+            { error: personsCount > 1 
+                ? "هذا الوقت محجوز بالفعل أو لا يتسع لعدد الأشخاص المطلوب في مواعيد متتالية. يرجى اختيار وقت آخر." 
+                : "هذا الوقت محجوز بالفعل. يرجى اختيار وقت آخر." },
             { status: 409 }
           );
         }
@@ -261,13 +269,21 @@ export async function POST(req: NextRequest) {
       ? new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes from now
       : null;
 
+    const formattedSummary = personsCount > 1
+      ? `${serviceSummary || service?.name || "خدمة"} (${personsCount} أشخاص)`
+      : (serviceSummary || service?.name || "");
+
+    const formattedNotes = personsCount > 1
+      ? `[عدد الأشخاص: ${personsCount}] ${notes}`.trim()
+      : (notes || "");
+
     // 8. Create booking
     const { data: booking, error } = await supabase
       .from("Booking")
       .insert({
         client_id: clientId,
         serviceId,
-        serviceSummary: serviceSummary || "",
+        serviceSummary: formattedSummary,
         bookingDate,
         endTime: durationMode !== "queue" ? endTime : null,
         channelType: (merged.channelType as string) || "website",
@@ -278,7 +294,7 @@ export async function POST(req: NextRequest) {
         depositStatus: depositAmount > 0 ? "unpaid" : "unpaid",
         paymentMethod: paymentMethod || "cash",
         queueNumber,
-        notes: notes || "",
+        notes: formattedNotes,
         bookingCode,
         paymentExpiresAt,
       })
@@ -355,6 +371,8 @@ export async function POST(req: NextRequest) {
       queueNumber: booking?.queueNumber || queueNumber,
       paymentUrl,
       depositAmount: depositAmount || 0,
+      unitDeposit: unitDeposit || 0,
+      personsCount,
     });
   } catch (err) {
     console.error("Booking API error:", err);
