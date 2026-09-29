@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Check, ChevronLeft, ChevronRight, MapPin, CalendarDays, User, Sparkles, Clock, Hash, CreditCard, Grid3X3, Calendar } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, MapPin, CalendarDays, User, Sparkles, Clock, Hash, CreditCard, Grid3X3, Calendar, Users, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/lib/auth-store";
@@ -43,6 +43,7 @@ function BookingForm() {
   const [phoneError, setPhoneError] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("card");
+  const [personsCount, setPersonsCount] = useState(1);
 
   // Phone validation using universal phone validator
   const validatePhone = (value: string): string => {
@@ -83,7 +84,10 @@ function BookingForm() {
   const staffObj = selectedCard?.staffMember;
   const branchObj = branches.find(b => b.id === selectedBranch);
   const isQueueMode = serviceObj?.durationMode === "queue";
-  const depositAmount = serviceObj?.depositAmount || 0;
+  const unitDeposit = serviceObj?.depositAmount || 0;
+  const depositAmount = unitDeposit * personsCount;
+  const singleDuration = serviceObj?.durationMinutes || 30;
+  const totalDuration = isQueueMode ? singleDuration : singleDuration * personsCount;
 
   useEffect(() => { initialize(); }, [initialize]);
   useEffect(() => {
@@ -158,6 +162,7 @@ function BookingForm() {
           authUserId: user?.id || null,
           durationMode: serviceObj?.durationMode || "time",
           durationMinutes: serviceObj?.durationMinutes || 30,
+          personsCount,
         }),
       });
       const data = await res.json();
@@ -442,6 +447,55 @@ function BookingForm() {
           className={phoneError ? "border-red-400 focus:ring-red-300" : ""} />
         {phoneError && <p className="text-xs text-red-500 text-right font-arabic mt-1">{phoneError}</p>}
       </div>
+
+      {/* Persons Count Selector */}
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          {personsCount > 1 && (
+            <Badge variant="outline" className="text-xs bg-terracotta-50 text-terracotta border-terracotta-200 font-arabic">
+              حجز جماعي ({personsCount} أشخاص)
+            </Badge>
+          )}
+          <Label className="text-right font-arabic flex items-center gap-1.5 justify-end">
+            <Users className="w-4 h-4 text-terracotta" />
+            عدد الأشخاص
+          </Label>
+        </div>
+        <div className="flex items-center justify-between border-2 border-gray-100 rounded-xl p-2 bg-gray-50/50">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setPersonsCount(prev => Math.max(1, prev - 1))}
+              disabled={personsCount <= 1}
+              className="w-9 h-9 rounded-lg border bg-white flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+              aria-label="Decrease persons"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+            <span className="font-bold text-base min-w-[2rem] text-center font-arabic text-dark">
+              {personsCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPersonsCount(prev => Math.min(10, prev + 1))}
+              disabled={personsCount >= 10}
+              className="w-9 h-9 rounded-lg border bg-white flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+              aria-label="Increase persons"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          <span className="text-xs text-muted-foreground font-arabic">
+            {personsCount === 1 ? "شخص واحد" : personsCount === 2 ? "شخصان" : `${personsCount} أشخاص`}
+          </span>
+        </div>
+        {personsCount > 1 && (
+          <p className="text-xs text-muted-foreground font-arabic text-right">
+            * سيتم حجز الوقت وتطبيق العربون تلقائياً لجميع الأشخاص ({depositAmount} ر.س)
+          </p>
+        )}
+      </div>
+
       <div className="space-y-2">
         <Label className="text-right block font-arabic">ملاحظات (اختياري)</Label>
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
@@ -449,7 +503,9 @@ function BookingForm() {
       </div>
       {depositAmount > 0 && (
         <div className="space-y-2">
-          <Label className="text-right block font-arabic">طريقة دفع العربون ({depositAmount} SAR)</Label>
+          <Label className="text-right block font-arabic">
+            طريقة دفع العربون ({depositAmount} SAR {personsCount > 1 ? `— ${unitDeposit} SAR × ${personsCount}` : ""})
+          </Label>
           <div className="grid grid-cols-2 gap-2">
             {[{ v: "card", l: "بطاقة" }].map(({ v, l }) => (
               <button key={v} onClick={() => setPaymentMethod(v)}
@@ -472,11 +528,12 @@ function BookingForm() {
           { label: "الفرع", value: branchObj?.nameAr || branchObj?.name },
           { label: "الخدمة", value: serviceObj?.name },
           { label: "العاملة", value: staffObj?.nameAr || staffObj?.name },
+          ...(personsCount > 1 ? [{ label: "عدد الأشخاص", value: `${personsCount} أشخاص` }] : []),
           { label: "التاريخ", value: selectedDate },
           ...(!isQueueMode ? [{ label: "الوقت", value: selectedTime ? fmt12h(selectedTime) : "" }] : []),
-          { label: "المدة", value: serviceObj?.durationMinutes ? `${serviceObj.durationMinutes} دقيقة` : "" },
-          { label: "السعر", value: serviceObj?.price ? `${serviceObj.price} ر.س` : "" },
-          ...(depositAmount > 0 ? [{ label: "العربون", value: `${depositAmount} ر.س (${paymentMethod === "card" ? "بطاقة" : "كاش"})` }] : []),
+          { label: "المدة", value: `${totalDuration} دقيقة` },
+          { label: "السعر", value: serviceObj?.price ? `${serviceObj.price * personsCount} ر.س ${personsCount > 1 ? `(${serviceObj.price} × ${personsCount})` : ""}` : "" },
+          ...(depositAmount > 0 ? [{ label: "العربون", value: `${depositAmount} ر.س (${paymentMethod === "card" ? "بطاقة" : "كاش"})${personsCount > 1 ? ` — ${unitDeposit} × ${personsCount}` : ""}` }] : []),
           { label: "الاسم", value: name },
           { label: "الهاتف", value: phone },
         ].filter(r => r.value).map((row, i) => (
