@@ -9,6 +9,8 @@ export async function GET(req: NextRequest) {
     const staffId = searchParams.get("staffId");
     const serviceId = searchParams.get("serviceId");
     const date = searchParams.get("date"); // YYYY-MM-DD
+    const rawPersons = searchParams.get("personsCount") || searchParams.get("quantity") || "1";
+    const personsCount = Math.max(1, parseInt(rawPersons, 10) || 1);
 
     if (!staffId || !serviceId || !date) {
       return NextResponse.json(
@@ -147,7 +149,8 @@ export async function GET(req: NextRequest) {
       .neq("status", "cancelled");
 
     // 4. Generate available time slots
-    const duration = service.durationMinutes || 30;
+    const baseDuration = service.durationMinutes || 30;
+    const duration = service.durationMode === "queue" ? baseDuration : baseDuration * personsCount;
     const [startH, startM] = effectiveSchedule.startTime.split(":").map(Number);
     const [endH, endM] = effectiveSchedule.endTime.split(":").map(Number);
     let scheduleStart = startH * 60 + (startM || 0);
@@ -179,20 +182,20 @@ export async function GET(req: NextRequest) {
           const eDateObj = new Date(b.endTime);
           bEnd = eDateObj.getUTCHours() * 60 + eDateObj.getUTCMinutes();
         } else {
-          bEnd = bStart + duration; // fallback
+          bEnd = bStart + baseDuration; // fallback
         }
 
         // Handle edge case where end time is 0 (midnight wrap) 
-        if (bEnd <= bStart) bEnd = bStart + duration;
+        if (bEnd <= bStart) bEnd = bStart + baseDuration;
 
         bookedRanges.push({ start: bStart, end: bEnd });
       }
     }
 
-    console.log(`[availability] date=${date} staff=${staffId} bookedRanges:`, bookedRanges);
+    console.log(`[availability] date=${date} staff=${staffId} personsCount=${personsCount} bookedRanges:`, bookedRanges);
 
-    // Generate slots at intervals matching service duration
-    const interval = duration;
+    // Generate slots at intervals matching base service duration
+    const interval = baseDuration;
     const slots: Array<{ time: string; booked: boolean }> = [];
 
     // Check notice period and passed time for individual slot times
@@ -203,7 +206,7 @@ export async function GET(req: NextRequest) {
     for (let t = scheduleStart; t + duration <= scheduleEnd; t += interval) {
       const slotEnd = t + duration;
 
-      // Check for overlap with any existing booking
+      // Check for overlap with any existing booking across the entire duration
       const hasOverlap = bookedRanges.some(
         (range) => t < range.end && slotEnd > range.start
       );
@@ -231,7 +234,9 @@ export async function GET(req: NextRequest) {
         endTime: effectiveSchedule.endTime,
       },
       serviceDuration: duration,
-      depositAmount: service.depositAmount || 0,
+      unitDuration: baseDuration,
+      personsCount,
+      depositAmount: (service.depositAmount || 0) * personsCount,
     });
   } catch (err) {
     console.error("Availability API error:", err);

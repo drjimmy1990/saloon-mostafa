@@ -116,7 +116,7 @@ function BookingForm() {
   useEffect(() => {
     if (!selectedStaff || !selectedDate || !selectedService) return;
     setSlotsLoading(true); setSelectedTime(""); setStaffBlocked(false);
-    fetch(`/api/availability?staffId=${selectedStaff}&serviceId=${selectedService}&date=${selectedDate}`)
+    fetch(`/api/availability?staffId=${selectedStaff}&serviceId=${selectedService}&date=${selectedDate}&personsCount=${personsCount}`)
       .then(r => r.json()).then(d => {
         if (d.blocked) {
           setStaffBlocked(true);
@@ -128,7 +128,7 @@ function BookingForm() {
         setSlotsLoading(false);
       })
       .catch(() => setSlotsLoading(false));
-  }, [selectedStaff, selectedDate, selectedService]);
+  }, [selectedStaff, selectedDate, selectedService, personsCount]);
 
   // Fetch terms
   useEffect(() => {
@@ -376,6 +376,61 @@ function BookingForm() {
   const renderDateTimeStep = () => (
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-right font-arabic">{isQueueMode ? "اختاري التاريخ" : "اختاري الموعد"}</h2>
+
+      {/* Persons count selector in Step 3 */}
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          {personsCount > 1 && (
+            <Badge variant="outline" className="text-xs bg-terracotta-50 text-terracotta border-terracotta-200 font-arabic">
+              حجز جماعي ({personsCount} أشخاص)
+            </Badge>
+          )}
+          <Label className="text-right font-arabic flex items-center gap-1.5 justify-end">
+            <Users className="w-4 h-4 text-terracotta" />
+            عدد الأشخاص للحجز
+          </Label>
+        </div>
+        <div className="flex items-center justify-between border-2 border-gray-100 rounded-xl p-2 bg-gray-50/50">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setPersonsCount(prev => Math.max(1, prev - 1));
+                setSelectedTime("");
+              }}
+              disabled={personsCount <= 1}
+              className="w-9 h-9 rounded-lg border bg-white flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+              aria-label="Decrease persons"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+            <span className="font-bold text-base min-w-[2rem] text-center font-arabic text-dark">
+              {personsCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setPersonsCount(prev => Math.min(10, prev + 1));
+                setSelectedTime("");
+              }}
+              disabled={personsCount >= 10}
+              className="w-9 h-9 rounded-lg border bg-white flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+              aria-label="Increase persons"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          <span className="text-xs text-muted-foreground font-arabic">
+            {personsCount === 1 ? "شخص واحد" : personsCount === 2 ? "شخصان" : `${personsCount} أشخاص`}
+          </span>
+        </div>
+        {personsCount > 1 && (
+          <p className="text-xs text-muted-foreground font-arabic text-right">
+            * المدة المطلوبة: {totalDuration} دقيقة متتالية ({singleDuration} دقيقة لكل شخص)
+          </p>
+        )}
+      </div>
+
       <div className="space-y-2">
         <Label className="text-right block font-arabic">التاريخ</Label>
         <Input type="date" min={minDate} value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} dir="ltr" />
