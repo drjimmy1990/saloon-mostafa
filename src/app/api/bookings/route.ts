@@ -220,6 +220,21 @@ export async function POST(request: NextRequest) {
     insertData.paymentMethod = body.paymentMethod || 'cash';
     insertData.source = body.source || 'bot';
 
+    // Support multi-person / group bookings (default: 1)
+    const rawPersons = body.personsCount ?? body.quantity ?? body.guestCount ?? 1;
+    const personsCount = Math.max(1, parseInt(String(rawPersons), 10) || 1);
+
+    if (personsCount > 1) {
+      if (body.serviceSummary) {
+        insertData.serviceSummary = `${body.serviceSummary} (${personsCount} أشخاص)`;
+      }
+      insertData.notes = `[عدد الأشخاص: ${personsCount}] ${body.notes || ''}`.trim();
+    }
+
+    if (body.depositAmount != null) {
+      insertData.depositAmount = Number(body.depositAmount) * personsCount;
+    }
+
     let durationMinutes = 30;
     let durationMode = "time";
     let maxSlots: number | null = null;
@@ -233,10 +248,11 @@ export async function POST(request: NextRequest) {
         .eq('id', serviceId)
         .maybeSingle();
       if (product) {
-        durationMinutes = Number(product.durationMinutes) || 30;
+        const baseDuration = Number(product.durationMinutes) || 30;
         durationMode = product.durationMode || "time";
+        durationMinutes = durationMode === "queue" ? baseDuration : baseDuration * personsCount;
         if (!insertData.serviceSummary && product.name) {
-          insertData.serviceSummary = product.name;
+          insertData.serviceSummary = personsCount > 1 ? `${product.name} (${personsCount} أشخاص)` : product.name;
         }
         maxSlots = product.maxSlots || null;
       }
