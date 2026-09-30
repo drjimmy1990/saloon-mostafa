@@ -36,6 +36,7 @@ function BookingForm() {
   const [selectedStaff, setSelectedStaff] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
+  const [selectedTimes, setSelectedTimes] = useState<string[]>([]);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   const [name, setName] = useState("");
@@ -105,7 +106,7 @@ function BookingForm() {
   // Fetch services grouped by category when branch selected
   useEffect(() => {
     if (!selectedBranch) return;
-    setSelectedCategory(""); setSelectedService(""); setSelectedStaff(""); setSelectedTime("");
+    setSelectedCategory(""); setSelectedService(""); setSelectedStaff(""); setSelectedTime(""); setSelectedTimes([]);
     fetch(`/api/services-with-staff?branchId=${selectedBranch}`)
       .then(r => r.json())
       .then(d => setCategories(Array.isArray(d) ? d : []))
@@ -115,9 +116,8 @@ function BookingForm() {
   // Fetch availability
   useEffect(() => {
     if (!selectedStaff || !selectedDate || !selectedService) return;
-    setSlotsLoading(true); setSelectedTime(""); setStaffBlocked(false);
-    const consecParam = personsCount > 1 ? "&consecutive=true" : "";
-    fetch(`/api/availability?staffId=${selectedStaff}&serviceId=${selectedService}&date=${selectedDate}&personsCount=${personsCount}${consecParam}`)
+    setSlotsLoading(true); setSelectedTime(""); setSelectedTimes([]); setStaffBlocked(false);
+    fetch(`/api/availability?staffId=${selectedStaff}&serviceId=${selectedService}&date=${selectedDate}&personsCount=${personsCount}`)
       .then(r => r.json()).then(d => {
         if (d.blocked) {
           setStaffBlocked(true);
@@ -141,7 +141,7 @@ function BookingForm() {
       case 0: return !!selectedBranch;
       case 1: return !!selectedCategory;
       case 2: return !!selectedService && !!selectedStaff;
-      case 3: return staffBlocked ? false : (isQueueMode ? !!selectedDate : (!!selectedDate && !!selectedTime));
+      case 3: return staffBlocked ? false : (isQueueMode ? !!selectedDate : (!!selectedDate && (personsCount > 1 ? selectedTimes.length === personsCount : selectedTimes.length === 1)));
       case 4: return name.trim() && phone.trim() && !validatePhone(phone);
       default: return true;
     }
@@ -157,7 +157,8 @@ function BookingForm() {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           serviceId: selectedService, serviceSummary: serviceObj?.name || "",
-          date: selectedDate, time: isQueueMode ? null : selectedTime,
+          date: selectedDate, time: isQueueMode ? null : (selectedTimes[0] || ""),
+          times: isQueueMode ? [] : selectedTimes,
           branchId: selectedBranch, staffId: selectedStaff,
           name: name.trim(), phone: normalizePhone(phone), notes, depositAmount, paymentMethod,
           authUserId: user?.id || null,
@@ -220,7 +221,13 @@ function BookingForm() {
               <p className="text-5xl font-bold text-sage-700">{queueNumber}</p>
             </div>
           )}
-          {!isQueueMode && <p className="text-muted-foreground mb-6">{selectedDate} — {selectedTime && fmt12h(selectedTime)}</p>}
+          {!isQueueMode && (
+            <p className="text-muted-foreground mb-6 font-arabic">
+              {selectedDate} — {personsCount > 1
+                ? selectedTimes.map((t, idx) => `شخص ${idx + 1}: ${fmt12h(t)}`).join(" | ")
+                : (selectedTimes[0] && fmt12h(selectedTimes[0]))}
+            </p>
+          )}
           <p className="text-sm text-muted-foreground">سنتواصل معك على الرقم {phone} لتأكيد الموعد.</p>
         </div>
       </div>
@@ -396,8 +403,11 @@ function BookingForm() {
             <button
               type="button"
               onClick={() => {
-                setPersonsCount(prev => Math.max(1, prev - 1));
-                setSelectedTime("");
+                setPersonsCount(prev => {
+                  const next = Math.max(1, prev - 1);
+                  setSelectedTimes(curr => curr.slice(0, next));
+                  return next;
+                });
               }}
               disabled={personsCount <= 1}
               className="w-9 h-9 rounded-lg border bg-white flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
@@ -412,7 +422,6 @@ function BookingForm() {
               type="button"
               onClick={() => {
                 setPersonsCount(prev => Math.min(10, prev + 1));
-                setSelectedTime("");
               }}
               disabled={personsCount >= 10}
               className="w-9 h-9 rounded-lg border bg-white flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
@@ -427,7 +436,7 @@ function BookingForm() {
         </div>
         {personsCount > 1 && (
           <p className="text-xs text-muted-foreground font-arabic text-right">
-            * المدة المطلوبة: {totalDuration} دقيقة متتالية ({singleDuration} دقيقة لكل شخص)
+            * يمكنكِ اختيار {personsCount} مواعيد متباعدة أو متتالية حسب رغبتك ({singleDuration} دقيقة لكل موعد)
           </p>
         )}
       </div>
@@ -446,28 +455,116 @@ function BookingForm() {
           </p>
         )}
       </div>
+
       {!isQueueMode && selectedDate && (
-        <div className="space-y-2">
-          <Label className="text-right block font-arabic">الأوقات المتاحة</Label>
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            {personsCount > 1 && (
+              <Badge className={cn("text-xs font-bold font-arabic", selectedTimes.length === personsCount ? "bg-emerald-600 text-white" : "bg-terracotta text-white")}>
+                {selectedTimes.length} من {personsCount} محددة
+              </Badge>
+            )}
+            <Label className="text-right block font-arabic">
+              {personsCount > 1 ? "اختاري أوقات المواعيد" : "الأوقات المتاحة"}
+            </Label>
+          </div>
+
+          {personsCount > 1 && (
+            <div className="bg-terracotta-50/70 border border-terracotta-200/80 rounded-xl p-3 text-right">
+              <p className="text-xs font-bold text-terracotta-900 font-arabic">
+                {selectedTimes.length === personsCount ? (
+                  <span className="text-emerald-700 font-bold">✓ تم اختيار جميع المواعيد ({personsCount}) بنجاح:</span>
+                ) : (
+                  <span>اضغطي على المواعيد المفضلة لتحديد وقت لكل شخص (متبقي {personsCount - selectedTimes.length}):</span>
+                )}
+              </p>
+              {selectedTimes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 justify-end mt-2 pt-2 border-t border-terracotta-200/50">
+                  {selectedTimes.map((t, idx) => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center gap-1.5 bg-white border border-terracotta-300 text-terracotta-900 text-xs px-2.5 py-1 rounded-lg shadow-2xs font-sans"
+                    >
+                      <span className="font-arabic font-bold text-[11px] text-terracotta-700">شخص {idx + 1}:</span>
+                      <span className="font-bold">{fmt12h(t)}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = selectedTimes.filter(x => x !== t);
+                          setSelectedTimes(updated);
+                          setSelectedTime(updated[0] || "");
+                        }}
+                        className="text-gray-400 hover:text-red-500 font-bold text-sm leading-none ml-0.5 cursor-pointer"
+                        title="إلغاء الموعد"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {slotsLoading ? (
             <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-sage-400 border-t-transparent rounded-full animate-spin" /></div>
           ) : availableSlots.length > 0 ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {availableSlots.map((slot) => (
-              <button key={slot.time} type="button"
-                  onClick={() => !slot.booked && setSelectedTime(slot.time)}
-                  disabled={slot.booked}
-                  className={cn(
-                    "py-2.5 px-3 rounded-lg border text-sm font-bold transition-all",
-                    slot.booked
-                      ? "border-red-100 bg-red-50 text-red-300 line-through cursor-not-allowed opacity-60"
-                      : selectedTime === slot.time
-                        ? "border-terracotta bg-terracotta text-white shadow-md scale-105 ring-2 ring-terracotta-300 cursor-pointer"
-                        : "border-gray-200 bg-white hover:border-terracotta-300 hover:bg-terracotta-50 text-gray-700 cursor-pointer"
-                  )}>
-                  {fmt12h(slot.time)}
-                </button>
-              ))}
+              {availableSlots.map((slot) => {
+                const isSelected = selectedTimes.includes(slot.time);
+                const personIdx = selectedTimes.indexOf(slot.time);
+
+                const handleSlotClick = () => {
+                  if (slot.booked) return;
+                  if (personsCount === 1) {
+                    if (isSelected) {
+                      setSelectedTimes([]);
+                      setSelectedTime("");
+                    } else {
+                      setSelectedTimes([slot.time]);
+                      setSelectedTime(slot.time);
+                    }
+                  } else {
+                    if (isSelected) {
+                      const updated = selectedTimes.filter(x => x !== slot.time);
+                      setSelectedTimes(updated);
+                      setSelectedTime(updated[0] || "");
+                    } else {
+                      if (selectedTimes.length < personsCount) {
+                        const updated = [...selectedTimes, slot.time];
+                        setSelectedTimes(updated);
+                        setSelectedTime(updated[0] || "");
+                      } else {
+                        toast.info(`تم تحديد ${personsCount} مواعيد بالفعل. اضغطي على أي موعد لإلغائه وتغييره.`);
+                      }
+                    }
+                  }
+                };
+
+                return (
+                  <button
+                    key={slot.time}
+                    type="button"
+                    onClick={handleSlotClick}
+                    disabled={slot.booked}
+                    className={cn(
+                      "py-2.5 px-2 rounded-lg border text-sm font-bold transition-all relative",
+                      slot.booked
+                        ? "border-red-100 bg-red-50 text-red-300 line-through cursor-not-allowed opacity-60"
+                        : isSelected
+                          ? "border-terracotta bg-terracotta text-white shadow-md scale-105 ring-2 ring-terracotta-300 cursor-pointer"
+                          : "border-gray-200 bg-white hover:border-terracotta-300 hover:bg-terracotta-50 text-gray-700 cursor-pointer"
+                    )}
+                  >
+                    {isSelected && personsCount > 1 && (
+                      <span className="absolute -top-1.5 -right-1.5 bg-white text-terracotta text-[10px] font-bold px-1.5 py-0.2 rounded-full border border-terracotta shadow-xs font-arabic">
+                        شخص {personIdx + 1}
+                      </span>
+                    )}
+                    {fmt12h(slot.time)}
+                  </button>
+                );
+              })}
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-6 font-arabic">لا توجد أوقات متاحة في هذا اليوم</p>
@@ -504,53 +601,17 @@ function BookingForm() {
         {phoneError && <p className="text-xs text-red-500 text-right font-arabic mt-1">{phoneError}</p>}
       </div>
 
-      {/* Persons Count Selector */}
-      <div className="space-y-2">
-        <div className="flex justify-between items-center">
-          {personsCount > 1 && (
-            <Badge variant="outline" className="text-xs bg-terracotta-50 text-terracotta border-terracotta-200 font-arabic">
-              حجز جماعي ({personsCount} أشخاص)
-            </Badge>
-          )}
-          <Label className="text-right font-arabic flex items-center gap-1.5 justify-end">
-            <Users className="w-4 h-4 text-terracotta" />
-            عدد الأشخاص
-          </Label>
-        </div>
-        <div className="flex items-center justify-between border-2 border-gray-100 rounded-xl p-2 bg-gray-50/50">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setPersonsCount(prev => Math.max(1, prev - 1))}
-              disabled={personsCount <= 1}
-              className="w-9 h-9 rounded-lg border bg-white flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
-              aria-label="Decrease persons"
-            >
-              <Minus className="w-4 h-4" />
-            </button>
-            <span className="font-bold text-base min-w-[2rem] text-center font-arabic text-dark">
-              {personsCount}
-            </span>
-            <button
-              type="button"
-              onClick={() => setPersonsCount(prev => Math.min(10, prev + 1))}
-              disabled={personsCount >= 10}
-              className="w-9 h-9 rounded-lg border bg-white flex items-center justify-center text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
-              aria-label="Increase persons"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-          <span className="text-xs text-muted-foreground font-arabic">
-            {personsCount === 1 ? "شخص واحد" : personsCount === 2 ? "شخصان" : `${personsCount} أشخاص`}
+      {/* Persons Count Info */}
+      {personsCount > 1 && (
+        <div className="bg-terracotta-50/70 border border-terracotta-200 rounded-xl p-3 flex justify-between items-center text-right font-arabic">
+          <Badge variant="outline" className="bg-white border-terracotta-300 text-terracotta text-xs font-arabic">
+            {selectedTimes.length} مواعيد محددة
+          </Badge>
+          <span className="text-xs font-bold text-terracotta-800">
+            حجز جماعي لـ {personsCount} أشخاص (العربون الإجمالي: {depositAmount} ر.س)
           </span>
         </div>
-        {personsCount > 1 && (
-          <p className="text-xs text-muted-foreground font-arabic text-right">
-            * سيتم حجز الوقت وتطبيق العربون تلقائياً لجميع الأشخاص ({depositAmount} ر.س)
-          </p>
-        )}
-      </div>
+      )}
 
       <div className="space-y-2">
         <Label className="text-right block font-arabic">ملاحظات (اختياري)</Label>
@@ -586,7 +647,14 @@ function BookingForm() {
           { label: "العاملة", value: staffObj?.nameAr || staffObj?.name },
           ...(personsCount > 1 ? [{ label: "عدد الأشخاص", value: `${personsCount} أشخاص` }] : []),
           { label: "التاريخ", value: selectedDate },
-          ...(!isQueueMode ? [{ label: "الوقت", value: selectedTime ? fmt12h(selectedTime) : "" }] : []),
+          ...(!isQueueMode
+            ? personsCount > 1
+              ? [{
+                  label: "المواعيد المحددة",
+                  value: selectedTimes.map((t, idx) => `الشخص ${idx + 1}: ${fmt12h(t)}`).join(" | ")
+                }]
+              : [{ label: "الوقت", value: selectedTimes[0] ? fmt12h(selectedTimes[0]) : "" }]
+            : []),
           { label: "المدة", value: `${totalDuration} دقيقة` },
           { label: "السعر", value: serviceObj?.price ? `${serviceObj.price * personsCount} ر.س ${personsCount > 1 ? `(${serviceObj.price} × ${personsCount})` : ""}` : "" },
           ...(depositAmount > 0 ? [{ label: "العربون", value: `${depositAmount} ر.س (${paymentMethod === "card" ? "بطاقة" : "كاش"})${personsCount > 1 ? ` — ${unitDeposit} × ${personsCount}` : ""}` }] : []),
