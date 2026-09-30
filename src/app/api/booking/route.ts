@@ -308,13 +308,33 @@ export async function POST(req: NextRequest) {
     }
 
     // Determine status and payment expiry
-    const skipPaymentRequested =
+    let skipPaymentRequested =
       merged.skipDeposit === true ||
       merged.skipDeposit === "true" ||
       merged.requirePayment === false ||
       merged.requirePayment === "false" ||
       merged.paymentMethod === "in_salon" ||
       merged.paymentMethod === "salon";
+
+    // Auto-detect from bot_services_text in SystemSetting if not explicitly passed
+    if (!skipPaymentRequested) {
+      try {
+        const { data: settingRow } = await supabase
+          .from("SystemSetting")
+          .select("value")
+          .eq("key", "bot_services_text")
+          .maybeSingle();
+
+        if (settingRow?.value) {
+          const match = settingRow.value.match(/حالة رابط.*دفع.*:\s*\[?(مفعل|معطل)\]?/);
+          if (match && match[1] === "معطل") {
+            skipPaymentRequested = true;
+          }
+        }
+      } catch (e) {
+        console.error("Error reading bot_services_text setting for deposit check:", e);
+      }
+    }
 
     const hasDeposit = !skipPaymentRequested && depositAmount > 0 && isPaymobConfigured();
     const initialStatus = hasDeposit ? "waiting_payment" : "confirmed";
