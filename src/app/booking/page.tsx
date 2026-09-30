@@ -116,7 +116,8 @@ function BookingForm() {
   useEffect(() => {
     if (!selectedStaff || !selectedDate || !selectedService) return;
     setSlotsLoading(true); setSelectedTime(""); setStaffBlocked(false);
-    fetch(`/api/availability?staffId=${selectedStaff}&serviceId=${selectedService}&date=${selectedDate}&personsCount=${personsCount}`)
+    const consecParam = personsCount > 1 ? "&consecutive=true" : "";
+    fetch(`/api/availability?staffId=${selectedStaff}&serviceId=${selectedService}&date=${selectedDate}&personsCount=${personsCount}${consecParam}`)
       .then(r => r.json()).then(d => {
         if (d.blocked) {
           setStaffBlocked(true);

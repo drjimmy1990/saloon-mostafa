@@ -43,9 +43,48 @@ export async function POST(req: NextRequest) {
     const durationMode = (merged.durationMode as string) || "time";
     const durationMinutes = Number(merged.durationMinutes) || 30;
 
-    // Support multi-person / group bookings (default: 1)
+    // Support multi-person / group bookings
+    // Parses either explicit 'times' array (e.g. ["16:30", "19:00"]),
+    // or single 'time' with personsCount (auto-generated consecutive slots),
+    // or standard single booking.
+    const singleDuration = durationMinutes || 30;
     const rawPersons = merged.personsCount ?? merged.quantity ?? merged.guestCount ?? 1;
-    const personsCount = Math.max(1, parseInt(String(rawPersons), 10) || 1);
+    let personsCount = Math.max(1, parseInt(String(rawPersons), 10) || 1);
+
+    let effectiveTimes: string[] = [];
+    if (Array.isArray(merged.times) && merged.times.length > 0) {
+      effectiveTimes = merged.times.map((t: any) => String(t).trim()).filter(Boolean);
+      personsCount = effectiveTimes.length;
+    } else if (typeof merged.times === "string" && merged.times.trim()) {
+      try {
+        const parsed = JSON.parse(merged.times);
+        if (Array.isArray(parsed)) {
+          effectiveTimes = parsed.map((t: any) => String(t).trim()).filter(Boolean);
+        }
+      } catch {
+        effectiveTimes = merged.times.split(",").map((t: string) => t.trim()).filter(Boolean);
+      }
+      if (effectiveTimes.length > 0) personsCount = effectiveTimes.length;
+    } else if (time && durationMode !== "queue") {
+      const trimmedTime = time.trim();
+      if (trimmedTime.includes(",")) {
+        // e.g. time: "16:30, 19:00"
+        effectiveTimes = trimmedTime.split(",").map((t: string) => t.trim()).filter(Boolean);
+        if (effectiveTimes.length > 0) personsCount = effectiveTimes.length;
+      } else if (personsCount > 1) {
+        // Auto-generate discrete consecutive slots for website flow so each person gets a real slot
+        const [h, m] = trimmedTime.split(":").map(Number);
+        const startTotalM = h * 60 + m;
+        for (let p = 0; p < personsCount; p++) {
+          const slotM = startTotalM + (p * singleDuration);
+          const sh = Math.floor(slotM / 60);
+          const sm = slotM % 60;
+          effectiveTimes.push(`${sh.toString().padStart(2, "0")}:${sm.toString().padStart(2, "0")}`);
+        }
+      } else {
+        effectiveTimes = [trimmedTime];
+      }
+    }
 
     if (!name || !rawPhone || !serviceId || !date) {
       return NextResponse.json(
@@ -67,7 +106,8 @@ export async function POST(req: NextRequest) {
       .single();
 
     const unitDeposit = service?.depositAmount ? Number(service.depositAmount) : 0;
-    const depositAmount = unitDeposit * personsCount;
+    const finalPersonsCount = effectiveTimes.length > 0 ? effectiveTimes.length : personsCount;
+    const depositAmount = unitDeposit * finalPersonsCount;
 
     // Check if chosen appointment date is before booking availability start date / rolling notice
     if (service?.publishAt) {
@@ -85,7 +125,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Validate that the appointment date and time hasn't already passed
+    // Validate that the appointment date hasn't already passed
     const saudiToday = getSaudiToday();
     if (date < saudiToday) {
       return NextResponse.json(
@@ -94,13 +134,49 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (time) {
-      const slotMs = new Date(`${date}T${time}:00+03:00`).getTime();
+    // Parse each slot into start/end and validate past time
+    interface SlotItem {
+      time: string;
+      bookingDate: string;
+      endTime: string;
+      startMinutes: number;
+      endMinutes: number;
+    }
+
+    const parsedSlots: SlotItem[] = [];
+    for (const t of effectiveTimes) {
+      const slotMs = new Date(`${date}T${t}:00+03:00`).getTime();
       if (slotMs <= Date.now()) {
         return NextResponse.json(
-          { error: "هذا الوقت قد مضى بالفعل، يرجى اختيار موعد قادم" },
+          { error: `الموعد الساعة ${t} قد مضى بالفعل، يرجى اختيار موعد قادم` },
           { status: 400 }
         );
+      }
+      const [tH, tM] = t.split(":").map(Number);
+      const sStart = tH * 60 + (tM || 0);
+      const sEnd = sStart + singleDuration;
+      const endH = Math.floor(sEnd / 60);
+      const endM = sEnd % 60;
+      parsedSlots.push({
+        time: t,
+        bookingDate: `${date}T${t}:00Z`,
+        endTime: `${date}T${endH.toString().padStart(2, "0")}:${endM.toString().padStart(2, "0")}:00Z`,
+        startMinutes: sStart,
+        endMinutes: sEnd,
+      });
+    }
+
+    // Check overlap between the requested slots themselves
+    for (let i = 0; i < parsedSlots.length; i++) {
+      for (let j = i + 1; j < parsedSlots.length; j++) {
+        const s1 = parsedSlots[i];
+        const s2 = parsedSlots[j];
+        if (s1.startMinutes < s2.endMinutes && s2.startMinutes < s1.endMinutes) {
+          return NextResponse.json(
+            { error: `يوجد تداخل بين الموعدين المحددين (${s1.time} و ${s2.time}). كل موعد يحتاج إلى ${singleDuration} دقيقة منفصلة.` },
+            { status: 400 }
+          );
+        }
       }
     }
 
@@ -157,22 +233,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Calculate booking date and end time
-    // Store as UTC so the time value matches exactly what user selected
-    const bookingDate =
-      time && durationMode !== "queue"
-        ? `${date}T${time}:00Z`
-        : `${date}T00:00:00Z`;
-    const singleDuration = durationMinutes || 30;
-    const duration = durationMode === "queue" ? singleDuration : singleDuration * personsCount;
-    // Calculate end time manually to avoid timezone shifts
-    const [timeH, timeM] = (time || "00:00").split(":").map(Number);
-    const endMinutes = timeH * 60 + timeM + duration;
-    const endH = Math.floor(endMinutes / 60);
-    const endM = endMinutes % 60;
-    const endTime = `${date}T${endH.toString().padStart(2, "0")}:${endM.toString().padStart(2, "0")}:00Z`;
-
-    // 3. Check if staff has a blocked date (emergency leave)
+    // 2. Check if staff has a blocked date (emergency leave)
     if (staffId && date) {
       const { data: blockedDate } = await supabase
         .from("StaffBlockedDate")
@@ -189,12 +250,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. For time-based bookings: double-check for overlap.
-    // Queue mode intentionally skips this: each service has a single mode
-    // (time OR queue/slot), and queue bookings are sequential/slot-based
-    // with no fixed time — so the durationMode !== "queue" guard is by
-    // design (H11).
-    if (durationMode !== "queue" && staffId && time) {
+    // 3. Check for overlap against existing DB bookings for this staff on this date
+    if (durationMode !== "queue" && staffId && parsedSlots.length > 0) {
       const { data: overlaps } = await supabase
         .from("Booking")
         .select("id, bookingDate, endTime")
@@ -203,30 +260,148 @@ export async function POST(req: NextRequest) {
         .gte("bookingDate", `${date}T00:00:00`)
         .lt("bookingDate", `${date}T23:59:59`);
 
-      if (overlaps) {
-        const newStart = new Date(bookingDate).getTime();
-        const newEnd = new Date(endTime).getTime();
+      if (overlaps && overlaps.length > 0) {
+        for (const slot of parsedSlots) {
+          const newStart = new Date(slot.bookingDate).getTime();
+          const newEnd = new Date(slot.endTime).getTime();
+          const hasConflict = overlaps.some((b) => {
+            const bStart = new Date(b.bookingDate).getTime();
+            const bEnd = b.endTime
+              ? new Date(b.endTime).getTime()
+              : bStart + singleDuration * 60 * 1000;
+            return newStart < bEnd && newEnd > bStart;
+          });
 
-        const hasConflict = overlaps.some((b) => {
-          const bStart = new Date(b.bookingDate).getTime();
-          const bEnd = b.endTime
-            ? new Date(b.endTime).getTime()
-            : bStart + duration * 60 * 1000;
-          return newStart < bEnd && newEnd > bStart;
-        });
-
-        if (hasConflict) {
-          return NextResponse.json(
-            { error: personsCount > 1 
-                ? "هذا الوقت محجوز بالفعل أو لا يتسع لعدد الأشخاص المطلوب في مواعيد متتالية. يرجى اختيار وقت آخر." 
-                : "هذا الوقت محجوز بالفعل. يرجى اختيار وقت آخر." },
-            { status: 409 }
-          );
+          if (hasConflict) {
+            return NextResponse.json(
+              { error: `الموعد الساعة ${slot.time} محجوز بالفعل مع هذه الأخصائية. يرجى اختيار وقت آخر.` },
+              { status: 409 }
+            );
+          }
         }
       }
     }
 
-    // 5. For queue mode: calculate queue number
+    // Determine status and payment expiry
+    const hasDeposit = depositAmount > 0 && isPaymobConfigured();
+    const initialStatus = hasDeposit ? "waiting_payment" : "pending";
+    const paymentExpiresAt = hasDeposit
+      ? new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes from now
+      : null;
+
+    // ─── MULTI-SLOT GROUP BOOKINGS (2+ slots) ───────────────────
+    if (parsedSlots.length > 1) {
+      const createdBookings: any[] = [];
+      for (let i = 0; i < parsedSlots.length; i++) {
+        const slot = parsedSlots[i];
+        let bookingCode = generateBookingCode();
+        for (let r = 0; r < 5; r++) {
+          const { data: existing } = await supabase
+            .from("Booking")
+            .select("id")
+            .eq("bookingCode", bookingCode)
+            .single();
+          if (!existing) break;
+          bookingCode = generateBookingCode();
+        }
+
+        const formattedSummary = `${serviceSummary || service?.name || "خدمة"} (شخص ${i + 1})`;
+        const formattedNotes = `[حجز جماعي - شخص ${i + 1} الساعة ${slot.time}] ${notes}`.trim();
+
+        const { data: bRecord, error: bErr } = await supabase
+          .from("Booking")
+          .insert({
+            client_id: clientId,
+            serviceId,
+            serviceSummary: formattedSummary,
+            bookingDate: slot.bookingDate,
+            endTime: slot.endTime,
+            channelType: (merged.channelType as string) || "website",
+            status: initialStatus,
+            branchId: branchId || null,
+            staff_id: staffId || null,
+            depositAmount: unitDeposit,
+            depositStatus: "unpaid",
+            paymentMethod: paymentMethod || "cash",
+            notes: formattedNotes,
+            bookingCode,
+            paymentExpiresAt,
+          })
+          .select("id, queueNumber, bookingCode, bookingDate, endTime")
+          .single();
+
+        if (bErr || !bRecord) {
+          console.error("Group booking slot insertion error:", bErr);
+          return NextResponse.json(
+            { error: "فشل في تسجيل أحد المواعيد، يرجى المحاولة مرة أخرى." },
+            { status: 500 }
+          );
+        }
+        createdBookings.push(bRecord);
+      }
+
+      // Unified Paymob payment intention for the entire group
+      let paymentUrl: string | null = null;
+      if (hasDeposit && createdBookings.length > 0) {
+        try {
+          const origin = req.headers.get("origin") || "https://salonnoon.net";
+          const n8nPaymentWebhook = process.env.N8N_PAYMENT_WEBHOOK_URL;
+          const result = await createPaymentIntention({
+            amount: Math.round(depositAmount * 100), // Total deposit in cents (halalas)
+            reference: `BOOKING-${createdBookings[0].id}`,
+            billingData: {
+              first_name: name.split(" ")[0] || "NA",
+              last_name: name.split(" ").slice(1).join(" ") || "NA",
+              email: "booking@salonnoon.net",
+              phone_number: phone,
+            },
+            ...(n8nPaymentWebhook ? { notificationUrl: n8nPaymentWebhook } : {}),
+            redirectionUrl: `${origin}/booking/success?code=${createdBookings[0].bookingCode}`,
+          });
+
+          paymentUrl = result.checkoutUrl;
+
+          // Store the same paymobIntentionId across ALL bookings in this group
+          const createdIds = createdBookings.map((b) => b.id);
+          await supabase
+            .from("Booking")
+            .update({ paymobIntentionId: result.intentionId })
+            .in("id", createdIds);
+        } catch (payErr) {
+          console.error("Paymob group intention creation failed:", payErr);
+          const createdIds = createdBookings.map((b) => b.id);
+          await supabase
+            .from("Booking")
+            .update({ status: "cancelled", paymentExpiresAt: null })
+            .in("id", createdIds);
+          return NextResponse.json(
+            { error: "تعذر إنشاء رابط الدفع. يرجى المحاولة مرة أخرى أو التواصل معنا." },
+            { status: 500 }
+          );
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        bookingId: createdBookings[0].id,
+        bookingCode: createdBookings[0].bookingCode,
+        bookingCodes: createdBookings.map((b) => b.bookingCode),
+        queueNumber: null,
+        paymentUrl,
+        depositAmount,
+        unitDeposit,
+        personsCount: createdBookings.length,
+        times: parsedSlots.map((s) => s.time),
+        bookings: createdBookings,
+      });
+    }
+
+    // ─── SINGLE BOOKING FLOW (1 slot or queue mode) ─────────────
+    const primarySlot = parsedSlots[0];
+    const bookingDate = primarySlot ? primarySlot.bookingDate : `${date}T00:00:00Z`;
+    const endTime = primarySlot ? primarySlot.endTime : null;
+
+    // For queue mode: calculate queue number
     let queueNumber: number | null = null;
     if (durationMode === "queue") {
       const { count } = await supabase
@@ -240,7 +415,6 @@ export async function POST(req: NextRequest) {
 
       queueNumber = (count || 0) + 1;
 
-      // H11 fix: enforce maxSlots limit for queue mode
       if (service?.maxSlots && queueNumber > service.maxSlots) {
         return NextResponse.json(
           { error: "تم اكتمال عدد الحجوزات لهذا اليوم" },
@@ -249,9 +423,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 6. Generate unique booking code
+    // Generate unique booking code
     let bookingCode = generateBookingCode();
-    // Ensure uniqueness (retry up to 5 times)
     for (let i = 0; i < 5; i++) {
       const { data: existing } = await supabase
         .from("Booking")
@@ -262,28 +435,12 @@ export async function POST(req: NextRequest) {
       bookingCode = generateBookingCode();
     }
 
-    // 7. Determine status and payment expiry
-    const hasDeposit = depositAmount > 0 && isPaymobConfigured();
-    const initialStatus = hasDeposit ? "waiting_payment" : "pending";
-    const paymentExpiresAt = hasDeposit
-      ? new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes from now
-      : null;
-
-    const formattedSummary = personsCount > 1
-      ? `${serviceSummary || service?.name || "خدمة"} (${personsCount} أشخاص)`
-      : (serviceSummary || service?.name || "");
-
-    const formattedNotes = personsCount > 1
-      ? `[عدد الأشخاص: ${personsCount}] ${notes}`.trim()
-      : (notes || "");
-
-    // 8. Create booking
     const { data: booking, error } = await supabase
       .from("Booking")
       .insert({
         client_id: clientId,
         serviceId,
-        serviceSummary: formattedSummary,
+        serviceSummary: serviceSummary || service?.name || "",
         bookingDate,
         endTime: durationMode !== "queue" ? endTime : null,
         channelType: (merged.channelType as string) || "website",
@@ -291,25 +448,23 @@ export async function POST(req: NextRequest) {
         branchId: branchId || null,
         staff_id: staffId || null,
         depositAmount: depositAmount || 0,
-        depositStatus: depositAmount > 0 ? "unpaid" : "unpaid",
+        depositStatus: "unpaid",
         paymentMethod: paymentMethod || "cash",
         queueNumber,
-        notes: formattedNotes,
+        notes: notes || "",
         bookingCode,
         paymentExpiresAt,
       })
-      .select("id, queueNumber, bookingCode")
+      .select("id, queueNumber, bookingCode, bookingDate")
       .single();
 
     if (error) {
-      // 23P01 = overlap exclusion (005), 23505 = slotNumber unique (007).
       if (error.code === '23P01' || error.code === '23505') {
         return NextResponse.json(
           { error: "هذا الوقت محجوز بالفعل. يرجى اختيار وقت آخر." },
           { status: 409 }
         );
       }
-      // maxSlots TOCTOU backstop from migration 007's trigger.
       if (error.message?.includes('max_slots_exceeded')) {
         return NextResponse.json(
           { error: "تم اكتمال عدد الحجوزات لهذا اليوم" },
@@ -323,7 +478,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 9. If deposit required, create Paymob payment intention
+    // If deposit required, create Paymob payment intention
     let paymentUrl: string | null = null;
     if (hasDeposit && booking?.id) {
       try {
@@ -344,15 +499,12 @@ export async function POST(req: NextRequest) {
 
         paymentUrl = result.checkoutUrl;
 
-        // Store the intention ID
         await supabase
           .from("Booking")
           .update({ paymobIntentionId: result.intentionId })
           .eq("id", booking.id);
       } catch (payErr) {
         console.error("Paymob intent error for booking:", payErr);
-        // Payment intent creation failed — cancel the booking entirely
-        // so the slot is not held by an unpayable waiting_payment booking.
         await supabase
           .from("Booking")
           .update({ status: "cancelled", paymentExpiresAt: null })
@@ -372,7 +524,7 @@ export async function POST(req: NextRequest) {
       paymentUrl,
       depositAmount: depositAmount || 0,
       unitDeposit: unitDeposit || 0,
-      personsCount,
+      personsCount: 1,
     });
   } catch (err) {
     console.error("Booking API error:", err);

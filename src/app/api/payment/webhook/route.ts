@@ -81,12 +81,10 @@ export async function POST(req: NextRequest) {
 
         console.log(`✅ Order ${parsed.id} marked as PAID (Paymob txn: ${paymobTxnId})`);
       } else if (parsed.type === "booking") {
-        // ── Booking Deposit (website flow) ───────────────────────
-        // Simple: just mark deposit as paid + confirm
-        // Bot booking payments are handled by n8n workflow with slot checking
+        // ── Booking Deposit (website flow & group bookings) ───────
         const { data: existing } = await supabase
           .from("Booking")
-          .select("depositStatus")
+          .select("id, depositStatus, paymobIntentionId")
           .eq("id", parsed.id)
           .single();
 
@@ -95,24 +93,32 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ success: true });
         }
 
-        const { error } = await supabase
+        // If part of a group booking sharing the same paymobIntentionId, confirm ALL of them
+        let updateQuery = supabase
           .from("Booking")
           .update({
             depositStatus: "paid",
             status: "confirmed",
             paymobTxnId: String(paymobTxnId),
-          })
-          .eq("id", parsed.id);
+          });
+
+        if (existing?.paymobIntentionId) {
+          updateQuery = updateQuery.eq("paymobIntentionId", existing.paymobIntentionId);
+        } else {
+          updateQuery = updateQuery.eq("id", parsed.id);
+        }
+
+        const { error } = await updateQuery;
 
         if (error) {
-          console.error(`Failed to update Booking ${parsed.id}:`, error);
+          console.error(`Failed to update Booking(s) for ${parsed.id}:`, error);
           return NextResponse.json(
             { error: "Database update failed" },
             { status: 500 }
           );
         }
 
-        console.log(`✅ Booking ${parsed.id} deposit marked as PAID (Paymob txn: ${paymobTxnId})`);
+        console.log(`✅ Booking(s) marked as PAID & CONFIRMED (Paymob txn: ${paymobTxnId})`);
       }
     } else if (!success) {
       console.log(`Paymob webhook: payment failed for ref=${merchantOrderId}, txn=${paymobTxnId}`);

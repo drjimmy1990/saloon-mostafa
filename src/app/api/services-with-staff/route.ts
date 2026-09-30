@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     if (staffIds.length > 0) {
       let staffQuery = supabase
         .from("Staff")
-        .select("id, name, role, isActive, branchId")
+        .select("id, name, role, isActive, branchId, avatar")
         .in("id", staffIds)
         .eq("isActive", true);
 
@@ -68,6 +68,7 @@ export async function GET(req: NextRequest) {
           id: s.id,
           name: s.name,
           role: s.role,
+          avatar: s.avatar || "",
         };
       }
     }
