@@ -145,7 +145,7 @@ export async function GET(req: NextRequest) {
     //    Use text-based date comparison to avoid timezone issues
     const { data: bookings } = await supabase
       .from("Booking")
-      .select("bookingDate, endTime, serviceId")
+      .select("id, bookingDate, endTime, serviceId, status, paymentExpiresAt")
       .eq("staff_id", staffId)
       .neq("status", "cancelled");
 
@@ -171,9 +171,21 @@ export async function GET(req: NextRequest) {
 
     // Parse existing bookings into minute ranges — only for the requested date
     const bookedRanges: Array<{ start: number; end: number }> = [];
+    const nowMs = Date.now();
+    const expiredBookingIds: string[] = [];
+
     if (bookings) {
       for (const b of bookings) {
         if (!b.bookingDate) continue;
+
+        // If booking is waiting_payment and its payment window (10 min) has passed, release slot!
+        if (b.status === "waiting_payment" && b.paymentExpiresAt) {
+          const expiresMs = new Date(b.paymentExpiresAt).getTime();
+          if (expiresMs <= nowMs) {
+            expiredBookingIds.push(b.id);
+            continue; // Skip! Slot is free for other customers
+          }
+        }
 
         // Extract the date part from bookingDate for comparison
         const bDateStr = b.bookingDate.substring(0, 10); // "YYYY-MM-DD"
@@ -197,6 +209,21 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // Clean up expired waiting_payment bookings in DB in background
+    if (expiredBookingIds.length > 0) {
+      supabase
+        .from("Booking")
+        .update({
+          status: "cancelled",
+          paymentExpiresAt: null,
+          notes: "انتهت مهلة سداد العربون (10 دقائق)"
+        })
+        .in("id", expiredBookingIds)
+        .then(() => {
+          console.log(`[availability] Auto-cancelled ${expiredBookingIds.length} expired waiting_payment bookings`);
+        });
+    }
+
     console.log(`[availability] date=${date} staff=${staffId} personsCount=${personsCount} bookedRanges:`, bookedRanges);
 
     // Generate slots at intervals matching base service duration
@@ -205,7 +232,6 @@ export async function GET(req: NextRequest) {
 
     // Check notice period and passed time for individual slot times
     const notice = parseServiceNotice(service.publishAt);
-    const nowMs = Date.now();
     const minSlotTimeMs = nowMs + (notice.noticeHours * 3600 * 1000);
 
     for (let t = scheduleStart; t + duration <= scheduleEnd; t += interval) {

@@ -254,17 +254,29 @@ export async function POST(req: NextRequest) {
     if (durationMode !== "queue" && staffId && parsedSlots.length > 0) {
       const { data: overlaps } = await supabase
         .from("Booking")
-        .select("id, bookingDate, endTime")
+        .select("id, bookingDate, endTime, status, paymentExpiresAt")
         .eq("staff_id", staffId)
         .neq("status", "cancelled")
         .gte("bookingDate", `${date}T00:00:00`)
         .lt("bookingDate", `${date}T23:59:59`);
 
       if (overlaps && overlaps.length > 0) {
+        const nowMs = Date.now();
+        const expiredOverlapIds: string[] = [];
+
         for (const slot of parsedSlots) {
           const newStart = new Date(slot.bookingDate).getTime();
           const newEnd = new Date(slot.endTime).getTime();
           const hasConflict = overlaps.some((b) => {
+            // Ignore expired waiting_payment bookings (released after 10 min)
+            if (b.status === "waiting_payment" && b.paymentExpiresAt) {
+              const expiresMs = new Date(b.paymentExpiresAt).getTime();
+              if (expiresMs <= nowMs) {
+                expiredOverlapIds.push(b.id);
+                return false;
+              }
+            }
+
             const bStart = new Date(b.bookingDate).getTime();
             const bEnd = b.endTime
               ? new Date(b.endTime).getTime()
@@ -278,6 +290,19 @@ export async function POST(req: NextRequest) {
               { status: 409 }
             );
           }
+        }
+
+        // Clean up expired overlap bookings in DB in background
+        if (expiredOverlapIds.length > 0) {
+          supabase
+            .from("Booking")
+            .update({
+              status: "cancelled",
+              paymentExpiresAt: null,
+              notes: "انتهت مهلة سداد العربون (10 دقائق)"
+            })
+            .in("id", expiredOverlapIds)
+            .then(() => {});
         }
       }
     }
