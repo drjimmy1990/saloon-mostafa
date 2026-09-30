@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
     const excludeBookingId = searchParams.get("excludeBookingId");
     const rawPersons = searchParams.get("personsCount") || searchParams.get("quantity") || "1";
     const personsCount = Math.max(1, parseInt(rawPersons, 10) || 1);
+    const requireConsecutive = searchParams.get("consecutive") === "true";
 
     if (!staffId || !serviceId || !date) {
       return NextResponse.json(
@@ -166,7 +167,9 @@ export async function GET(req: NextRequest) {
 
     // 5. Generate available time slots based on staff working hours
     const baseDuration = service.durationMinutes || 30;
-    const duration = service.durationMode === "queue" ? baseDuration : baseDuration * personsCount;
+    const duration = (requireConsecutive && service.durationMode !== "queue")
+      ? baseDuration * personsCount
+      : baseDuration;
     const [startH, startM] = effectiveSchedule.startTime.split(":").map(Number);
     const [endH, endM] = effectiveSchedule.endTime.split(":").map(Number);
     let scheduleStart = startH * 60 + (startM || 0);
@@ -244,10 +247,13 @@ export async function GET(req: NextRequest) {
         startTime: effectiveSchedule.startTime,
         endTime: effectiveSchedule.endTime,
       },
-      serviceDuration: duration,
+      serviceDuration: baseDuration,
+      slotDuration: duration,
       unitDuration: baseDuration,
       personsCount,
       depositAmount: (service.depositAmount || 0) * personsCount,
+      unitDeposit: service.depositAmount || 0,
+      requireConsecutive,
       blocked: false,
     });
   } catch (err) {
