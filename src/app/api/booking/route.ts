@@ -308,8 +308,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Determine status and payment expiry
-    const hasDeposit = depositAmount > 0 && isPaymobConfigured();
-    const initialStatus = hasDeposit ? "waiting_payment" : "pending";
+    const skipPaymentRequested =
+      merged.skipDeposit === true ||
+      merged.skipDeposit === "true" ||
+      merged.requirePayment === false ||
+      merged.requirePayment === "false" ||
+      merged.paymentMethod === "in_salon" ||
+      merged.paymentMethod === "salon";
+
+    const hasDeposit = !skipPaymentRequested && depositAmount > 0 && isPaymobConfigured();
+    const initialStatus = hasDeposit ? "waiting_payment" : "confirmed";
     const paymentExpiresAt = hasDeposit
       ? new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 minutes from now
       : null;
@@ -345,8 +353,8 @@ export async function POST(req: NextRequest) {
             status: initialStatus,
             branchId: branchId || null,
             staff_id: staffId || null,
-            depositAmount: unitDeposit,
-            depositStatus: "unpaid",
+            depositAmount: hasDeposit ? unitDeposit : 0,
+            depositStatus: hasDeposit ? "unpaid" : "exempt",
             paymentMethod: paymentMethod || "cash",
             notes: formattedNotes,
             bookingCode,
@@ -472,8 +480,8 @@ export async function POST(req: NextRequest) {
         status: initialStatus,
         branchId: branchId || null,
         staff_id: staffId || null,
-        depositAmount: depositAmount || 0,
-        depositStatus: "unpaid",
+        depositAmount: hasDeposit ? (depositAmount || 0) : 0,
+        depositStatus: hasDeposit ? "unpaid" : "exempt",
         paymentMethod: paymentMethod || "cash",
         queueNumber,
         notes: notes || "",
