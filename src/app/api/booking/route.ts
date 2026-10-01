@@ -86,6 +86,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Fail-safe: If caller/bot passed duplicate identical times for multiple persons (e.g. "18:15, 18:15")
+    // automatically generate discrete consecutive slots so each person gets their own distinct appointment
+    const uniqueTimes = new Set(effectiveTimes);
+    if (effectiveTimes.length > 1 && uniqueTimes.size === 1 && durationMode !== "queue") {
+      const baseT = effectiveTimes[0];
+      const [h, m] = baseT.split(":").map(Number);
+      const startTotalM = h * 60 + (m || 0);
+      effectiveTimes = [];
+      for (let p = 0; p < personsCount; p++) {
+        const slotM = startTotalM + (p * singleDuration);
+        const sh = Math.floor(slotM / 60);
+        const sm = slotM % 60;
+        effectiveTimes.push(`${sh.toString().padStart(2, "0")}:${sm.toString().padStart(2, "0")}`);
+      }
+    }
+
     if (!name || !rawPhone || !serviceId || !date) {
       return NextResponse.json(
         { error: "Missing required fields" },
