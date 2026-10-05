@@ -41,6 +41,7 @@ function BookingForm() {
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [phoneError, setPhoneError] = useState("");
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("card");
@@ -95,6 +96,7 @@ function BookingForm() {
     if (client) {
       if (client.name && !name) setName(client.name);
       if (client.phone && !phone) setPhone(client.phone);
+      if (client.email && !email) setEmail(client.email);
     }
   }, [client]);
 
@@ -160,7 +162,7 @@ function BookingForm() {
           date: selectedDate, time: isQueueMode ? null : (selectedTimes[0] || ""),
           times: isQueueMode ? [] : selectedTimes,
           branchId: selectedBranch, staffId: selectedStaff,
-          name: name.trim(), phone: normalizePhone(phone), notes, depositAmount, paymentMethod,
+          name: name.trim(), phone: normalizePhone(phone), email: email.trim() || undefined, notes, depositAmount, paymentMethod,
           authUserId: user?.id || null,
           durationMode: serviceObj?.durationMode || "time",
           durationMinutes: serviceObj?.durationMinutes || 30,
@@ -599,6 +601,12 @@ function BookingForm() {
         <Input value={phone} onChange={(e) => handlePhoneChange(e.target.value)} placeholder="0512345678" dir="ltr" type="tel" maxLength={15}
           className={phoneError ? "border-red-400 focus:ring-red-300" : ""} />
         {phoneError && <p className="text-xs text-red-500 text-right font-arabic mt-1">{phoneError}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label className="text-right block font-arabic">البريد الإلكتروني (اختياري)</Label>
+        <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" dir="ltr" type="email"
+          className="text-left font-arabic" />
       </div>
 
       {/* Persons Count Info */}

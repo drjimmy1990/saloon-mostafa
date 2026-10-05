@@ -58,6 +58,14 @@ export async function createPaymentIntention(
     throw new Error("Paymob is not configured. Check environment variables.");
   }
 
+  const cleanPhone = (billingData.phone_number || "").replace(/\D/g, "");
+  const resolvedEmail =
+    billingData.email && billingData.email.includes("@") && !billingData.email.startsWith("na@")
+      ? billingData.email
+      : cleanPhone
+        ? `${cleanPhone}@customer.salonnoon.net`
+        : "booking@salonnoon.net";
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const body: Record<string, any> = {
     amount,
@@ -66,7 +74,7 @@ export async function createPaymentIntention(
     billing_data: {
       first_name: (billingData.first_name || "NA").slice(0, 50),
       last_name: (billingData.last_name || "NA").slice(0, 50),
-      email: billingData.email || "na@na.com",
+      email: resolvedEmail,
       phone_number: (billingData.phone_number || "NA").replace(/[\s\-()]/g, "").slice(0, 15),
     },
     special_reference: reference,

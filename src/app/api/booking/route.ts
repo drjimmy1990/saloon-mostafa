@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     const staffId = merged.staffId as string;
     const name = (merged.name as string)?.trim() || "";
     const rawPhone = merged.phone as string;
+    const rawEmail = (merged.email as string)?.trim() || "";
     const notes = merged.notes as string || "";
     const paymentMethod = (merged.paymentMethod as string) || "cash";
     const authUserId = merged.authUserId as string | null;
@@ -198,19 +199,24 @@ export async function POST(req: NextRequest) {
 
     // 1. Find or create client
     let clientId: string | null = null;
+    let clientEmail: string = rawEmail;
 
     if (authUserId) {
       const { data: authClient } = await supabase
         .from("Client")
-        .select("id, name, phone")
+        .select("id, name, phone, email")
         .eq("auth_user_id", authUserId)
         .single();
       if (authClient) {
         clientId = authClient.id;
-        // Always update name/phone from booking form so user can change them
+        if (!clientEmail && authClient.email) {
+          clientEmail = authClient.email;
+        }
+        // Always update name/phone/email from booking form so user can change them
         const updates: Record<string, string> = {};
         if (name && name !== authClient.name) updates.name = name;
         if (phone && phone !== authClient.phone) updates.phone = phone;
+        if (clientEmail && clientEmail !== authClient.email) updates.email = clientEmail;
         if (Object.keys(updates).length > 0) {
           await supabase.from("Client").update(updates).eq("id", authClient.id);
         }
@@ -221,7 +227,7 @@ export async function POST(req: NextRequest) {
       // Resilient client match: match by normalized phone suffix or platform_user_id
       const { data: existingClients } = await supabase
         .from("Client")
-        .select("id, name, phone")
+        .select("id, name, phone, email")
         .or(`phone.ilike.%${last9}%,platform_user_id.ilike.%${last9}%`)
         .order("createdAt", { ascending: false })
         .limit(1);
@@ -230,9 +236,14 @@ export async function POST(req: NextRequest) {
 
       if (existingClient) {
         clientId = existingClient.id;
-        // Update client phone to canonical format if it was unnormalized or dirty
-        if (existingClient.phone !== phone) {
-          await supabase.from("Client").update({ phone }).eq("id", existingClient.id);
+        if (!clientEmail && existingClient.email) {
+          clientEmail = existingClient.email;
+        }
+        const updates: Record<string, string> = {};
+        if (existingClient.phone !== phone) updates.phone = phone;
+        if (clientEmail && clientEmail !== existingClient.email) updates.email = clientEmail;
+        if (Object.keys(updates).length > 0) {
+          await supabase.from("Client").update(updates).eq("id", existingClient.id);
         }
       } else {
         const { data: newClient } = await supabase
@@ -240,14 +251,27 @@ export async function POST(req: NextRequest) {
           .insert({
             name,
             phone,
+            email: clientEmail || "",
             platform: (merged.channelType as string) || "website",
             auth_user_id: authUserId || null,
           })
-          .select("id")
+          .select("id, email")
           .single();
         clientId = newClient?.id || null;
       }
     }
+
+    // Smart automatic billing email:
+    // 1. If customer has a real email (from form or DB profile), use it.
+    // 2. Otherwise, derive dynamic email from customer phone: {phone}@customer.salonnoon.net
+    // 3. Fallback to booking@salonnoon.net if phone is missing.
+    const cleanPhoneDigits = phone.replace(/\D/g, "");
+    const customerBillingEmail =
+      clientEmail && clientEmail.includes("@") && !clientEmail.startsWith("na@")
+        ? clientEmail
+        : cleanPhoneDigits
+          ? `${cleanPhoneDigits}@customer.salonnoon.net`
+          : "booking@salonnoon.net";
 
     // 2. Check if staff has a blocked date (emergency leave)
     if (staffId && date) {
@@ -422,7 +446,7 @@ export async function POST(req: NextRequest) {
             billingData: {
               first_name: name.split(" ")[0] || "NA",
               last_name: name.split(" ").slice(1).join(" ") || "NA",
-              email: "booking@salonnoon.net",
+              email: customerBillingEmail,
               phone_number: phone,
             },
             ...(n8nPaymentWebhook ? { notificationUrl: n8nPaymentWebhook } : {}),
@@ -561,7 +585,7 @@ export async function POST(req: NextRequest) {
           billingData: {
             first_name: name.split(" ")[0] || "NA",
             last_name: name.split(" ").slice(1).join(" ") || "NA",
-            email: "booking@salonnoon.net",
+            email: customerBillingEmail,
             phone_number: phone,
           },
           ...(n8nPaymentWebhook ? { notificationUrl: n8nPaymentWebhook } : {}),
