@@ -94,6 +94,9 @@ export async function POST(request: NextRequest) {
         if (body.ai_enabled !== undefined) updateData.ai_enabled = body.ai_enabled;
         if (body.name) updateData.name = body.name;
         if (phone && existingClients[0].phone !== phone) updateData.phone = phone;
+        if (body.email !== undefined) updateData.email = body.email;
+        if (body.address !== undefined) updateData.address = body.address;
+        if (body.notes !== undefined) updateData.notes = body.notes;
         
         const { data: updatedClient, error: updateError } = await supabase
           .from('Client')
@@ -111,6 +114,7 @@ export async function POST(request: NextRequest) {
     const insertData: any = {
       name: body.name || null,
       phone: phone,
+      email: body.email ?? '',
       address: body.address ?? '',
       notes: body.notes ?? '',
       platform_user_id: platform_user_id,
