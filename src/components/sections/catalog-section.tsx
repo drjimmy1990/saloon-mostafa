@@ -1427,11 +1427,11 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                     {/* Quick presets */}
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {[
-                        { hours: 0, labelAr: "متاح الآن", labelEn: "Now" },
-                        { hours: 24, labelAr: "بعد 24 ساعة (يوم)", labelEn: "24h (1d)" },
-                        { hours: 48, labelAr: "بعد 48 ساعة (يومين)", labelEn: "48h (2d)" },
-                        { hours: 72, labelAr: "بعد 3 أيام", labelEn: "3 days" },
-                        { hours: 168, labelAr: "بعد أسبوع", labelEn: "1 week" },
+                        { hours: 0, labelAr: "متاح الآن", labelEn: "Now (Same Day)" },
+                        { hours: 24, labelAr: "بدءاً من الغد (يوم)", labelEn: "Next Day (1 day)" },
+                        { hours: 48, labelAr: "بعد يومين", labelEn: "After 2 Days" },
+                        { hours: 72, labelAr: "بعد 3 أيام", labelEn: "After 3 Days" },
+                        { hours: 168, labelAr: "بعد أسبوع", labelEn: "After 1 Week" },
                       ].map(opt => {
                         const isSelected = formData.noticeHours === opt.hours;
                         return (
@@ -1457,12 +1457,12 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                       formData.noticeHours > 0 ? "text-amber-700 dark:text-amber-400" : "text-emerald-700 dark:text-emerald-400")}>
                       <Clock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                       <span>
-                        {formData.noticeHours === 0 && (rtl ? "✅ الخدمة متاحة للحجز الفوري لنفس اليوم." : "Available for same-day booking.")}
-                        {formData.noticeHours === 24 && (rtl ? "⏳ لا يمكن للعميل حجز موعد لنفس اليوم. أقرب موعد متاح سيكون بعد 24 ساعة (يبدأ من الغد)." : "Client cannot book today. Earliest slot is after 24 hours (starts tomorrow).")}
-                        {formData.noticeHours === 48 && (rtl ? "⏳ لا يمكن للعميل حجز موعد لليوم أو الغد. أقرب موعد متاح سيكون بعد 48 ساعة (يبدأ بعد يومين)." : "Client cannot book today or tomorrow. Earliest slot is after 48 hours (after 2 days).")}
-                        {formData.noticeHours === 72 && (rtl ? "⏳ السلوتات والمواعيد تظهر للعميل بعد 3 أيام من تاريخ اليوم." : "Slots start after 3 days from booking time.")}
-                        {formData.noticeHours === 168 && (rtl ? "⏳ السلوتات والمواعيد تظهر للعميل بعد أسبوع (7 أيام) من تاريخ اليوم." : "Slots start after 1 week from booking time.")}
-                        {formData.noticeHours > 0 && ![24, 48, 72, 168].includes(formData.noticeHours) && (rtl ? `⏳ يتطلب حجز مسبق قبل ${formData.noticeHours} ساعة.` : `Notice: ${formData.noticeHours} hours.`)}
+                        {formData.noticeHours === 0 && (rtl ? "✅ متاح الآن: الحجز متاح لنفس اليوم (من الآن وحتى نهاية اليوم) وكافة الأيام القادمة." : "Available now: Same-day booking is open from now until the end of the day.")}
+                        {formData.noticeHours === 24 && (rtl ? "⏳ بدءاً من الغد: مغلق لنفس اليوم (حتى نهاية اليوم)، وتتاح مواعيد الغد بالكامل من بداية الدوام." : "Same day is closed until end of day. All slots for tomorrow are fully available.")}
+                        {formData.noticeHours === 48 && (rtl ? "⏳ بعد يومين: مغلق لليوم والغد، وتتاح مواعيد اليوم بعد القادم بالكامل من بداية الدوام." : "Today and tomorrow are closed. Slots open in 2 days from opening time.")}
+                        {formData.noticeHours === 72 && (rtl ? "⏳ بعد 3 أيام: يبدأ الحجز بعد 3 أيام من تاريخ اليوم وتتاح مواعيده بالكامل." : "Booking opens after 3 days with all slots available.")}
+                        {formData.noticeHours === 168 && (rtl ? "⏳ بعد أسبوع: يبدأ الحجز بعد أسبوع (7 أيام) من تاريخ اليوم وتتاح مواعيده بالكامل." : "Booking opens after 1 week (7 days) with all slots available.")}
+                        {formData.noticeHours > 0 && ![24, 48, 72, 168].includes(formData.noticeHours) && (rtl ? `⏳ يتطلب حجز مسبق قبل ${Math.round(formData.noticeHours / 24)} يوم.` : `Notice: ${Math.round(formData.noticeHours / 24)} days.`)}
                       </span>
                     </p>
                   </div>
