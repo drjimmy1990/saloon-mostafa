@@ -94,6 +94,70 @@ const channelIcons: Record<string, { icon: typeof MessageCircle; color: string; 
   manual: { icon: CalendarCheck, color: "text-amber-600 dark:text-amber-400", label: "Manual", labelAr: "يدوي" },
 };
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Extract comparable minute-of-day (0 - 1439) from a booking,
+ * prioritizing bookingTime or the UTC time portion of bookingDate.
+ */
+function getBookingComparableMinutes(b: ScheduleBooking): number {
+  if (b.bookingTime) {
+    const parts = b.bookingTime.split(":");
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1] || "0", 10);
+    if (!isNaN(h) && !isNaN(m)) {
+      return h * 60 + m;
+    }
+  }
+  if (b.bookingDate) {
+    const d = new Date(b.bookingDate);
+    if (!isNaN(d.getTime())) {
+      return d.getUTCHours() * 60 + d.getUTCMinutes();
+    }
+  }
+  return 9999;
+}
+
+/**
+ * Format a booking's time consistently across manual, website, and bot bookings.
+ * Converts to a UTC date object and uses Intl.DateTimeFormat (via toLocaleTimeString)
+ * so that all bookings share the exact same locale, numeral system, and AM/PM symbols.
+ */
+function formatScheduleTime(b: ScheduleBooking, rtl: boolean): string {
+  let hours: number | null = null;
+  let minutes: number | null = null;
+
+  if (b.bookingTime) {
+    const parts = b.bookingTime.split(":");
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1] || "0", 10);
+    if (!isNaN(h) && !isNaN(m)) {
+      hours = h;
+      minutes = m;
+    }
+  }
+
+  if (hours === null && b.bookingDate) {
+    const d = new Date(b.bookingDate);
+    if (!isNaN(d.getTime())) {
+      hours = d.getUTCHours();
+      minutes = d.getUTCMinutes();
+    }
+  }
+
+  if (hours === null || minutes === null) {
+    return rtl ? "بدون وقت" : "No time";
+  }
+
+  const d = new Date(Date.UTC(2026, 0, 1, hours, minutes, 0));
+  return d.toLocaleTimeString(rtl ? "ar-SA" : "en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "UTC",
+  });
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ScheduleSection() {
@@ -203,46 +267,15 @@ export function ScheduleSection() {
       }
     });
 
-    // Sort each group by booking time
+    // Sort each group chronologically by appointment time
     Object.values(groups).forEach((g) => {
-      g.bookings.sort((a, b) => {
-        const timeA = a.bookingTime || a.bookingDate;
-        const timeB = b.bookingTime || b.bookingDate;
-        return timeA.localeCompare(timeB);
-      });
+      g.bookings.sort((a, b) => getBookingComparableMinutes(a) - getBookingComparableMinutes(b));
     });
 
-    unassigned.sort((a, b) => {
-      const timeA = a.bookingTime || a.bookingDate;
-      const timeB = b.bookingTime || b.bookingDate;
-      return timeA.localeCompare(timeB);
-    });
+    unassigned.sort((a, b) => getBookingComparableMinutes(a) - getBookingComparableMinutes(b));
 
     return { groups, unassigned };
   }, [bookings]);
-
-  // Format time
-  const formatTime = (booking: ScheduleBooking) => {
-    if (booking.bookingTime) {
-      // bookingTime is like "10:00" or "14:30"
-      const [h, m] = booking.bookingTime.split(":");
-      const hour = parseInt(h, 10);
-      const ampm = hour >= 12 ? (rtl ? "م" : "PM") : (rtl ? "ص" : "AM");
-      const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-      return `${h12}:${m} ${ampm}`;
-    }
-    // Fall back to bookingDate time
-    if (booking.bookingDate) {
-      const d = new Date(booking.bookingDate);
-      return d.toLocaleTimeString(rtl ? "ar-SA" : "en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: "UTC",
-      });
-    }
-    return rtl ? "بدون وقت" : "No time";
-  };
 
   const getChannelInfo = (ch: string) => {
     return channelIcons[ch] || channelIcons.manual;
@@ -553,26 +586,6 @@ function BookingCard({
   rtl: boolean;
   locale: "ar" | "en";
 }) {
-  const formatTime = (b: ScheduleBooking) => {
-    if (b.bookingTime) {
-      const [h, m] = b.bookingTime.split(":");
-      const hour = parseInt(h, 10);
-      const ampm = hour >= 12 ? (rtl ? "م" : "PM") : (rtl ? "ص" : "AM");
-      const h12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-      return `${h12}:${m} ${ampm}`;
-    }
-    if (b.bookingDate) {
-      const d = new Date(b.bookingDate);
-      return d.toLocaleTimeString(rtl ? "ar-SA" : "en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-        timeZone: "UTC",
-      });
-    }
-    return "";
-  };
-
   const channelInfo = channelIcons[booking.channelType] || channelIcons.manual;
   const ChannelIcon = channelInfo.icon;
 
@@ -585,7 +598,7 @@ function BookingCard({
       <div className="flex flex-col items-center justify-center w-20 shrink-0">
         <div className="flex items-center gap-1 text-primary">
           <Clock className="w-3.5 h-3.5" />
-          <span className="text-sm font-bold tabular-nums">{formatTime(booking)}</span>
+          <span className="text-sm font-bold tabular-nums">{formatScheduleTime(booking, rtl)}</span>
         </div>
         {booking.slotNumber && (
           <span className="text-[10px] text-muted-foreground mt-0.5">
