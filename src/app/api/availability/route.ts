@@ -230,10 +230,6 @@ export async function GET(req: NextRequest) {
     const interval = baseDuration;
     const slots: Array<{ time: string; booked: boolean }> = [];
 
-    // Check notice period and passed time for individual slot times
-    const notice = parseServiceNotice(service.publishAt);
-    const minSlotTimeMs = nowMs + (notice.noticeHours * 3600 * 1000);
-
     for (let t = scheduleStart; t + duration <= scheduleEnd; t += interval) {
       const slotEnd = t + duration;
 
@@ -249,11 +245,10 @@ export async function GET(req: NextRequest) {
       // Accurate slot time in Saudi Arabia timezone (UTC+3)
       const slotMs = new Date(`${date}T${timeStr}:00+03:00`).getTime();
       const hasPassed = slotMs <= nowMs;
-      const isBeforeNotice = slotMs < minSlotTimeMs;
 
       slots.push({
         time: timeStr,
-        booked: hasOverlap || hasPassed || isBeforeNotice,
+        booked: hasOverlap || hasPassed,
       });
     }
 

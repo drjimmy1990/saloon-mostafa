@@ -91,14 +91,15 @@ export function parseServiceNotice(publishAt?: string | null): ServiceNoticeInfo
     const hours = Math.max(0, Math.round(ms / (3600 * 1000)));
     const days = Math.round(hours / 24);
 
-    let labelAr = `${hours} ساعة`;
-    if (hours === 24) labelAr = "24 ساعة (يوم)";
-    else if (hours === 48) labelAr = "48 ساعة (يومين)";
-    else if (hours === 72) labelAr = "3 أيام";
-    else if (hours === 168) labelAr = "أسبوع (7 أيام)";
-    else if (days > 0) labelAr = `${days} أيام`;
+    let labelAr = `${days} أيام`;
+    if (days === 0) labelAr = "متاح الآن (نفس اليوم)";
+    else if (days === 1) labelAr = "بدءاً من الغد (يوم)";
+    else if (days === 2) labelAr = "بعد يومين";
+    else if (days === 3) labelAr = "بعد 3 أيام";
+    else if (days === 7) labelAr = "بعد أسبوع (7 أيام)";
+    else if (days > 0) labelAr = `بعد ${days} أيام`;
 
-    const labelEn = hours >= 24 ? `+${days}d (${hours}h)` : `+${hours}h`;
+    const labelEn = days === 0 ? "Available Now" : days === 1 ? "Next Day (1 day)" : `After ${days} days`;
 
     return {
       noticeHours: hours,
@@ -122,8 +123,8 @@ export function parseServiceNotice(publishAt?: string | null): ServiceNoticeInfo
       noticeDays: 1,
       isRolling: true,
       absoluteStartDate: null,
-      labelAr: "24 ساعة (يوم)",
-      labelEn: "+1d (24h)",
+      labelAr: "بدءاً من الغد (يوم)",
+      labelEn: "Next Day (1 day)",
     };
   }
 
