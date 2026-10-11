@@ -9,20 +9,30 @@ export async function GET(request: NextRequest) {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const supabase = getServiceRoleClient();
-    const { searchParams } = new URL(request.url);
+    const searchParams = new URL(request.url).searchParams;
     const ai_enabled = searchParams.get('ai_enabled');
     const pageParam = searchParams.get('page');
     const limitParam = searchParams.get('limit');
     const search = searchParams.get('search')?.trim() || '';
+    const platform = searchParams.get('platform')?.trim() || '';
+    const includeMessages = searchParams.get('include_messages') === 'true';
 
     const paginated = pageParam !== null && limitParam !== null;
     const page = Math.max(1, parseInt(pageParam || '1', 10));
     const limit = Math.min(100, Math.max(1, parseInt(limitParam || '10', 10)));
 
-    let query = supabase.from('Client').select('*, Channel(name, type), Message(*), Booking(id)', paginated ? { count: 'exact' } : undefined).order('last_interaction_at', { ascending: false });
+    const selectFields = includeMessages
+      ? '*, Channel(name, type), Message(*), Booking(id)'
+      : '*, Channel(name, type), Booking(id)';
+
+    let query = supabase.from('Client').select(selectFields, paginated ? { count: 'exact' } : undefined).order('last_interaction_at', { ascending: false });
     
     if (ai_enabled !== null) {
       query = query.eq('ai_enabled', ai_enabled === 'true');
+    }
+
+    if (platform && platform !== 'all') {
+      query = query.eq('platform', platform);
     }
 
     if (search) {

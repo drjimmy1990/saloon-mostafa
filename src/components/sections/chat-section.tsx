@@ -196,13 +196,14 @@ export function ChatSection() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
-  const fetchClients = useCallback(async (page = 1, append = false, search = "") => {
+  const fetchClients = useCallback(async (page = 1, append = false, search = "", channel: ChannelType | "all" = "all") => {
     try {
       if (page === 1) setIsLoading(true);
       else setIsLoadingMore(true);
 
       const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
       if (search) params.set("search", search);
+      if (channel && channel !== "all") params.set("platform", channel);
 
       const res = await fetch(`/api/clients?${params}`);
       if (!res.ok) {
@@ -212,8 +213,8 @@ export function ChatSection() {
       }
       const json = await res.json();
       const allClients: Client[] = json.data || [];
-      // Only show clients that have at least one message
-      const newClients = allClients.filter(c => c.messages && c.messages.length > 0);
+      // Only show clients that have at least one interaction or message preview
+      const newClients = allClients.filter(c => (c.last_message_preview && c.last_message_preview.trim() !== "") || (c.messages && c.messages.length > 0));
 
       setClients(prev => {
         if (!append) return newClients;
@@ -237,6 +238,7 @@ export function ChatSection() {
     try {
       const params = new URLSearchParams({ page: "1", limit: String(clientPage * PAGE_SIZE) });
       if (debouncedSearch) params.set("search", debouncedSearch);
+      if (channelFilter && channelFilter !== "all") params.set("platform", channelFilter);
 
       const res = await fetch(`/api/clients?${params}`);
       if (!res.ok) {
@@ -245,21 +247,20 @@ export function ChatSection() {
       }
       const json = await res.json();
       const allClients: Client[] = json.data || [];
-      // Only show clients that have at least one message
-      const withMessages = allClients.filter(c => c.messages && c.messages.length > 0);
+      const withMessages = allClients.filter(c => (c.last_message_preview && c.last_message_preview.trim() !== "") || (c.messages && c.messages.length > 0));
       setClients(withMessages);
       // Use raw result count instead of unfiltered total
       setHasMore(allClients.length >= clientPage * PAGE_SIZE);
     } catch (err) {
       console.error("Failed to refetch conversations", err);
     }
-  }, [clientPage, debouncedSearch]);
+  }, [clientPage, debouncedSearch, channelFilter]);
 
-  // Reset pagination and fetch when search changes
+  // Reset pagination and fetch when search or channel filter changes
   useEffect(() => {
     setClientPage(1);
-    fetchClients(1, false, debouncedSearch);
-  }, [debouncedSearch, fetchClients]);
+    fetchClients(1, false, debouncedSearch, channelFilter);
+  }, [debouncedSearch, channelFilter, fetchClients]);
 
   // ─── Handle Direct Client Link from URL ───────────────────────────────────
   // Keep a ref to the latest clients list so the effect can check it
@@ -321,8 +322,8 @@ export function ChatSection() {
     if (isLoadingMore || !hasMore) return;
     const nextPage = clientPage + 1;
     setClientPage(nextPage);
-    fetchClients(nextPage, true, debouncedSearch);
-  }, [clientPage, hasMore, isLoadingMore, fetchClients, debouncedSearch]);
+    fetchClients(nextPage, true, debouncedSearch, channelFilter);
+  }, [clientPage, hasMore, isLoadingMore, fetchClients, debouncedSearch, channelFilter]);
 
   // IntersectionObserver for infinite scroll sentinel
   useEffect(() => {
@@ -420,6 +421,39 @@ export function ChatSection() {
   }, []);
 
   const activeClient = clients.find((c) => c.id === activeChatId) || null;
+  const [loadedMessageClientIds, setLoadedMessageClientIds] = useState<Set<string>>(new Set());
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+
+  // Lazy load messages for the active client on demand
+  useEffect(() => {
+    if (!activeChatId) return;
+    if (loadedMessageClientIds.has(activeChatId)) return;
+
+    const existing = clientsRef.current.find((c) => c.id === activeChatId);
+    if (existing && existing.messages && existing.messages.length > 0) {
+      setLoadedMessageClientIds((prev) => new Set(prev).add(activeChatId));
+      return;
+    }
+
+    setIsLoadingMessages(true);
+    fetch(`/api/clients/${activeChatId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load messages");
+        return res.json();
+      })
+      .then((data) => {
+        setLoadedMessageClientIds((prev) => new Set(prev).add(activeChatId));
+        if (data && Array.isArray(data.messages)) {
+          setClients((prev) =>
+            prev.map((c) =>
+              c.id === activeChatId ? { ...c, messages: data.messages } : c
+            )
+          );
+        }
+      })
+      .catch((err) => console.error("Failed to load client messages:", err))
+      .finally(() => setIsLoadingMessages(false));
+  }, [activeChatId, loadedMessageClientIds]);
 
   // Auto-scroll to bottom when conversation changes or messages update
   useEffect(() => {
@@ -921,75 +955,81 @@ export function ChatSection() {
 
       {/* Messages Area */}
       <ScrollArea className="flex-1 min-h-0 overflow-hidden p-3" dir={rtl ? "rtl" : "ltr"}>
-        <div className="space-y-3">
-          {[...activeClient.messages].sort((a, b) => {
-            const timeA = new Date(a.sent_at || a.platform_timestamp || a.createdAt || 0).getTime();
-            const timeB = new Date(b.sent_at || b.platform_timestamp || b.createdAt || 0).getTime();
-            return timeA - timeB;
-          }).map((msg) => {
-            const config = senderConfig[msg.sender_type] || senderConfig["user"];
-            const Icon = config.icon;
-            const isAgent = msg.sender_type === "agent";
+        {isLoadingMessages ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary" />
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {[...(activeClient.messages || [])].sort((a, b) => {
+              const timeA = new Date(a.sent_at || a.platform_timestamp || a.createdAt || 0).getTime();
+              const timeB = new Date(b.sent_at || b.platform_timestamp || b.createdAt || 0).getTime();
+              return timeA - timeB;
+            }).map((msg) => {
+              const config = senderConfig[msg.sender_type] || senderConfig["user"];
+              const Icon = config.icon;
+              const isAgent = msg.sender_type === "agent";
 
-            return (
-              <div key={msg.id} className="flex flex-col">
-                {/* Sender label — inline with bubble, very compact */}
-                <div className={cn("flex items-center gap-1 mb-0.5", getLabelAlignment(msg.sender_type))}>
-                  <Icon className={cn("w-2.5 h-2.5", config.labelColor)} />
-                  <span className={cn("text-[9px] font-medium", config.labelColor, rtl && "font-arabic")}>
-                    {rtl ? config.labelAr : config.label}
-                  </span>
-                </div>
+              return (
+                <div key={msg.id} className="flex flex-col">
+                  {/* Sender label — inline with bubble, very compact */}
+                  <div className={cn("flex items-center gap-1 mb-0.5", getLabelAlignment(msg.sender_type))}>
+                    <Icon className={cn("w-2.5 h-2.5", config.labelColor)} />
+                    <span className={cn("text-[9px] font-medium", config.labelColor, rtl && "font-arabic")}>
+                      {rtl ? config.labelAr : config.label}
+                    </span>
+                  </div>
 
-                {/* Message bubble — aligned via margin-auto */}
-                <div
-                  className={cn(
-                    "flex flex-col max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap",
-                    isAgent && "max-w-[90%]",
-                    config.bubbleBg,
-                    config.bubbleText,
-                    getMessageAlignment(msg.sender_type)
-                  )}
-                  dir={rtl ? "rtl" : "ltr"}
-                >
-                  {msg.attachment_url && msg.attachment_url.trim() !== "" && (
-                    <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="mb-2 block max-w-full">
-                      {msg.content_type === "audio" ? (
-                        <audio controls src={msg.attachment_url} className="max-w-full" />
-                      ) : msg.content_type === "video" ? (
-                        <video controls src={msg.attachment_url} className="max-w-full max-h-64 rounded-lg" />
-                      ) : msg.content_type === "document" ? (
-                        <div className="flex items-center gap-2 p-2 bg-black/5 dark:bg-white/5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
-                          <span className="text-xl">📄</span>
-                          <span className="text-xs truncate font-medium underline">{msg.attachment_url.split('/').pop() || 'View Document'}</span>
-                        </div>
-                      ) : (
-                        <img 
-                          src={msg.attachment_url} 
-                          alt="Attachment" 
-                          className="max-w-full h-auto rounded-lg max-h-64 object-contain bg-black/5 dark:bg-white/5" 
-                        />
-                      )}
-                    </a>
-                  )}
-                  {msg.text_content && msg.text_content.trim() !== "" && (
-                    <p className={cn(rtl && "font-arabic", isDemo && "blur-[3.5px] select-none pointer-events-none")}>
-                      {maskText(msg.text_content, isDemo)}
-                    </p>
-                  )}
-                  <span 
-                    className="text-[9px] opacity-70 tabular-nums mt-1" 
-                    dir="ltr"
-                    style={{ textAlign: rtl ? 'left' : 'right' }}
+                  {/* Message bubble — aligned via margin-auto */}
+                  <div
+                    className={cn(
+                      "flex flex-col max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap",
+                      isAgent && "max-w-[90%]",
+                      config.bubbleBg,
+                      config.bubbleText,
+                      getMessageAlignment(msg.sender_type)
+                    )}
+                    dir={rtl ? "rtl" : "ltr"}
                   >
-                    {new Date(msg.sent_at || msg.platform_timestamp || msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
+                    {msg.attachment_url && msg.attachment_url.trim() !== "" && (
+                      <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="mb-2 block max-w-full">
+                        {msg.content_type === "audio" ? (
+                          <audio controls src={msg.attachment_url} className="max-w-full" />
+                        ) : msg.content_type === "video" ? (
+                          <video controls src={msg.attachment_url} className="max-w-full max-h-64 rounded-lg" />
+                        ) : msg.content_type === "document" ? (
+                          <div className="flex items-center gap-2 p-2 bg-black/5 dark:bg-white/5 rounded hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+                            <span className="text-xl">📄</span>
+                            <span className="text-xs truncate font-medium underline">{msg.attachment_url.split('/').pop() || 'View Document'}</span>
+                          </div>
+                        ) : (
+                          <img 
+                            src={msg.attachment_url} 
+                            alt="Attachment" 
+                            className="max-w-full h-auto rounded-lg max-h-64 object-contain bg-black/5 dark:bg-white/5" 
+                          />
+                        )}
+                      </a>
+                    )}
+                    {msg.text_content && msg.text_content.trim() !== "" && (
+                      <p className={cn(rtl && "font-arabic", isDemo && "blur-[3.5px] select-none pointer-events-none")}>
+                        {maskText(msg.text_content, isDemo)}
+                      </p>
+                    )}
+                    <span 
+                      className="text-[9px] opacity-70 tabular-nums mt-1" 
+                      dir="ltr"
+                      style={{ textAlign: rtl ? 'left' : 'right' }}
+                    >
+                      {new Date(msg.sent_at || msg.platform_timestamp || msg.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-          <div ref={messagesEndRef} />
-        </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
       </ScrollArea>
 
       {/* Message Input — compact, disabled when blocked */}
