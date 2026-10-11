@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
 import { normalizePhone } from "@/lib/phone";
-import { parseServiceNotice, getEarliestBookingDate, formatDisplayDate, getSaudiToday } from "@/lib/booking-notice";
+import {
+  parseServiceNotice,
+  getEarliestBookingDate,
+  formatDisplayDate,
+  getSaudiToday,
+  parseProductBookingWindow,
+  getLatestBookingDate,
+  formatBookingWindowLabel,
+} from "@/lib/booking-notice";
 import {
   createPaymentIntention,
   isPaymobConfigured,
@@ -118,7 +126,7 @@ export async function POST(req: NextRequest) {
     // 0. Get service details (for deposit amount and booking availability)
     const { data: service } = await supabase
       .from("Product")
-      .select("id, name, depositAmount, publishAt, maxSlots")
+      .select("*")
       .eq("id", serviceId)
       .single();
 
@@ -140,6 +148,18 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
+    }
+
+    // Check if chosen appointment date exceeds maximum rolling booking window
+    const windowDays = parseProductBookingWindow(service);
+    const maxAllowedDate = getLatestBookingDate(windowDays);
+    if (maxAllowedDate && date > maxAllowedDate) {
+      const formattedMax = formatDisplayDate(maxAllowedDate, "ar");
+      const windowLabel = formatBookingWindowLabel(windowDays, "ar");
+      return NextResponse.json(
+        { error: `عفواً، الحجز لهذه الخدمة متاح خلال ${windowLabel} فقط مقدماً (حتى تاريخ ${formattedMax})` },
+        { status: 400 }
+      );
     }
 
     // Validate that the appointment date hasn't already passed

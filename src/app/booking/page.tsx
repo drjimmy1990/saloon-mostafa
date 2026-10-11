@@ -11,10 +11,31 @@ import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/lib/auth-store";
 import { isValidPhone, normalizePhone } from "@/lib/phone";
-import { parseServiceNotice, getEarliestBookingDate, getSaudiToday, formatDisplayDate } from "@/lib/booking-notice";
+import {
+  parseServiceNotice,
+  getEarliestBookingDate,
+  getSaudiToday,
+  formatDisplayDate,
+  parseProductBookingWindow,
+  getLatestBookingDate,
+  formatBookingWindowLabel,
+} from "@/lib/booking-notice";
 
 interface StaffInfo { id: string; name: string; nameAr?: string; avatar?: string; role?: string; }
-interface Service { id: string; name: string; price: number; images: string[]; category?: string; durationMinutes?: number; durationMode?: "time" | "queue"; depositAmount?: number; publishAt?: string | null; staff: StaffInfo[]; }
+interface Service {
+  id: string;
+  name: string;
+  price: number;
+  images: string[];
+  category?: string;
+  durationMinutes?: number;
+  durationMode?: "time" | "queue";
+  depositAmount?: number;
+  publishAt?: string | null;
+  notes?: string;
+  bookingWindowDays?: number | null;
+  staff: StaffInfo[];
+}
 interface CategoryGroup { category: string; image: string | null; services: Service[]; }
 interface BranchItem { id: string; name: string; nameAr?: string; address?: string; }
 
@@ -199,6 +220,8 @@ function BookingForm() {
 
   const today = getSaudiToday();
   const minDate = getEarliestBookingDate(serviceObj?.publishAt);
+  const windowDays = parseProductBookingWindow(serviceObj);
+  const maxDate = getLatestBookingDate(windowDays);
 
   const fmt12h = (t24: string) => {
     const [h, m] = t24.split(":").map(Number);
@@ -305,9 +328,11 @@ function BookingForm() {
           return (
             <button key={key}
               onClick={() => { setSelectedService(svc.id); setSelectedStaff(st.id);
-                // Reset date if it's before this service's availability start
+                // Reset date if it's outside this service's rolling availability window
                 const svcMinDate = getEarliestBookingDate(svc.publishAt);
-                if (selectedDate && selectedDate < svcMinDate) {
+                const svcWindowDays = parseProductBookingWindow(svc);
+                const svcMaxDate = getLatestBookingDate(svcWindowDays);
+                if (selectedDate && (selectedDate < svcMinDate || (svcMaxDate && selectedDate > svcMaxDate))) {
                   setSelectedDate(""); setSelectedTime("");
                 }
                 setTimeout(() => setStep(3), 250);
@@ -445,7 +470,21 @@ function BookingForm() {
 
       <div className="space-y-2">
         <Label className="text-right block font-arabic">التاريخ</Label>
-        <Input type="date" min={minDate} value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} dir="ltr" />
+        <Input
+          type="date"
+          min={minDate}
+          max={maxDate || undefined}
+          value={selectedDate}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (maxDate && val > maxDate) {
+              toast.error(`عفواً، أقصى موعد متاح للحجز هو ${formatDisplayDate(maxDate, "ar")}`);
+              return;
+            }
+            setSelectedDate(val);
+          }}
+          dir="ltr"
+        />
         {serviceObj?.publishAt && minDate > today && (
           <p className="text-xs text-amber-600 font-arabic text-right mt-1.5 flex items-center gap-1 justify-end">
             <Clock className="w-3.5 h-3.5 shrink-0" />
@@ -453,6 +492,16 @@ function BookingForm() {
               أقرب موعد متاح:{" "}
               <strong className="font-bold">{formatDisplayDate(minDate, "ar")}</strong>
               {parseServiceNotice(serviceObj.publishAt).noticeHours > 0 && ` (يتطلب حجزاً مسبقاً قبل ${parseServiceNotice(serviceObj.publishAt).labelAr})`}
+            </span>
+          </p>
+        )}
+        {maxDate && (
+          <p className="text-xs text-stone-600 dark:text-stone-300 font-arabic text-right mt-1.5 flex items-center gap-1 justify-end">
+            <Calendar className="w-3.5 h-3.5 shrink-0 text-amber-600" />
+            <span>
+              أقصى موعد متاح للحجز:{" "}
+              <strong className="font-bold text-amber-700 dark:text-amber-400">{formatDisplayDate(maxDate, "ar")}</strong>
+              {windowDays && ` (خلال ${formatBookingWindowLabel(windowDays, "ar")} من اليوم)`}
             </span>
           </p>
         )}
