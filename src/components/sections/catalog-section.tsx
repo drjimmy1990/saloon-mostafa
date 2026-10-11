@@ -24,7 +24,14 @@ import {
   Clock,
 } from "lucide-react";
 import { uploadImage, deleteImage } from "@/lib/storage";
-import { parseServiceNotice, formatServiceNoticeTimestamp, getSaudiToday } from "@/lib/booking-notice";
+import {
+  parseServiceNotice,
+  formatServiceNoticeTimestamp,
+  getSaudiToday,
+  BOOKING_WINDOW_PRESETS,
+  parseProductBookingWindow,
+  formatBookingWindowLabel,
+} from "@/lib/booking-notice";
 import {
   Card,
   CardContent,
@@ -102,6 +109,7 @@ interface Product {
   durationMode?: 'time' | 'queue';
   depositAmount?: number;
   publishAt?: string | null;
+  bookingWindowDays?: number | null;
 }
 
 interface ProductFormData {
@@ -121,6 +129,7 @@ interface ProductFormData {
   depositAmount: number;
   noticeHours: number;
   publishAt: string;
+  bookingWindowDays: number | null;
 }
 
 export type CatalogMode = 'services' | 'products';
@@ -244,6 +253,7 @@ const emptyProductFormData: ProductFormData = {
   depositAmount: 0,
   noticeHours: 0,
   publishAt: "",
+  bookingWindowDays: null,
 };
 
 const DURATION_OPTIONS = [15, 30, 45, 50, 60, 90, 120, 180];
@@ -475,6 +485,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
       depositAmount: product.depositAmount ?? 0,
       noticeHours: noticeInfo.noticeHours,
       publishAt: formattedPublishAt,
+      bookingWindowDays: parseProductBookingWindow(product),
     });
     if (isServices) fetchAssignedStaff(product.id);
     setProductDialogOpen(true);
@@ -515,6 +526,7 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
       durationMode: formData.durationMode,
       depositAmount: formData.depositAmount,
       publishAt: publishAtValue,
+      bookingWindowDays: formData.bookingWindowDays,
     };
 
     try {
@@ -953,6 +965,27 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                       );
                     }
                     return null;
+                  })()}
+
+                  {/* Rolling booking window horizon badge */}
+                  {(() => {
+                    const windowDays = parseProductBookingWindow(product);
+                    if (!windowDays) return null;
+                    const topClass = product.publishAt ? "top-14" : "top-8";
+                    return (
+                      <div className={cn("absolute", topClass, rtl ? "right-2" : "left-2")}>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "gap-1 text-[10px] font-medium border shadow-sm",
+                            "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border-purple-300 dark:border-purple-800/50"
+                          )}
+                        >
+                          <Calendar className="w-3 h-3" />
+                          {rtl ? `أقصاه ${formatBookingWindowLabel(windowDays, 'ar')}` : `Max: ${formatBookingWindowLabel(windowDays, 'en')}`}
+                        </Badge>
+                      </div>
+                    );
                   })()}
 
                   {/* Category Badge */}
@@ -1466,6 +1499,57 @@ export function CatalogSection({ mode = 'services' }: { mode?: CatalogMode }) {
                       </span>
                     </p>
                   </div>
+                </div>
+
+                {/* ─── Maximum Advance Booking Window (Rolling Horizon) ─── */}
+                <div className="space-y-2 pt-2 border-t border-border/50">
+                  <div className="flex items-center justify-between">
+                    <Label className={cn("block text-xs font-medium", rtl && "text-right font-arabic")}>
+                      {rtl ? "أقصى فترة للحجز المسبق (نافذة الحجز)" : "Maximum Advance Booking Window"}
+                    </Label>
+                    {formData.bookingWindowDays !== null && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, bookingWindowDays: null }))}
+                        className={cn("text-[11px] text-muted-foreground hover:text-destructive transition-colors", rtl && "font-arabic")}
+                      >
+                        {rtl ? "إلغاء التقييد (مفتوح)" : "Clear (Unlimited)"}
+                      </button>
+                    )}
+                  </div>
+                  {/* Quick Presets */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {BOOKING_WINDOW_PRESETS.map(opt => {
+                      const isSelected = formData.bookingWindowDays === opt.days;
+                      return (
+                        <Button
+                          key={opt.days === null ? "unlimited" : opt.days}
+                          type="button"
+                          variant={isSelected ? "secondary" : "outline"}
+                          size="sm"
+                          className={cn(
+                            "h-7 px-2.5 text-[11px]",
+                            rtl && "font-arabic",
+                            isSelected && "bg-sage-100 text-sage-800 dark:bg-sage-900/40 border-sage-400 font-semibold ring-1 ring-sage-400"
+                          )}
+                          onClick={() => setFormData(prev => ({ ...prev, bookingWindowDays: opt.days }))}
+                        >
+                          {rtl ? opt.labelAr : opt.labelEn}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  {/* Helper description */}
+                  <p className={cn("text-[11px] font-arabic flex items-start gap-1 mt-1.5 leading-relaxed text-muted-foreground")}>
+                    <Calendar className="w-3.5 h-3.5 shrink-0 mt-0.5 text-sage-600" />
+                    <span>
+                      {formData.bookingWindowDays === null
+                        ? (rtl ? "✅ حجز مفتوح: يمكن للعميل حجز أي تاريخ متاح في المستقبل بدون قيود أفقية." : "Unlimited: Clients can book any open date in the future.")
+                        : (rtl
+                            ? `📅 مقيد بـ ${formatBookingWindowLabel(formData.bookingWindowDays, 'ar')}: يتم حساب التاريخ لحظة رغبة العميل في الحجز، بحيث لا يُسمح له بحجز أي موعد بعد ${formData.bookingWindowDays} يوماً من تاريخ اليوم.`
+                            : `Limited to ${formData.bookingWindowDays} days rolling horizon from today.`)}
+                    </span>
+                  </p>
                 </div>
               </>
             )}

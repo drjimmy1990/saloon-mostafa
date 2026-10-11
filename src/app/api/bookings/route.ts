@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
 import { getAuthUser } from '@/lib/auth';
 import { normalizePhone } from '@/lib/phone';
+import {
+  parseProductBookingWindow,
+  getLatestBookingDate,
+  formatBookingWindowLabel,
+  formatDisplayDate,
+} from '@/lib/booking-notice';
 
 export const dynamic = 'force-dynamic';
 
@@ -244,7 +250,7 @@ export async function POST(request: NextRequest) {
       insertData.serviceId = serviceId;
       const { data: product } = await supabase
         .from('Product')
-        .select('name, durationMinutes, durationMode, maxSlots')
+        .select('*')
         .eq('id', serviceId)
         .maybeSingle();
       if (product) {
@@ -255,6 +261,18 @@ export async function POST(request: NextRequest) {
           insertData.serviceSummary = personsCount > 1 ? `${product.name} (${personsCount} أشخاص)` : product.name;
         }
         maxSlots = product.maxSlots || null;
+
+        // Check rolling maximum booking window
+        const windowDays = parseProductBookingWindow(product);
+        const latest = getLatestBookingDate(windowDays);
+        if (latest && targetDateString && targetDateString > latest) {
+          if (releaseLock) releaseLock();
+          const windowLabel = formatBookingWindowLabel(windowDays, "ar");
+          const formattedMax = formatDisplayDate(latest, "ar");
+          return NextResponse.json({
+            error: `عفواً، الحجز لهذه الخدمة متاح خلال ${windowLabel} فقط مقدماً (حتى تاريخ ${formattedMax}).`
+          }, { status: 400 });
+        }
       }
     }
 

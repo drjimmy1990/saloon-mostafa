@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
 import { getAuthUser } from '@/lib/auth';
+import { parseProductBookingWindow, formatProductNotesWithWindow } from '@/lib/booking-notice';
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -10,7 +11,11 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const supabase = getServiceRoleClient();
     const { data: product, error } = await supabase.from('Product').select('*, Branch(*)').eq('id', id).single();
     if (error || !product) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    return NextResponse.json(product);
+    const normalized = {
+      ...product,
+      bookingWindowDays: parseProductBookingWindow(product),
+    };
+    return NextResponse.json(normalized);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to fetch product' }, { status: 500 });
@@ -43,16 +48,44 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.depositAmount !== undefined) updateData.depositAmount = body.depositAmount;
     if (body.publishAt !== undefined) updateData.publishAt = body.publishAt || null;
 
-    const { data: product, error } = await supabase
+    const windowDays = body.bookingWindowDays !== undefined
+      ? (body.bookingWindowDays !== null && body.bookingWindowDays !== "" ? Number(body.bookingWindowDays) : null)
+      : undefined;
+
+    if (windowDays !== undefined) {
+      updateData.bookingWindowDays = windowDays;
+    }
+
+    let { data: product, error } = await supabase
       .from('Product')
       .update(updateData)
       .eq('id', id)
       .select("*, Branch(*)")
       .single();
 
+    if (error && error.message?.includes('bookingWindowDays')) {
+      // Fallback if column does not exist yet: update notes
+      delete updateData.bookingWindowDays;
+      const currentNotes = body.notes !== undefined ? body.notes : '';
+      updateData.notes = formatProductNotesWithWindow(currentNotes, windowDays !== undefined ? windowDays : null);
+      const fallback = await supabase
+        .from('Product')
+        .update(updateData)
+        .eq('id', id)
+        .select("*, Branch(*)")
+        .single();
+      product = fallback.data;
+      error = fallback.error;
+    }
+
     if (error) throw error;
 
-    return NextResponse.json(product);
+    const normalized = product ? {
+      ...product,
+      bookingWindowDays: parseProductBookingWindow(product),
+    } : product;
+
+    return NextResponse.json(normalized);
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });

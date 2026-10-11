@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
 import { getAuthUser } from "@/lib/auth";
-import { parseServiceNotice, getEarliestBookingDate, formatDisplayDate, getSaudiToday } from "@/lib/booking-notice";
+import {
+  parseServiceNotice,
+  getEarliestBookingDate,
+  formatDisplayDate,
+  getSaudiToday,
+  parseProductBookingWindow,
+  getLatestBookingDate,
+  formatBookingWindowLabel,
+} from "@/lib/booking-notice";
 
 export const dynamic = "force-dynamic";
 
@@ -31,10 +39,10 @@ export async function GET(req: NextRequest) {
 
     const supabase = getServiceRoleClient();
 
-    // 1. Get service details (duration, mode, booking availability)
+    // 1. Get service details (duration, mode, booking availability, rolling window)
     const { data: service, error: svcErr } = await supabase
       .from("Product")
-      .select("id, name, durationMinutes, durationMode, depositAmount, publishAt")
+      .select("*")
       .eq("id", serviceId)
       .single();
 
@@ -46,6 +54,8 @@ export async function GET(req: NextRequest) {
     const saudiToday = getSaudiToday();
     const earliestBookingDate = getEarliestBookingDate(service.publishAt);
     const minAllowedDate = earliestBookingDate > saudiToday ? earliestBookingDate : saudiToday;
+    const windowDays = parseProductBookingWindow(service);
+    const maxAllowedDate = getLatestBookingDate(windowDays);
 
     if (date < minAllowedDate) {
       const notice = parseServiceNotice(service.publishAt);
@@ -63,6 +73,19 @@ export async function GET(req: NextRequest) {
         bookingNotYetOpen: true,
         availabilityStartDate: minAllowedDate,
         message,
+      });
+    }
+
+    if (maxAllowedDate && date > maxAllowedDate) {
+      const formattedMax = formatDisplayDate(maxAllowedDate, "ar");
+      const windowLabel = formatBookingWindowLabel(windowDays, "ar");
+      return NextResponse.json({
+        mode: service.durationMode,
+        slots: [],
+        blocked: false,
+        bookingWindowExceeded: true,
+        maxAllowedDate,
+        message: `عفواً، الحجز لهذه الخدمة متاح خلال ${windowLabel} فقط مقدماً (حتى تاريخ ${formattedMax}).`,
       });
     }
 

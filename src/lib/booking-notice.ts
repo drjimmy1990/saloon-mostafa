@@ -164,3 +164,69 @@ export function getEarliestBookingDate(publishAt?: string | null): string {
 
   return saudiToday;
 }
+
+/**
+ * Presets for rolling maximum advance booking window (in days)
+ */
+export const BOOKING_WINDOW_PRESETS = [
+  { days: null, labelAr: "مفتوح (بدون حد أقصى)", labelEn: "Unlimited" },
+  { days: 30, labelAr: "شهر (30 يوماً)", labelEn: "1 Month (30 days)" },
+  { days: 60, labelAr: "شهران (60 يوماً)", labelEn: "2 Months (60 days)" },
+  { days: 90, labelAr: "3 أشهر (90 يوماً)", labelEn: "3 Months (90 days)" },
+  { days: 120, labelAr: "4 أشهر (120 يوماً)", labelEn: "4 Months (120 days)" },
+] as const;
+
+/**
+ * Parses/extracts bookingWindowDays (rolling future horizon in days) from product.
+ * Supports both dedicated column `bookingWindowDays` and resilient fallback metadata in `notes`.
+ */
+export function parseProductBookingWindow(product?: { bookingWindowDays?: number | null; notes?: string | null } | null): number | null {
+  if (!product) return null;
+  if (typeof product.bookingWindowDays === "number" && product.bookingWindowDays > 0) {
+    return product.bookingWindowDays;
+  }
+  if (product.notes) {
+    const match = product.notes.match(/\[bookingWindowDays:(\d+)\]/i);
+    if (match && match[1]) {
+      const val = parseInt(match[1], 10);
+      if (val > 0) return val;
+    }
+  }
+  return null;
+}
+
+/**
+ * Calculates the maximum allowed booking date (YYYY-MM-DD) for a service based on rolling window.
+ * Returns null if unlimited.
+ */
+export function getLatestBookingDate(bookingWindowDays?: number | null): string | null {
+  if (!bookingWindowDays || bookingWindowDays <= 0) return null;
+  const saudiToday = getSaudiToday();
+  return addDaysToDateString(saudiToday, bookingWindowDays);
+}
+
+/**
+ * Human-readable Arabic and English label for a booking window duration.
+ */
+export function formatBookingWindowLabel(days: number | null, locale: "ar" | "en" = "ar"): string {
+  if (!days || days <= 0) {
+    return locale === "ar" ? "مفتوح (بدون حد أقصى)" : "Unlimited";
+  }
+  if (days === 30) return locale === "ar" ? "شهر (30 يوماً)" : "1 Month (30 days)";
+  if (days === 60) return locale === "ar" ? "شهران (60 يوماً)" : "2 Months (60 days)";
+  if (days === 90) return locale === "ar" ? "3 أشهر (90 يوماً)" : "3 Months (90 days)";
+  if (days === 120) return locale === "ar" ? "4 أشهر (120 يوماً)" : "4 Months (120 days)";
+  return locale === "ar" ? `${days} يوماً` : `${days} days`;
+}
+
+/**
+ * Clean and update product notes to inject or strip `[bookingWindowDays:X]` metadata.
+ */
+export function formatProductNotesWithWindow(originalNotes: string | null | undefined, windowDays: number | null): string {
+  const clean = (originalNotes || "").replace(/\s*\[bookingWindowDays:\d+\]/gi, "").trim();
+  if (windowDays && windowDays > 0) {
+    return clean ? `${clean} [bookingWindowDays:${windowDays}]` : `[bookingWindowDays:${windowDays}]`;
+  }
+  return clean;
+}
+
