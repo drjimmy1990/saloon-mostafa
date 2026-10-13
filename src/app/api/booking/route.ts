@@ -498,7 +498,7 @@ export async function POST(req: NextRequest) {
 
       if (initialStatus === "confirmed") {
         for (const b of createdBookings) {
-          dispatchBookingWebhook({ bookingId: b.id, source: "website" })
+          await dispatchBookingWebhook({ bookingId: b.id, source: "website" })
             .catch((err) => console.error("[Website Booking] Webhook error:", err));
         }
       }
@@ -640,7 +640,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (initialStatus === "confirmed" && booking?.id) {
-      dispatchBookingWebhook({ bookingId: booking.id, source: "website" })
+      await dispatchBookingWebhook({ bookingId: booking.id, source: "website" })
         .catch((err) => console.error("[Website Booking] Webhook error:", err));
     }
 
