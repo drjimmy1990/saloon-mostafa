@@ -101,18 +101,12 @@ export async function dispatchBookingWebhook(
       return { success: true, skipped: true };
     }
 
-    // 2. Fetch full booking details with relations
+    // 2. Fetch full booking details
     let booking = opts.booking;
     if (!booking) {
       const { data: fetched, error: fetchErr } = await supabase
         .from("Booking")
-        .select(`
-          *,
-          client:Client(*),
-          service:Product(*),
-          staff:Staff!Booking_staff_id_fkey(id, name, nameAr),
-          branch:Branch(id, name, nameAr)
-        `)
+        .select("*")
         .eq("id", opts.bookingId)
         .maybeSingle();
 
@@ -123,10 +117,26 @@ export async function dispatchBookingWebhook(
       booking = fetched;
     }
 
-    const client = booking.client || {};
-    const service = booking.service || {};
-    const staff = booking.staff || {};
-    const branch = booking.branch || {};
+    // 3. Resilient parallel fetch for related entities (avoids foreign key join issues)
+    const [clientRes, serviceRes, staffRes, branchRes] = await Promise.all([
+      booking.client_id
+        ? supabase.from("Client").select("*").eq("id", booking.client_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      booking.serviceId
+        ? supabase.from("Product").select("*").eq("id", booking.serviceId).maybeSingle()
+        : Promise.resolve({ data: null }),
+      booking.staff_id && booking.staff_id !== "none"
+        ? supabase.from("Staff").select("id, name, phone").eq("id", booking.staff_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+      booking.branchId
+        ? supabase.from("Branch").select("id, name, nameAr").eq("id", booking.branchId).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+
+    const client = clientRes.data || booking.client || {};
+    const service = serviceRes.data || booking.service || {};
+    const staff = staffRes.data || booking.staff || {};
+    const branch = branchRes.data || booking.branch || {};
 
     const customerName = (client.name || "عميلة صالون نون").trim();
     const rawPhone = client.phone || "";
@@ -135,7 +145,7 @@ export async function dispatchBookingWebhook(
     const phoneWithPlus = cleanPhone ? `+${cleanPhone}` : "";
 
     const serviceName = (service.name || booking.serviceSummary || "خدمة صالون نون").trim();
-    const staffName = (staff.name || staff.nameAr || "صالون نون").trim();
+    const staffName = (staff.name || "صالون نون").trim();
 
     const servicePrice = Number(service.price) || 0;
     let paidAmount = 0;
