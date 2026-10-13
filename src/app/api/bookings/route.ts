@@ -476,13 +476,16 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    // Dispatch webhook for booking confirmation (non-blocking)
-    dispatchBookingWebhook({
-      bookingId: booking.id,
-      source: (body.source as any) || 'manual',
-    }).catch((err) => {
-      console.error('[POST /api/bookings] Failed to dispatch booking webhook:', err);
-    });
+    // Dispatch webhook for booking confirmation when confirmed
+    if (booking.status === 'confirmed') {
+      await dispatchBookingWebhook({
+        bookingId: booking.id,
+        source: (body.source as any) || 'manual',
+        booking,
+      }).catch((err) => {
+        console.error('[POST /api/bookings] Failed to dispatch booking webhook:', err);
+      });
+    }
 
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {

@@ -235,6 +235,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.location !== undefined) updateData.location = body.location;
     if (body.notes !== undefined) updateData.notes = body.notes;
     if (body.slotNumber !== undefined) updateData.slotNumber = body.slotNumber;
+    if (body.depositAmount !== undefined) updateData.depositAmount = Number(body.depositAmount);
+    if (body.paymentMethod !== undefined) updateData.paymentMethod = body.paymentMethod;
+    if (body.depositStatus !== undefined) {
+      updateData.depositStatus = body.depositStatus;
+    } else if (
+      body.status === 'confirmed' &&
+      existingBooking.status === 'waiting_payment' &&
+      existingBooking.depositStatus === 'unpaid'
+    ) {
+      updateData.depositStatus = 'paid';
+    }
 
     if (calculatedBookingDate) {
       updateData.bookingDate = calculatedBookingDate;
@@ -260,12 +271,15 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       throw error;
     }
 
-    // If booking was updated to confirmed, trigger confirmation webhook (non-blocking)
-    const isNowConfirmed = body.status === 'confirmed' && existingBooking.status !== 'confirmed';
+    // If booking was updated to confirmed or became paid while confirmed, trigger confirmation webhook
+    const isNowConfirmed =
+      (booking.status === 'confirmed' && existingBooking.status !== 'confirmed') ||
+      (booking.status === 'confirmed' && booking.depositStatus === 'paid' && existingBooking.depositStatus !== 'paid');
     if (isNowConfirmed) {
-      dispatchBookingWebhook({
+      await dispatchBookingWebhook({
         bookingId: id,
-        source: (existingBooking.channelType as any) || 'manual',
+        source: (booking.channelType as any) || 'manual',
+        booking,
       }).catch((e) => console.error('[PUT /api/bookings/[id]] Webhook error:', e));
     }
 
