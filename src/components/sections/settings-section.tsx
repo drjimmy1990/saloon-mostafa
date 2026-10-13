@@ -1150,7 +1150,7 @@ export function SettingsSection() {
                   </div>
                   <div className="p-2 rounded bg-background border border-border/40 sm:col-span-2">
                     <span className="text-muted-foreground block font-sans">{"{{7}}"} كود الحجز:</span>
-                    <span className="font-semibold text-primary font-sans">كود الحجز (CD109100 / NOON-4821)</span>
+                    <span className="font-semibold text-primary font-sans">كود الحجز (M-0001 / CD109100)</span>
                   </div>
                 </div>
               </div>

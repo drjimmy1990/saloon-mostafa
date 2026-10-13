@@ -2084,7 +2084,7 @@ export function BookingsSection() {
                 <Input
                   value={mbBookingCode}
                   onChange={(e) => setMbBookingCode(e.target.value)}
-                  placeholder={rtl ? "توليد تلقائي (مثل NOON-4821)" : "Auto-generated (e.g. NOON-4821)"}
+                  placeholder={rtl ? "توليد تلقائي (مثل M-0001)" : "Auto-generated (e.g. M-0001)"}
                   dir="ltr"
                   className={cn(rtl && "font-arabic")}
                 />

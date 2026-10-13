@@ -8,7 +8,7 @@ import {
   formatBookingWindowLabel,
   formatDisplayDate,
 } from '@/lib/booking-notice';
-import { generateUniqueBookingCode } from '@/lib/booking-code';
+import { generateUniqueBookingCode, generateManualBookingCode } from '@/lib/booking-code';
 import { dispatchBookingWebhook } from '@/lib/booking-webhook';
 
 export const dynamic = 'force-dynamic';
@@ -230,7 +230,10 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      bookingCode = await generateUniqueBookingCode(supabase, 'NOON');
+      const isManual = body.source === 'manual' || body.channelType === 'manual' || !body.channelType;
+      bookingCode = isManual
+        ? await generateManualBookingCode(supabase, 'M')
+        : await generateUniqueBookingCode(supabase, 'NOON');
     }
 
     const insertData: Record<string, unknown> = {
