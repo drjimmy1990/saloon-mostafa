@@ -6,6 +6,11 @@ export const ARABIC_MONTHS = [
   "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"
 ];
 
+export const ENGLISH_MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+
 /**
  * Format date & time into friendly Arabic appointment string
  * e.g. "15 أكتوبر 2026 الساعة 10:00 صباحًا"
@@ -69,6 +74,60 @@ export function formatArabicAppointmentDate(
   }
 
   return `${day} ${monthName} ${year}`;
+}
+
+export function formatEnglishAppointmentDate(
+  dateInput: string | Date | null | undefined
+): string {
+  if (!dateInput) return "";
+  let year = "";
+  let month = 0;
+  let day = 0;
+
+  if (typeof dateInput === "string") {
+    const dateMatch = dateInput.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (dateMatch) {
+      year = dateMatch[1];
+      month = parseInt(dateMatch[2], 10);
+      day = parseInt(dateMatch[3], 10);
+    }
+  }
+
+  if (!year || !month || !day) {
+    const d = new Date(dateInput);
+    if (!isNaN(d.getTime())) {
+      year = String(d.getUTCFullYear());
+      month = d.getUTCMonth() + 1;
+      day = d.getUTCDate();
+    } else {
+      return String(dateInput);
+    }
+  }
+
+  const monthName = ENGLISH_MONTHS[month - 1] || "";
+  return `${day} ${monthName} ${year}`;
+}
+
+export function formatEnglishTime(
+  timeInput?: string | null,
+  dateInput?: string | Date | null
+): string {
+  let timeStr = timeInput ? String(timeInput).trim() : "";
+  if (!timeStr && typeof dateInput === "string" && dateInput.includes("T")) {
+    const timeMatch = dateInput.match(/T(\d{2}):(\d{2})/);
+    if (timeMatch && timeMatch[1] !== "00") {
+      timeStr = `${timeMatch[1]}:${timeMatch[2]}`;
+    }
+  }
+  if (!timeStr) return "";
+  const timeClean = timeStr.slice(0, 5);
+  const [hRaw, mRaw] = timeClean.split(":");
+  const h = parseInt(hRaw, 10);
+  const m = mRaw || "00";
+  if (isNaN(h)) return timeStr;
+  const period = h >= 12 ? "PM" : "AM";
+  const displayH = h % 12 === 0 ? 12 : h % 12;
+  return `${displayH}:${m} ${period}`;
 }
 
 export interface BookingWebhookOptions {
@@ -168,6 +227,31 @@ export async function dispatchBookingWebhook(
 
     const bookingCode = booking.bookingCode || `NOON-${String(booking.id || "").slice(0, 4) || "0000"}`;
 
+    const dateClean = typeof booking.bookingDate === "string" && booking.bookingDate.match(/^(\d{4}-\d{2}-\d{2})/)
+      ? booking.bookingDate.match(/^(\d{4}-\d{2}-\d{2})/)![1]
+      : (booking.bookingDate ? new Date(booking.bookingDate).toISOString().split('T')[0] : "");
+    const timeClean = booking.bookingTime ? String(booking.bookingTime).slice(0, 5) : "";
+    const dateFormattedEn = formatEnglishAppointmentDate(booking.bookingDate);
+    const timeFormattedEn = formatEnglishTime(booking.bookingTime, booking.bookingDate);
+
+    const template5Params = [
+      customerName,
+      serviceName,
+      dateFormattedEn || dateClean,
+      timeFormattedEn || timeClean || "10:00 AM",
+      bookingCode,
+    ];
+
+    const template7Params = [
+      customerName,
+      serviceName,
+      staffName,
+      paidFormatted,
+      remainingFormatted,
+      appointmentFormatted,
+      bookingCode,
+    ];
+
     // Webhook Payload structured for n8n & WhatsApp Cloud API Template
     const payload = {
       event: "booking_confirmed",
@@ -205,7 +289,11 @@ export async function dispatchBookingWebhook(
       appointment: {
         date: booking.bookingDate,
         time: booking.bookingTime || null,
+        date_clean: dateClean,
+        time_clean: timeClean,
         formatted_ar: appointmentFormatted,
+        formatted_date_en: dateFormattedEn,
+        formatted_time_en: timeFormattedEn,
         queue_number: booking.queueNumber || null,
         slot_number: booking.slotNumber || null,
         location: booking.location || "salon",
@@ -219,14 +307,13 @@ export async function dispatchBookingWebhook(
         payment_method: booking.paymentMethod || "cash",
         deposit_status: booking.depositStatus || "unpaid",
       },
+      // 5-parameter template format (e.g. city_doctor_booking_confirmation)
+      // {{1}} Name, {{2}} Service, {{3}} Date, {{4}} Time, {{5}} Booking Reference
+      template_5_params: template5Params,
+      // 7-parameter template format (e.g. noon_booking_confirmationv2)
+      // {{1}} Name, {{2}} Service, {{3}} Specialist, {{4}} Paid, {{5}} Remaining, {{6}} Appointment, {{7}} Booking Code
+      template_7_params: template7Params,
       // Exact 7 body parameters matching WhatsApp template "noon_booking_confirmationv2":
-      // {{1}} Customer Name
-      // {{2}} Service Name
-      // {{3}} Specialist Name
-      // {{4}} Paid Amount (e.g. ٥٠ ريال / 50 ريال)
-      // {{5}} Remaining Amount (e.g. ٢٠٥ ريال / 205 ريال)
-      // {{6}} Appointment Date & Time (e.g. 15 أكتوبر 2026 الساعة 10:00 صباحًا)
-      // {{7}} Booking Code (e.g. CD109100 / NOON-4821)
       parameters: {
         "1": customerName,
         "2": serviceName,
@@ -236,15 +323,22 @@ export async function dispatchBookingWebhook(
         "6": appointmentFormatted,
         "7": bookingCode,
       },
-      parameters_array: [
-        customerName,
-        serviceName,
-        staffName,
-        paidFormatted,
-        remainingFormatted,
-        appointmentFormatted,
-        bookingCode,
-      ],
+      parameters_array: template7Params,
+      // Ready-to-send payload for Zernio API / Custom HTTP Request node
+      zernio_city_doctor_payload: {
+        accountId: "6a4a53109d9472faae8493e7",
+        participantId: whatsappPhone,
+        templateName: "city_doctor_booking_confirmation",
+        templateLanguage: "en",
+        templateParams: template5Params,
+      },
+      zernio_noon_booking_payload: {
+        accountId: "6a4a53109d9472faae8493e7",
+        participantId: whatsappPhone,
+        templateName: "noon_booking_confirmationv2",
+        templateLanguage: "ar",
+        templateParams: template7Params,
+      },
       // Ready-to-send Meta WhatsApp Cloud API body for n8n HTTP Request node
       whatsapp_payload: {
         messaging_product: "whatsapp",
