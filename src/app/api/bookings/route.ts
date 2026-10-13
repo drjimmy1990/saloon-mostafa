@@ -8,6 +8,8 @@ import {
   formatBookingWindowLabel,
   formatDisplayDate,
 } from '@/lib/booking-notice';
+import { generateUniqueBookingCode } from '@/lib/booking-code';
+import { dispatchBookingWebhook } from '@/lib/booking-webhook';
 
 export const dynamic = 'force-dynamic';
 
@@ -211,11 +213,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Generate or validate unique booking code
+    let bookingCode = body.bookingCode ? String(body.bookingCode).trim() : '';
+    if (bookingCode) {
+      const { data: existingCode } = await supabase
+        .from('Booking')
+        .select('id')
+        .eq('bookingCode', bookingCode)
+        .maybeSingle();
+
+      if (existingCode) {
+        if (releaseLock) releaseLock();
+        return NextResponse.json(
+          { error: 'كود الحجز هذا مستخدم بالفعل. يرجى اختيار كود آخر أو تركه فارغاً للتوليد التلقائي.' },
+          { status: 409 }
+        );
+      }
+    } else {
+      bookingCode = await generateUniqueBookingCode(supabase, 'NOON');
+    }
+
     const insertData: Record<string, unknown> = {
       client_id: clientId,
       serviceSummary: body.serviceSummary,
       channelType: body.channelType || 'manual',
       status: body.status ?? 'confirmed',
+      bookingCode,
+      depositStatus: body.depositStatus || (Number(body.depositAmount) > 0 ? 'paid' : 'unpaid'),
     };
 
     if (body.staff_id && body.staff_id !== "none") insertData.staff_id = body.staff_id;
@@ -448,6 +472,15 @@ export async function POST(request: NextRequest) {
       }
       throw error;
     }
+
+    // Dispatch webhook for booking confirmation (non-blocking)
+    dispatchBookingWebhook({
+      bookingId: booking.id,
+      source: (body.source as any) || 'manual',
+    }).catch((err) => {
+      console.error('[POST /api/bookings] Failed to dispatch booking webhook:', err);
+    });
+
     return NextResponse.json(booking, { status: 201 });
   } catch (error) {
     console.error(error);

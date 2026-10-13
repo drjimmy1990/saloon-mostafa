@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { t, isRTL } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Settings, Save, Users, Trash2, Plus, Globe, Clock, Image as ImageIcon, Upload, Loader2, Building2, Copy, Check, Sparkles, Lock } from "lucide-react";
+import { Settings, Save, Users, Trash2, Plus, Globe, Clock, Image as ImageIcon, Upload, Loader2, Building2, Copy, Check, Sparkles, Lock, Webhook, Send } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -116,6 +116,8 @@ export function SettingsSection() {
   const [heroImage1, setHeroImage1] = useState("");
   const [heroImage2, setHeroImage2] = useState("");
   const [heroImage3, setHeroImage3] = useState("");
+  const [bookingWebhookUrl, setBookingWebhookUrl] = useState("");
+  const [isTestingWebhook, setIsTestingWebhook] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [isUploading1, setIsUploading1] = useState(false);
   const [isUploading2, setIsUploading2] = useState(false);
@@ -190,6 +192,7 @@ export function SettingsSection() {
         setHeroImage1(settingsData.hero_image_1 || "");
         setHeroImage2(settingsData.hero_image_2 || "");
         setHeroImage3(settingsData.hero_image_3 || "");
+        setBookingWebhookUrl(settingsData.booking_webhook_url || "");
 
         if (settingsData.branch_working_hours) {
           try {
@@ -374,6 +377,7 @@ export function SettingsSection() {
         hero_image_1: heroImage1,
         hero_image_2: heroImage2,
         hero_image_3: heroImage3,
+        booking_webhook_url: bookingWebhookUrl.trim(),
         branch_working_hours: JSON.stringify(branchSchedules),
       };
       const [settingsRes] = await Promise.all([
@@ -406,6 +410,42 @@ export function SettingsSection() {
       toast.error(rtl ? "حدث خطأ أثناء حفظ الإعدادات" : "An error occurred while saving settings");
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  const handleTestWebhook = async () => {
+    const trimmed = bookingWebhookUrl.trim();
+    if (!trimmed) {
+      toast.error(rtl ? "يرجى إدخال رابط الويب هوك أولاً" : "Please enter a webhook URL first");
+      return;
+    }
+    if (!/^https?:\/\//i.test(trimmed)) {
+      toast.error(rtl ? "يجب أن يبدأ الرابط بـ https:// أو http://" : "Webhook URL must start with http:// or https://");
+      return;
+    }
+
+    setIsTestingWebhook(true);
+    try {
+      const res = await fetch("/api/settings/test-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webhookUrl: trimmed }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(
+          rtl
+            ? "تم إرسال إشعار تجريبي بنجاح واستلام استجابة 200 OK من الخادم!"
+            : "Test webhook sent successfully! Received 200 OK."
+        );
+      } else {
+        toast.error(data.error || (rtl ? "فشل الاتصال بالويب هوك" : "Failed to connect to webhook"));
+      }
+    } catch (err) {
+      console.error("Test webhook error:", err);
+      toast.error(rtl ? "حدث خطأ أثناء اختبار الويب هوك" : "An error occurred while testing webhook");
+    } finally {
+      setIsTestingWebhook(false);
     }
   };
 
@@ -1017,6 +1057,114 @@ export function SettingsSection() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Webhook & n8n WhatsApp Integration Card */}
+          <Card className="mt-6 border-primary/20 bg-linear-to-b from-background to-primary/5 shadow-sm">
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <CardTitle className={cn("flex items-center gap-2 text-lg", rtl && "font-arabic")}>
+                    <Webhook className="w-5 h-5 text-primary" />
+                    {rtl ? "إشعارات الويب هوك وتأكيد الحجوزات (n8n & WhatsApp)" : "Booking Webhook & WhatsApp Integration"}
+                  </CardTitle>
+                  <CardDescription className={cn(rtl && "font-arabic")}>
+                    {rtl
+                      ? "إرسال إشعار فوري وتلقائي عند إنشاء حجز يدوي من لوحة التحكم أو عند تأكيد حجز من الموقع."
+                      : "Triggers automatically when a manual booking is created or when a booking is confirmed on the website."}
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTestWebhook}
+                    disabled={isTestingWebhook || !bookingWebhookUrl || userRole === "demo"}
+                    className={cn("gap-1.5 border-primary/30 hover:bg-primary/10", rtl && "font-arabic")}
+                  >
+                    {isTestingWebhook ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        {rtl ? "جارِ الاختبار..." : "Testing..."}
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4 text-primary" />
+                        {rtl ? "إرسال إشعار تجريبي (Test)" : "Send Test Webhook"}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="webhookUrl" className={cn(rtl && "font-arabic")}>
+                  {rtl ? "رابط الويب هوك (n8n Webhook URL)" : "Webhook Endpoint URL"}
+                </Label>
+                <Input
+                  id="webhookUrl"
+                  value={bookingWebhookUrl}
+                  onChange={(e) => setBookingWebhookUrl(e.target.value)}
+                  placeholder="https://your-n8n.instance/webhook/noon-booking"
+                  dir="ltr"
+                  className="font-mono text-xs sm:text-sm"
+                  disabled={userRole === "demo"}
+                />
+              </div>
+
+              {/* Template Parameters Reference Box */}
+              <div className="rounded-lg border border-border/60 bg-muted/40 p-4 space-y-2 text-xs">
+                <div className="font-semibold text-foreground flex items-center justify-between">
+                  <span className={cn(rtl && "font-arabic")}>
+                    {rtl ? "متغيرات القالب المتوافقة (noon_booking_confirmationv2):" : "Mapped Template Variables (noon_booking_confirmationv2):"}
+                  </span>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-primary/10 text-primary">
+                    Category: UTILITY | Lang: ar
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 pt-1 font-mono text-[11px]">
+                  <div className="p-2 rounded bg-background border border-border/40">
+                    <span className="text-muted-foreground block font-sans">{"{{1}}"} العميل:</span>
+                    <span className="font-semibold text-primary font-sans">اسم العميل (أحمد)</span>
+                  </div>
+                  <div className="p-2 rounded bg-background border border-border/40">
+                    <span className="text-muted-foreground block font-sans">{"{{2}}"} الخدمة:</span>
+                    <span className="font-semibold text-primary font-sans">اسم الخدمة (مكياج)</span>
+                  </div>
+                  <div className="p-2 rounded bg-background border border-border/40">
+                    <span className="text-muted-foreground block font-sans">{"{{3}}"} الأخصائية:</span>
+                    <span className="font-semibold text-primary font-sans">اسم الأخصائية (هدى)</span>
+                  </div>
+                  <div className="p-2 rounded bg-background border border-border/40">
+                    <span className="text-muted-foreground block font-sans">{"{{4}}"} المدفوع:</span>
+                    <span className="font-semibold text-primary font-sans">المبلغ المدفوع (٥٠ ريال)</span>
+                  </div>
+                  <div className="p-2 rounded bg-background border border-border/40">
+                    <span className="text-muted-foreground block font-sans">{"{{5}}"} المتبقي:</span>
+                    <span className="font-semibold text-primary font-sans">المبلغ المتبقي (٢٠٥ ريال)</span>
+                  </div>
+                  <div className="p-2 rounded bg-background border border-border/40">
+                    <span className="text-muted-foreground block font-sans">{"{{6}}"} الموعد:</span>
+                    <span className="font-semibold text-primary font-sans">التاريخ والوقت بالعربية</span>
+                  </div>
+                  <div className="p-2 rounded bg-background border border-border/40 sm:col-span-2">
+                    <span className="text-muted-foreground block font-sans">{"{{7}}"} كود الحجز:</span>
+                    <span className="font-semibold text-primary font-sans">كود الحجز (CD109100 / NOON-4821)</span>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleSaveSettings}
+                disabled={isSavingSettings || userRole === "demo"}
+                className={cn("w-full gap-2 shadow-xs", rtl && "font-arabic")}
+              >
+                <Save className="w-4 h-4" />
+                {rtl ? "حفظ رابط الويب هوك" : "Save Webhook Settings"}
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* TAB 3: Team Management */}

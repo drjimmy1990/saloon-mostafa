@@ -403,6 +403,8 @@ export function BookingsSection() {
   const [mbSlotNumber, setMbSlotNumber] = useState<number | "">("");
   const [mbLocation, setMbLocation] = useState("salon");
   const [mbNotes, setMbNotes] = useState("");
+  const [mbBookingCode, setMbBookingCode] = useState("");
+  const [mbPaidAmount, setMbPaidAmount] = useState<string>("0");
   const [mbSlotsLoading, setMbSlotsLoading] = useState(false);
   const [mbStaffBlocked, setMbStaffBlocked] = useState(false);
   const [mbBlockedMessage, setMbBlockedMessage] = useState<string | null>(null);
@@ -685,6 +687,9 @@ export function BookingsSection() {
           source: 'manual',
           channelType: 'manual',
           status: 'confirmed',
+          bookingCode: mbBookingCode.trim() || undefined,
+          depositAmount: Number(mbPaidAmount) > 0 ? Number(mbPaidAmount) : 0,
+          depositStatus: Number(mbPaidAmount) > 0 ? 'paid' : 'unpaid',
         }),
       });
 
@@ -700,6 +705,7 @@ export function BookingsSection() {
         setMbStaffId(''); setMbBranchId(''); setMbDate(''); setMbTime('');
         setMbSlotNumber('');
         setMbLocation('salon'); setMbNotes('');
+        setMbBookingCode(''); setMbPaidAmount('0');
         setMbError(null);
         setMbAvailableSlots([]);
         setMbStaffBlocked(false);
@@ -2068,6 +2074,33 @@ export function BookingsSection() {
               <div className="space-y-2">
                 <Label className={cn(rtl && "font-arabic")}>{t(locale, "bookings.paymentCash")}</Label>
                 <Input value={rtl ? "كاش" : "Cash"} disabled className="bg-muted" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>
+                  {rtl ? "كود الحجز (اختياري)" : "Booking Code (Optional)"}
+                </Label>
+                <Input
+                  value={mbBookingCode}
+                  onChange={(e) => setMbBookingCode(e.target.value)}
+                  placeholder={rtl ? "توليد تلقائي (مثل NOON-4821)" : "Auto-generated (e.g. NOON-4821)"}
+                  dir="ltr"
+                  className={cn(rtl && "font-arabic")}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className={cn(rtl && "font-arabic")}>
+                  {rtl ? "المبلغ المدفوع (العربون)" : "Paid Amount (Deposit)"}
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={mbPaidAmount}
+                  onChange={(e) => setMbPaidAmount(e.target.value)}
+                  placeholder="0"
+                  dir="ltr"
+                />
               </div>
             </div>
             <div className="space-y-2">
