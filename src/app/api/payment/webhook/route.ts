@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceRoleClient } from "@/lib/supabase";
 import { verifyHmac, parsePaymentReference } from "@/lib/paymob";
+import { dispatchBookingWebhook } from "@/lib/booking-webhook";
 
 /**
  * POST /api/payment/webhook
@@ -119,6 +120,31 @@ export async function POST(req: NextRequest) {
         }
 
         console.log(`✅ Booking(s) marked as PAID & CONFIRMED (Paymob txn: ${paymobTxnId})`);
+
+        // Dispatch booking webhook(s) to n8n (non-blocking in try-catch)
+        try {
+          if (existing?.paymobIntentionId) {
+            const { data: groupBookings } = await supabase
+              .from("Booking")
+              .select("id")
+              .eq("paymobIntentionId", existing.paymobIntentionId);
+
+            if (groupBookings && groupBookings.length > 0) {
+              for (const gb of groupBookings) {
+                dispatchBookingWebhook({ bookingId: gb.id, source: "website_paymob" })
+                  .catch((e: any) => console.error("[Paymob Webhook] Webhook error:", e));
+              }
+            } else {
+              dispatchBookingWebhook({ bookingId: parsed.id, source: "website_paymob" })
+                .catch((e: any) => console.error("[Paymob Webhook] Webhook error:", e));
+            }
+          } else {
+            dispatchBookingWebhook({ bookingId: parsed.id, source: "website_paymob" })
+              .catch((e: any) => console.error("[Paymob Webhook] Webhook error:", e));
+          }
+        } catch (webhookDispatchErr) {
+          console.error("[Paymob Webhook] Error initiating webhook dispatch:", webhookDispatchErr);
+        }
       }
     } else if (!success) {
       console.log(`Paymob webhook: payment failed for ref=${merchantOrderId}, txn=${paymobTxnId}`);

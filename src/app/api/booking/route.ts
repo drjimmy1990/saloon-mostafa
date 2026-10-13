@@ -14,6 +14,7 @@ import {
   createPaymentIntention,
   isPaymobConfigured,
 } from "@/lib/paymob";
+import { dispatchBookingWebhook } from "@/lib/booking-webhook";
 
 // Generate a unique booking code like NOON-4821
 function generateBookingCode(): string {
@@ -495,6 +496,13 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      if (initialStatus === "confirmed") {
+        for (const b of createdBookings) {
+          dispatchBookingWebhook({ bookingId: b.id, source: "website" })
+            .catch((err) => console.error("[Website Booking] Webhook error:", err));
+        }
+      }
+
       return NextResponse.json({
         success: true,
         bookingId: createdBookings[0].id,
@@ -629,6 +637,11 @@ export async function POST(req: NextRequest) {
           { status: 500 }
         );
       }
+    }
+
+    if (initialStatus === "confirmed" && booking?.id) {
+      dispatchBookingWebhook({ bookingId: booking.id, source: "website" })
+        .catch((err) => console.error("[Website Booking] Webhook error:", err));
     }
 
     return NextResponse.json({
