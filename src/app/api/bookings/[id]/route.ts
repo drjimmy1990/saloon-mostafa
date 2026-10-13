@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceRoleClient } from '@/lib/supabase';
 import { getAuthUser } from '@/lib/auth';
 import { normalizePhone } from '@/lib/phone';
+import { dispatchBookingWebhook } from '@/lib/booking-webhook';
 
 const parseAsUTC = (dateStr: string) => {
   if (!dateStr) return 0;
@@ -258,6 +259,16 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       }
       throw error;
     }
+
+    // If booking was updated to confirmed, trigger confirmation webhook (non-blocking)
+    const isNowConfirmed = body.status === 'confirmed' && existingBooking.status !== 'confirmed';
+    if (isNowConfirmed) {
+      dispatchBookingWebhook({
+        bookingId: id,
+        source: (existingBooking.channelType as any) || 'manual',
+      }).catch((e) => console.error('[PUT /api/bookings/[id]] Webhook error:', e));
+    }
+
     return NextResponse.json(booking);
   } catch (error) {
     console.error(error);
